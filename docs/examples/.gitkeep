@@ -1,0 +1,21 @@
+# Diretório de Exemplos
+
+Este diretório contém exemplos de arquivos e configurações para o FinanceAI.
+
+## Estrutura esperada:
+
+```
+docs/examples/
+├── ofx/
+│   └── sample.ofx          # Exemplo de extrato OFX
+├── excel/
+│   └── sample.xlsx         # Exemplo de extrato Excel
+├── csv/
+│   └── sample.csv          # Exemplo de extrato CSV
+└── configs/
+    └── upload-config.json  # Configurações de upload
+```
+
+## Nota:
+
+Os arquivos neste diretório são ignorados pelo Git para evitar commits acidentais de dados sensíveis.
