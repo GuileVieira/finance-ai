@@ -18,11 +18,11 @@ export function Scenarios() {
             <div className="grid grid-cols-3 gap-4 text-base">
               <div>
                 <span className="text-muted-foreground">Receita:</span>
-                <div className="font-semibold text-lg">R$ {mockProjections.current.revenue.toLocaleString('pt-BR')}</div>
+                <div className="font-semibold text-green-600 text-lg">R$ {mockProjections.current.revenue.toLocaleString('pt-BR')}</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Despesas:</span>
-                <div className="font-semibold text-lg">R$ {mockProjections.current.expenses.toLocaleString('pt-BR')}</div>
+                <div className="font-semibold text-red-600 text-lg">-R$ {mockProjections.current.expenses.toLocaleString('pt-BR')}</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Margem:</span>
@@ -45,20 +45,20 @@ export function Scenarios() {
               <div className="grid grid-cols-3 gap-4 text-base">
                 <div>
                   <span className="text-muted-foreground">Receita:</span>
-                  <div className="font-semibold text-red-600 text-lg">
+                  <div className="font-semibold text-green-600 text-lg">
                     R$ {scenario.revenue.toLocaleString('pt-BR')}
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Despesas:</span>
                   <div className="font-semibold text-red-600 text-lg">
-                    R$ {scenario.expenses.toLocaleString('pt-BR')}
+                    -R$ {scenario.expenses.toLocaleString('pt-BR')}
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Resultado:</span>
-                  <div className={`font-semibold text-lg ${scenario.result > 0 ? 'text-success' : 'text-danger'}`}>
-                    R$ {scenario.result.toLocaleString('pt-BR')}
+                  <div className={`font-semibold text-lg ${scenario.result > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {scenario.result > 0 ? '+' : ''}R$ {scenario.result.toLocaleString('pt-BR')}
                   </div>
                 </div>
               </div>

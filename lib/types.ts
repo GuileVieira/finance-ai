@@ -74,7 +74,11 @@ export interface DREStatement {
   };
   fixedCosts: number;
   operationalResult: number;
-  nonOperationalExpenses: number;
+  nonOperational: {
+    revenue: number;
+    expenses: number;
+    netResult: number;
+  };
   netResult: number;
   categories: DRECategory[];
 }

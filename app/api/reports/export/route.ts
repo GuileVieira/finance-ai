@@ -74,7 +74,9 @@ function generatePDFReport(dreData: any, options: ExportOptions): Uint8Array {
     [`${dreData.contributionMargin.percentage}%`, 0],
     ['(-) CUSTO FIXO', -dreData.fixedCosts],
     ['= RESULTADO OPERACIONAL', dreData.operationalResult],
-    ['(-) DESPESAS NÃO OPERACIONAIS', -dreData.nonOperationalExpenses],
+    ['(+) RECEITAS NÃO OPERACIONAIS', dreData.nonOperational.revenue],
+    ['(-) DESPESAS NÃO OPERACIONAIS', -dreData.nonOperational.expenses],
+    ['= RESULTADO NÃO OPERACIONAL', dreData.nonOperational.netResult],
     ['= RESULTADO LÍQUIDO DE CAIXA', dreData.netResult],
   ];
 
@@ -132,7 +134,9 @@ function generateExcelReport(dreData: any, options: ExportOptions): Buffer {
     [`${dreData.contributionMargin.percentage}%`, 0],
     ['(-) CUSTO FIXO', -dreData.fixedCosts],
     ['= RESULTADO OPERACIONAL', dreData.operationalResult],
-    ['(-) DESPESAS NÃO OPERACIONAIS', -dreData.nonOperationalExpenses],
+    ['(+) RECEITAS NÃO OPERACIONAIS', dreData.nonOperational.revenue],
+    ['(-) DESPESAS NÃO OPERACIONAIS', -dreData.nonOperational.expenses],
+    ['= RESULTADO NÃO OPERACIONAL', dreData.nonOperational.netResult],
     ['= RESULTADO LÍQUIDO DE CAIXA', dreData.netResult],
   ];
 

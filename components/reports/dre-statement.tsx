@@ -256,11 +256,28 @@ export default function DREStatementComponent({
           )}
 
           {formatDRELine(
-            "(-) DESPESAS NÃO OPERACIONAIS",
-            -data.nonOperationalExpenses,
+            "(+) RECEITAS NÃO OPERACIONAIS",
+            data.nonOperational.revenue,
             false,
-            previousPeriod?.nonOperationalExpenses ? -previousPeriod.nonOperationalExpenses : undefined,
+            previousPeriod?.nonOperational?.revenue,
             1
+          )}
+
+          {formatDRELine(
+            "(-) DESPESAS NÃO OPERACIONAIS",
+            -data.nonOperational.expenses,
+            false,
+            previousPeriod?.nonOperational?.expenses ? -previousPeriod.nonOperational.expenses : undefined,
+            1
+          )}
+
+          {formatDRELine(
+            "= RESULTADO NÃO OPERACIONAL",
+            data.nonOperational.netResult,
+            true,
+            previousPeriod?.nonOperational?.netResult,
+            0,
+            data.nonOperational.netResult >= 0 ? 'text-green-600' : 'text-red-600'
           )}
 
           {formatDRELine(

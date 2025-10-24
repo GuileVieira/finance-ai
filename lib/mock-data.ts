@@ -141,7 +141,7 @@ export const mockMetrics: MetricCard[] = [
   },
   {
     title: 'Despesas',
-    value: 'R$ 87.300',
+    value: '-R$ 87.300',
     change: -8.2,
     changeType: 'decrease',
     color: '#DC2626'

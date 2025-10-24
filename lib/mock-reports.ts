@@ -14,7 +14,11 @@ export const mockDRECurrent: DREStatement = {
   },
   fixedCosts: 1556000,
   operationalResult: 150000,
-  nonOperationalExpenses: 250000,
+  nonOperational: {
+    revenue: 35000,  // Venda de equipamento antigo, juros recebidos
+    expenses: 285000, // Multas, doações, perdas com ativos
+    netResult: -250000
+  },
   netResult: -100000,
   categories: [
     {
@@ -91,7 +95,11 @@ export const mockDREPrevious: DREStatement = {
   },
   fixedCosts: 1450000,
   operationalResult: -58000,
-  nonOperationalExpenses: 220000,
+  nonOperational: {
+    revenue: 25000,  // Aluguéis recebidos, juros
+    expenses: 245000, // Multas e outras despesas não operacionais
+    netResult: -220000
+  },
   netResult: -278000,
   categories: []
 };
