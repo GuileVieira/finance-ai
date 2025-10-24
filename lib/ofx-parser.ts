@@ -1,0 +1,304 @@
+// Interface para transação OFX
+export interface OFXTransaction {
+  id?: string;
+  type: 'debit' | 'credit';
+  amount: number;
+  date: string;
+  description: string;
+  memo?: string;
+  balance?: number;
+  fitid?: string;
+  bankAccount?: string;
+  checkNumber?: string;
+}
+
+// Interface para informações do banco
+export interface OFXBankInfo {
+  bankId?: string;
+  bankName?: string;
+  accountId?: string;
+  accountType?: string;
+  accountNumber?: string;
+  branchId?: string;
+}
+
+// Interface para resultado do parser
+export interface OFXParseResult {
+  success: boolean;
+  transactions: OFXTransaction[];
+  bankInfo?: OFXBankInfo;
+  startDate?: string;
+  endDate?: string;
+  error?: string;
+}
+
+// Função principal para parse de arquivo OFX
+export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> {
+  try {
+    console.log('🔍 Iniciando parser OFX...');
+
+    // Limpar e normalizar o conteúdo
+    let content = ofxContent.trim();
+
+    // Remover cabeçalhos e linhas problemáticas
+    content = content
+      .replace(/<OFX>/gi, '')
+      .replace(/<\/OFX>/gi, '')
+      .replace(/<SIGNONMSGSRSV1>/gi, '')
+      .replace(/<\/SIGNONMSGSRSV1>/gi, '')
+      .replace(/\r?\n/g, '\n')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    console.log('📋 Conteúdo OFX limpo e normalizado');
+
+    // Extrair informações do banco
+    const bankInfo = extractBankInfo(content);
+    console.log('🏦 Informações do banco extraídas:', bankInfo);
+
+    // Extrair transações
+    const transactions = extractTransactions(content);
+    console.log(`💳 Transações extraídas: ${transactions.length}`);
+
+    if (transactions.length === 0) {
+      return {
+        success: false,
+        transactions: [],
+        error: 'Nenhuma transação encontrada no arquivo OFX'
+      };
+    }
+
+    // Ordenar transações por data
+    transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Calcular datas início e fim
+    const startDate = transactions[0]?.date;
+    const endDate = transactions[transactions.length - 1]?.date;
+
+    console.log(`📅 Período: ${startDate} a ${endDate}`);
+
+    return {
+      success: true,
+      transactions,
+      bankInfo,
+      startDate,
+      endDate
+    };
+
+  } catch (error) {
+    console.error('❌ Erro no parser OFX:', error);
+    return {
+      success: false,
+      transactions: [],
+      error: error instanceof Error ? error.message : 'Erro desconhecido no parser OFX'
+    };
+  }
+}
+
+// Extrair informações do banco
+function extractBankInfo(content: string): OFXBankInfo {
+  const bankInfo: OFXBankInfo = {};
+
+  // Regex para extrair informações bancárias
+  const patterns = {
+    bankId: /<BANKID>([^<]+)/gi,
+    bankName: /<BANKNAME>([^<]+)/gi,
+    accountId: /<ACCTID>([^<]+)/gi,
+    accountType: /<ACCTTYPE>([^<]+)/gi,
+    branchId: /<BRANCHID>([^<]+)/gi
+  };
+
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = pattern.exec(content);
+    if (match && match[1]) {
+      bankInfo[key as keyof OFXBankInfo] = match[1].trim();
+    }
+  }
+
+  // Limpar nome do banco
+  if (bankInfo.bankName) {
+    bankInfo.bankName = cleanBankName(bankInfo.bankName);
+  }
+
+  return bankInfo;
+}
+
+// Extrair transações do conteúdo OFX
+function extractTransactions(content: string): OFXTransaction[] {
+  const transactions: OFXTransaction[] = [];
+
+  // Procurar por blocos de transações
+  const transactionRegex = /<STMTTRN>([^]*?)<\/STMTTRN>/gi;
+  const matches = content.match(transactionRegex);
+
+  if (!matches) {
+    console.log('⚠️ Nenhum bloco de transação encontrado');
+    return transactions;
+  }
+
+  console.log(`📝 Encontrados ${matches.length} blocos de transação`);
+
+  for (const match of matches) {
+    try {
+      const transaction = parseTransactionBlock(match);
+      if (transaction) {
+        transactions.push(transaction);
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao processar bloco de transação:', error);
+    }
+  }
+
+  return transactions;
+}
+
+// Parse de um bloco individual de transação
+function parseTransactionBlock(block: string): OFXTransaction | null {
+  const transaction: OFXTransaction = {
+    type: 'debit',
+    amount: 0,
+    date: '',
+    description: ''
+  };
+
+  // Regex para extrair campos da transação
+  const patterns = {
+    trntype: /<TRNTYPE>([^<]+)/gi,
+    dtposted: /<DTPOSTED>([^<]+)/gi,
+    trnamt: /<TRNAMT>([^<]+)/gi,
+    fitid: /<FITID>([^<]+)/gi,
+    memo: /<MEMO>([^<]+)/gi,
+    name: /<NAME>([^<]+)/gi,
+    checknum: /<CHECKNUM>([^<]+)/gi
+  };
+
+  // Extrair valores
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = pattern.exec(block);
+    if (match && match[1]) {
+      const value = match[1].trim();
+
+      switch (key) {
+        case 'trntype':
+          transaction.type = value.toLowerCase() === 'credit' ? 'credit' : 'debit';
+          break;
+        case 'dtposted':
+          transaction.date = parseOFXDate(value);
+          break;
+        case 'trnamt':
+          transaction.amount = parseFloat(value.replace(',', '.'));
+          break;
+        case 'fitid':
+          transaction.fitid = value;
+          break;
+        case 'memo':
+          transaction.memo = cleanText(value);
+          break;
+        case 'name':
+          transaction.description = cleanText(value);
+          break;
+        case 'checknum':
+          transaction.checkNumber = value;
+          break;
+      }
+    }
+  }
+
+  // Se não tiver descrição, usar o memo
+  if (!transaction.description && transaction.memo) {
+    transaction.description = transaction.memo;
+  }
+
+  // Se ainda não tiver descrição, criar uma genérica
+  if (!transaction.description) {
+    transaction.description = `${transaction.type === 'credit' ? 'Crédito' : 'Débito'} - ${transaction.date}`;
+  }
+
+  // Criar ID se não tiver
+  if (!transaction.id) {
+    transaction.id = `${transaction.date}_${Math.abs(transaction.amount)}_${transaction.description.substring(0, 20)}`;
+  }
+
+  // Validar transação
+  if (!transaction.date || isNaN(transaction.amount) || !transaction.description) {
+    console.warn('⚠️ Transação inválida ignorada:', transaction);
+    return null;
+  }
+
+  return transaction;
+}
+
+// Parse de data no formato OFX (YYYYMMDDHHMMSS)
+function parseOFXDate(dateString: string): string {
+  // Remove timezone e formata
+  const cleanDate = dateString.replace(/\[.*?\]/g, '').trim();
+
+  try {
+    // Formato esperado: YYYYMMDDHHMMSS
+    if (cleanDate.length >= 14) {
+      const year = cleanDate.substring(0, 4);
+      const month = cleanDate.substring(4, 6);
+      const day = cleanDate.substring(6, 8);
+      const hour = cleanDate.substring(8, 10);
+      const minute = cleanDate.substring(10, 12);
+
+      return `${year}-${month}-${day}T${hour}:${minute}:00.000Z`;
+    }
+
+    // Formato alternativo: YYYYMMDD
+    if (cleanDate.length >= 8) {
+      const year = cleanDate.substring(0, 4);
+      const month = cleanDate.substring(4, 6);
+      const day = cleanDate.substring(6, 8);
+
+      return `${year}-${month}-${day}T00:00:00.000Z`;
+    }
+
+    throw new Error(`Formato de data não reconhecido: ${dateString}`);
+  } catch (error) {
+    console.warn('⚠️ Erro ao parsear data:', dateString, error);
+    return new Date().toISOString();
+  }
+}
+
+// Limpar nome do banco
+function cleanBankName(bankName: string): string {
+  return bankName
+    .replace(/[_-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+// Limpar texto de transação
+function cleanText(text: string): string {
+  if (!text) return '';
+
+  return text
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remover caracteres de controle
+    .replace(/\s+/g, ' ') // Normalizar espaços
+    .trim();
+}
+
+// Validação de transação
+export function validateTransaction(transaction: OFXTransaction): boolean {
+  return !!(
+    transaction.description &&
+    transaction.date &&
+    !isNaN(transaction.amount) &&
+    transaction.amount !== 0
+  );
+}
+
+// Classificar tipo de transação
+export function getTransactionType(amount: number): 'credit' | 'debit' {
+  return amount > 0 ? 'credit' : 'debit';
+}
+
+// Formatar valor para exibição
+export function formatAmount(amount: number): string {
+  const formatted = Math.abs(amount).toFixed(2);
+  return amount > 0 ? `+R$ ${formatted}` : `-R$ ${formatted}`;
+}

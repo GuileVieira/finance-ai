@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { OFXParserService, ParsedOFX, ParsedTransaction } from '@/lib/services/ofx-parser.service';
-import { Upload, FileText, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign, Eye, Loader2, X } from 'lucide-react';
+import { SQLiteSaveService } from '@/lib/services/sqlite-save.service';
+import { Upload, FileText, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign, Eye, Loader2, X, Save, Download, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface UploadedFile {
@@ -26,9 +27,12 @@ interface UploadedFile {
 export default function UploadPage() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedStats, setSavedStats] = useState<any>(null);
   const { toast } = useToast();
 
   const ofxParser = new OFXParserService();
+  const saveService = SQLiteSaveService.getInstance();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -46,19 +50,33 @@ export default function UploadPage() {
   };
 
   const processFile = async (file: File): Promise<UploadedFile> => {
-    const fileId = Math.random().toString(36).substr(2, 9);
+    // Gerar ID estável baseado no nome do arquivo e timestamp
+    const fileId = `${file.name}_${Date.now()}_${file.size}`.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 20);
 
     try {
       if (file.name.toLowerCase().includes('.ofx')) {
+        // 1. Parser do OFX
+        console.log(`🔍 Fazendo parser do arquivo: ${file.name}`);
         const data = await ofxParser.parseFile(file);
         const analysis = ofxParser.analyzeOFXData(data);
+
+        // 2. Classificar cada transação com IA
+        console.log(`🤖 Classificando ${data.transactions.length} transações com IA...`);
+        const classifiedTransactions = await classifyTransactions(data.transactions, file.name, data.accountInfo);
 
         return {
           file,
           id: fileId,
           status: 'completed',
-          data,
-          analysis
+          data: {
+            ...data,
+            transactions: classifiedTransactions
+          },
+          analysis: {
+            ...analysis,
+            categoryDistribution: getCategoryDistribution(classifiedTransactions),
+            averageConfidence: getAverageConfidence(classifiedTransactions)
+          }
         };
       } else {
         throw new Error('Formato de arquivo não suportado. Use arquivos .ofx');
@@ -73,12 +91,136 @@ export default function UploadPage() {
     }
   };
 
+  // Função para classificar transações usando a API
+  const classifyTransactions = async (transactions: any[], fileName: string, accountInfo: any) => {
+    const classifiedTransactions = [];
+
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+
+      try {
+        console.log(`📝 Classificando transação ${i + 1}/${transactions.length}: ${transaction.description}`);
+
+        // Chamar API de classificação
+        const classifyResponse = await fetch('/api/ai/work-categorize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            description: transaction.description,
+            amount: transaction.amount,
+            memo: transaction.memo,
+            fileName: fileName,
+            bankName: accountInfo.bankId,
+            date: transaction.date.toISOString(),
+            balance: undefined
+          })
+        });
+
+        if (!classifyResponse.ok) {
+          console.error(`❌ Erro ao classificar transação ${i + 1}:`, classifyResponse.statusText);
+          classifiedTransactions.push({
+            ...transaction,
+            category: 'Utilidades e Insumos',
+            confidence: 0.1,
+            reasoning: `Erro na classificação: ${classifyResponse.statusText}`,
+            source: 'ai'
+          });
+        } else {
+          const classifyResult = await classifyResponse.json();
+          if (classifyResult.success) {
+            console.log(`✅ Transação ${i + 1} classificada:`, classifyResult.data.category);
+            classifiedTransactions.push({
+              ...transaction,
+              ...classifyResult.data
+            });
+          } else {
+            console.error(`❌ Erro na resposta da classificação ${i + 1}:`, classifyResult.error);
+            classifiedTransactions.push({
+              ...transaction,
+              category: 'Utilidades e Insumos',
+              confidence: 0.1,
+              reasoning: `Erro na resposta: ${classifyResult.error}`,
+              source: 'ai'
+            });
+          }
+        }
+
+        // Pequeno delay para não sobrecarregar a API
+        if (i < transactions.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+      } catch (error) {
+        console.error(`❌ Erro ao classificar transação ${i + 1}:`, error);
+        classifiedTransactions.push({
+          ...transaction,
+          category: 'Utilidades e Insumos',
+          confidence: 0.1,
+          reasoning: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+          source: 'ai'
+        });
+      }
+    }
+
+    return classifiedTransactions;
+  };
+
+  // Obter distribuição por categoria
+  const getCategoryDistribution = (transactions: any[]) => {
+    return transactions.reduce((stats, transaction) => {
+      const category = transaction.category || 'Não classificado';
+      stats[category] = (stats[category] || 0) + 1;
+      return stats;
+    }, {} as Record<string, number>);
+  };
+
+  // Obter confiança média
+  const getAverageConfidence = (transactions: any[]) => {
+    const validTransactions = transactions.filter(t => t.confidence !== undefined);
+    if (validTransactions.length === 0) return 0;
+
+    const totalConfidence = validTransactions.reduce((sum, t) => sum + t.confidence, 0);
+    return totalConfidence / validTransactions.length;
+  };
+
+  // Obter cor para categoria
+  const getCategoryColor = (category?: string): string => {
+    if (!category) return 'bg-gray-100 text-gray-800';
+
+    const colors: Record<string, string> = {
+      'Vendas de Produtos': 'bg-green-100 text-green-800',
+      'Salários e Encargos': 'bg-red-100 text-red-800',
+      'Aluguel e Ocupação': 'bg-purple-100 text-purple-800',
+      'Tecnologia e Software': 'bg-blue-100 text-blue-800',
+      'Serviços Profissionais': 'bg-yellow-100 text-yellow-800',
+      'Custos de Produtos': 'bg-orange-100 text-orange-800',
+      'Logística e Distribuição': 'bg-indigo-100 text-indigo-800',
+      'Tributos e Contribuições': 'bg-pink-100 text-pink-800',
+      'Utilidades e Insumos': 'bg-gray-100 text-gray-800',
+      'Manutenção e Serviços': 'bg-teal-100 text-teal-800',
+      'Financeiros e Bancários': 'bg-cyan-100 text-cyan-800',
+    };
+
+    return colors[category] || 'bg-gray-100 text-gray-800';
+  };
+
+  // Obter cor para confiança
+  const getConfidenceColor = (confidence?: number): string => {
+    if (!confidence) return 'bg-red-100 text-red-800';
+    if (confidence >= 0.8) return 'bg-green-100 text-green-800';
+    if (confidence >= 0.6) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsProcessing(true);
 
     const newFiles = acceptedFiles.map(file => ({
       file,
-      id: Math.random().toString(36).substr(2, 9),
+      // Gerar ID estável baseado no arquivo
+      id: `${file.name}_${file.size}_${Date.now()}`.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 25),
       status: 'processing' as const
     }));
 
@@ -131,6 +273,81 @@ export default function UploadPage() {
   const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   };
+
+  // Função para salvar transações
+  const saveTransactions = async (file: UploadedFile) => {
+    if (!file.data?.transactions) return;
+
+    setIsSaving(true);
+    try {
+      await saveService.saveTransactions(
+        file.data.transactions,
+        file.file.name,
+        file.data.accountInfo?.bankId
+      );
+
+      toast({
+        title: 'Transações Salvas!',
+        description: `${file.data.transactions.length} transações foram salvas com sucesso.`,
+      });
+
+      // Atualizar estatísticas
+      const stats = await saveService.getStatistics();
+      setSavedStats(stats);
+
+    } catch (error) {
+      console.error('Erro ao salvar transações:', error);
+      toast({
+        title: 'Erro ao Salvar',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao salvar as transações.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Função para exportar transações salvas
+  const exportSavedTransactions = async () => {
+    try {
+      const jsonData = await saveService.exportTransactions();
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `transacoes_salvas_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Exportação Concluída',
+        description: 'Transações exportadas para JSON com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao exportar transações:', error);
+      toast({
+        title: 'Erro na Exportação',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao exportar as transações.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Carregar estatísticas ao iniciar
+  React.useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const stats = await saveService.getStatistics();
+        setSavedStats(stats);
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+      }
+    };
+    loadStats();
+  }, []);
 
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
   const errorFiles = uploadedFiles.filter(f => f.status === 'error');
@@ -241,13 +458,27 @@ export default function UploadPage() {
                               {file.data?.accountInfo.bankId} - Conta {file.data?.accountInfo.accountId}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(file.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              onClick={() => saveTransactions(file)}
+                              disabled={isSaving}
+                              className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                              {isSaving ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Save className="w-4 h-4 mr-2" />
+                              )}
+                              {isSaving ? 'Salvando...' : 'Salvar Transações'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(file.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -307,7 +538,9 @@ export default function UploadPage() {
                               <TableRow>
                                 <TableHead>Data</TableHead>
                                 <TableHead>Descrição</TableHead>
+                                <TableHead>Categoria</TableHead>
                                 <TableHead>Tipo</TableHead>
+                                <TableHead>Confiança</TableHead>
                                 <TableHead className="text-right">Valor</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -330,8 +563,18 @@ export default function UploadPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell>
+                                    <Badge variant="outline" className={getCategoryColor(tx.category)}>
+                                      {tx.category || 'Não classificado'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
                                     <Badge variant={tx.type === 'credit' ? 'default' : 'secondary'}>
                                       {tx.type === 'credit' ? 'Crédito' : 'Débito'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={getConfidenceColor(tx.confidence)}>
+                                      {tx.confidence ? `${(tx.confidence * 100).toFixed(0)}%` : 'N/A'}
                                     </Badge>
                                   </TableCell>
                                   <TableCell className={`text-right font-medium ${
@@ -387,6 +630,67 @@ export default function UploadPage() {
           </Card>
         )}
 
+        {/* Estatísticas de Transações Salvas */}
+        {savedStats && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Estatísticas de Transações Salvas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {savedStats.totalTransactions}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total Salvas</p>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">
+                    R$ {savedStats.totalAmount.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Valor Total</p>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {Object.keys(savedStats.categoryDistribution || {}).length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Categorias</p>
+                </div>
+                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {(savedStats.averageConfidence * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-sm text-muted-foreground">Confiança Média</p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  {Object.entries(savedStats.categoryDistribution || {}).map(([category, count]) => (
+                    <span key={category} className="mr-4">
+                      {category}: <strong>{count}</strong>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={exportSavedTransactions}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar JSON
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Informações Adicionais */}
         <Card>
           <CardHeader>
@@ -399,7 +703,10 @@ export default function UploadPage() {
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Importação de arquivos OFX</li>
                   <li>• Processamento automático de transações</li>
-                  <li>• Análise financeira básica</li>
+                  <li>• <strong>Categorização inteligente com IA</strong></li>
+                  <li>• <strong>Pesquisa automática de empresas (CNPJ/CNAE)</strong></li>
+                  <li>• <strong>Confiança de classificação</strong></li>
+                  <li>• Análise financeira avançada</li>
                   <li>• Visualização de dados estruturados</li>
                   <li>• Detecção de banco e conta</li>
                 </ul>
@@ -408,10 +715,11 @@ export default function UploadPage() {
                 <h4 className="font-medium text-blue-600">🚀 Em Breve</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Importação de múltiplos arquivos</li>
-                  <li>• Categorização automática com IA</li>
+                  <li>• Botão Salvar funcional (persistência no banco)</li>
                   <li>• Suporte para Excel (XLS/XLSX)</li>
                   <li>• Regras personalizadas de categorização</li>
-                  <li>• Integração com sistema financeiro</li>
+                  <li>• Integração com sistema financeiro completo</li>
+                  <li>• Edição manual de categorias</li>
                 </ul>
               </div>
             </div>

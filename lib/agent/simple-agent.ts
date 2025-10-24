@@ -1,117 +1,8 @@
-import { tool } from "@langchain/core/tools";
-import { z } from "zod";
-import { completion } from 'litellm';
+// Simple Agent - Front-end Wrapper para API principal
+// Este é apenas um wrapper para testes que chama a API work-categorize
 
-// Ferramenta de busca web
-const searchTool = tool(({ query }) => {
-  // Simulação de busca - em produção usaria DuckDuckGo ou outra API
-  return `Resultados da busca para: ${query}`;
-}, {
-  name: "search",
-  description: "Ferramenta para buscar informações na web",
-  schema: z.object({
-    query: z.string().describe("Query para buscar na web")
-  })
-});
+export const agentTools = []; // Sem ferramentas próprias - usa API principal
 
-// Ferramenta de categorização
-const categorizeTool = tool(({ description, amount }) => {
-  // Categorias simples brasileiras
-  const categories = [
-    "Alimentação", "Transporte", "Moradia", "Saúde", "Educação",
-    "Lazer", "Vestuário", "Impostos", "Outras Despesas",
-    "Salário", "Vendas", "Investimentos", "Outras Receitas"
-  ];
-
-  // Lógica simples de categorização baseada em palavras-chave
-  const desc = description.toLowerCase();
-  let category = "Outras Despesas";
-
-  if (desc.includes("ifood") || desc.includes("restaurante") || desc.includes("lanche")) {
-    category = "Alimentação";
-  } else if (desc.includes("uber") || desc.includes("taxi") || desc.includes("transporte")) {
-    category = "Transporte";
-  } else if (desc.includes("aluguel") || desc.includes("condominio")) {
-    category = "Moradia";
-  } else if (desc.includes("salario") || desc.includes("folha")) {
-    category = "Salário";
-  } else if (desc.includes("venda") || desc.includes("receita")) {
-    category = "Vendas";
-  }
-
-  return {
-    category,
-    confidence: 0.8,
-    reasoning: `Categoria "${category}" identificada baseada nas palavras-chave da descrição`
-  };
-}, {
-  name: "categorize",
-  description: "Categoriza uma transação financeira",
-  schema: z.object({
-    description: z.string().describe("Descrição da transação"),
-    amount: z.number().describe("Valor da transação")
-  })
-});
-
-// Configuração dos modelos com sistema de fallback
-const AI_MODELS = {
-  primary: process.env.AI_MODEL_PRIMARY || 'gemini/gemini-2.5-flash',
-  fallback: process.env.AI_MODEL_FALLBACK || 'openai/gpt-5-mini'
-};
-
-// Configuração do modelo LiteLLM
-const llmConfig = {
-  model: AI_MODELS.primary,
-  api_key: process.env.OPENROUTER_API_KEY,
-  api_base: 'https://openrouter.ai/api/v1',
-  temperature: 0.1,
-  max_tokens: 2000
-};
-
-// Função wrapper para LiteLLM com sistema de fallback
-const llm = async (messages: Array<{role: string, content: string}>) => {
-  const modelsToTry = [AI_MODELS.primary, AI_MODELS.fallback];
-
-  for (const model of modelsToTry) {
-    try {
-      const response = await completion(model, messages, {
-        temperature: llmConfig.temperature,
-        max_tokens: llmConfig.max_tokens,
-        api_base: llmConfig.api_base,
-        api_key: llmConfig.api_key
-      });
-
-      if (!response || !response.choices || response.choices.length === 0) {
-        throw new Error('Resposta inválida da API');
-      }
-
-      const content = response.choices[0].message?.content || '';
-
-      if (content) {
-        return content;
-      }
-
-      throw new Error('Resposta vazia da API');
-    } catch (error) {
-      console.error(`Erro no modelo ${model}:`, error);
-
-      // Se for o último modelo da lista, lança o erro
-      if (model === modelsToTry[modelsToTry.length - 1]) {
-        throw new Error(`Erro em todos os modelos: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-      }
-
-      // Tenta o próximo modelo
-      continue;
-    }
-  }
-
-  throw new Error('Nenhum modelo disponível');
-};
-
-// Definir as ferramentas disponíveis para o agente
-export const agentTools = [searchTool, categorizeTool];
-
-// Função para executar o agente
 export async function runSimpleAgent(
   description: string,
   amount: number
@@ -119,73 +10,61 @@ export async function runSimpleAgent(
   category: string;
   confidence: number;
   reasoning: string;
-  source: 'rule_based' | 'ai';
+  source: 'rule_based' | 'ai' | 'company_research';
   processingTime: number;
 }> {
   const startTime = Date.now();
 
   try {
-    // Primeiro tenta categorização baseada em regras
-    const categorizeResult = await categorizeTool.invoke({ description, amount });
-    const parsedResult = categorizeResult;
+    console.log('🔄 Simple Agent: Chamando API principal (work-categorize)...');
 
-    // Se confiança for alta, retorna resultado baseado em regras
-    if (parsedResult.confidence >= 0.8) {
-      return {
-        ...parsedResult,
-        source: 'rule_based',
-        processingTime: Date.now() - startTime
-      };
+    // Chamar a API principal de categorização
+    const response = await fetch('http://localhost:3000/api/ai/work-categorize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        description,
+        amount,
+        // Passar contexto adicional se disponível
+        memo: undefined,
+        fileName: undefined,
+        bankName: undefined,
+        date: undefined,
+        balance: undefined
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    // Senão, usa o agente com IA
-    const messages = [
-      {
-        role: "system",
-        content: `Você é um especialista em finanças pessoais.
-Categorize a seguinte transação financeira em uma das categorias:
-- Alimentação
-- Transporte
-- Moradia
-- Saúde
-- Educação
-- Lazer
-- Vestuário
-- Impostos
-- Outras Despesas
-- Salário
-- Vendas
-- Investimentos
-- Outras Receitas
+    const result = await response.json();
 
-Responda apenas com o nome da categoria e uma breve justificativa.`
-      },
-      {
-        role: "user",
-        content: `Descrição: "${description}"\nValor: R$ ${amount.toFixed(2)}`
-      }
-    ];
+    if (!result.success) {
+      throw new Error(result.error || 'Erro na API de categorização');
+    }
 
-    const aiResponse = await llm(messages);
-    const processingTime = Date.now() - startTime;
+    const data = result.data;
 
-    // Extrai categoria da resposta
-    const categoryMatch = aiResponse.match(/^(.+)$/m)?.[1] || "Outras Despesas";
+    console.log('✅ Simple Agent: Resposta da API principal recebida:', data);
 
     return {
-      category: categoryMatch.trim(),
-      confidence: 0.7,
-      reasoning: aiResponse,
-      source: 'ai',
-      processingTime
+      category: data.category,
+      confidence: data.confidence,
+      reasoning: data.reasoning || 'Classificado via API principal',
+      source: data.source || 'ai',
+      processingTime: Date.now() - startTime
     };
 
   } catch (error) {
-    console.error('Erro no agente:', error);
+    console.error('❌ Simple Agent: Erro ao chamar API principal:', error);
+
     return {
-      category: "Outras Despesas",
+      category: "Utilidades e Insumos",
       confidence: 0.1,
-      reasoning: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+      reasoning: `Erro no wrapper: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
       source: 'ai',
       processingTime: Date.now() - startTime
     };
