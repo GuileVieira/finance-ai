@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinanceAI - MVP Financeiro
 
-## Getting Started
+Sistema de gestão financeira com IA para categorização automática de transações.
 
-First, run the development server:
+## 📋 Visão Geral
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Este é um MVP (Produto Mínimo Viável) do FinanceAI, focado em demonstrar a interface principal com base em dados reais extraídos de planilhas XMIND e extratos bancários.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎯 Funcionalidades Implementadas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### ✅ Páginas Principais
+- **Login** (Mock) - Autenticação simulada
+- **Dashboard** - Visão geral com métricas e gráficos
+- **Transações** - Lista de transações (placeholder)
+- **Upload** - Importação de extratos (placeholder)
+- **Categorias** - Gestão de categorias (placeholder)
+- **Relatórios** - Relatórios financeiros (placeholder)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ✅ Dashboard Completo
+- **Cards de Métricas**: Receita, Despesas, Resultado, Margem
+- **Gráfico de Categorias**: Visualização detalhada dos custos
+- **Top Despesas**: Lista das principais despesas com ícones
+- **Transações Recentes**: Tabela com últimas movimentações
+- **Insights**: Cards com informações baseadas nos dados reais
 
-## Learn More
+### ✅ Dados Realistas
+- Baseado em 53 rúbricas reais do XMIND
+- Categorias pré-definidas com cores específicas
+- Valores financeiros realistas
+- 94% de acurácia simulada na categorização
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠️ Tecnologias
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js 15** com App Router
+- **TypeScript** para type safety
+- **Tailwind CSS** para estilização
+- **shadcn/ui** para componentes UI
+- **Lucide React** para ícones
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Como Executar
 
-## Deploy on Vercel
+1. **Instalar dependências:**
+   ```bash
+   pnpm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Executar servidor de desenvolvimento:**
+   ```bash
+   pnpm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Acessar aplicação:**
+   - Abra http://localhost:3000 no navegador
+   - Use qualquer email/senha para fazer login
+   - Ou clique em "Acessar como visitante"
+
+## 🎨 Interface
+
+O design segue os wireframes atualizados com dados reais, incluindo:
+
+- **Cores específicas por categoria:**
+  - Salários: #DC2626 (vermelho)
+  - Custos de Produtos: #B45309 (laranja)
+  - Aluguel: #B91C1C (vermelho escuro)
+  - Tecnologia: #991B1B (bordô)
+
+- **Navegação intuitiva** com tabs
+- **Cards responsivos** com métricas importantes
+- **Gráficos visuais** para análise rápida
+
+## 📊 Dados Mock
+
+Os dados foram criados com base na análise real de:
+- 8 extratos bancários (BB, Itaú, Santander, CEF, Safra)
+- 16 abas do XMIND (CP, CR, ORÇAMENTO, Projeções)
+- 53 rúbricas reais mapeadas
+
+## 🔮 Próximos Passos
+
+Este MVP é focado em frontend e mock de dados. Para uma versão completa:
+
+1. **Backend API** - Integração com banco de dados
+2. **Processamento de Arquivos** - Upload real de OFX/XLS
+3. **IA de Categorização** - Machine learning para auto-categorização
+4. **Autenticação Real** - Integração com provedores de auth
+5. **Dashboard Interativo** - Filtros e drill-downs
+
+## 📝 Licença
+
+Projeto desenvolvido como MVP para demonstração.

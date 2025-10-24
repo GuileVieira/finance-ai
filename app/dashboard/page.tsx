@@ -1,0 +1,87 @@
+'use client';
+
+import { MetricCard } from '@/components/dashboard/metric-card';
+import { CategoryChart } from '@/components/dashboard/category-chart';
+import { TopExpenses } from '@/components/dashboard/top-expenses';
+import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { Insights } from '@/components/dashboard/insights';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Upload } from 'lucide-react';
+import { mockMetrics, mockCategories } from '@/lib/mock-data';
+
+export default function DashboardPage() {
+  return (
+    <div className="space-y-6">
+      {/* Header com filtros */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral das suas finanças
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Select defaultValue="setembro-2025">
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="setembro-2025">Setembro/2025</SelectItem>
+              <SelectItem value="agosto-2025">Agosto/2025</SelectItem>
+              <SelectItem value="julho-2025">Julho/2025</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select defaultValue="todas">
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              <SelectItem value="bb">Banco do Brasil</SelectItem>
+              <SelectItem value="itau">Itaú</SelectItem>
+              <SelectItem value="santander">Santander</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload
+          </Button>
+        </div>
+      </div>
+
+      {/* Cards de métricas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {mockMetrics.map((metric, index) => (
+          <MetricCard key={index} metric={metric} />
+        ))}
+      </div>
+
+      {/* Grid principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Gráfico de categorias */}
+        <div className="lg:col-span-2">
+          <CategoryChart categories={mockCategories} />
+        </div>
+
+        {/* Top Despesas */}
+        <div>
+          <TopExpenses />
+        </div>
+      </div>
+
+      {/* Segunda linha */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Transações Recentes */}
+        <div className="lg:col-span-2">
+          <RecentTransactions />
+        </div>
+
+        {/* Insights */}
+        <div>
+          <Insights />
+        </div>
+      </div>
+    </div>
+  );
+}
