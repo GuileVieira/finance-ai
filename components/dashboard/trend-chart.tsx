@@ -17,7 +17,7 @@ export function TrendChart() {
             <XAxis dataKey="month" />
             <YAxis />
             <Tooltip
-              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')`, '']}
+              formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
             />
             <Legend />
