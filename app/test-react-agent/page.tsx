@@ -1,0 +1,709 @@
+'use client';
+
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+
+// Interface para o histórico de mensagens
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  isStreaming?: boolean;
+}
+
+// Interface para estado da conversa
+interface ConversationState {
+  messages: ChatMessage[];
+  input: string;
+  isLoading: boolean;
+  isStreaming: boolean;
+}
+
+interface ToolCall {
+  id: string;
+  name: string;
+  args: Record<string, any>;
+}
+
+interface AgentState {
+  conversationState: ConversationState;
+  availableTools: Array<{
+    id: string;
+    name: string;
+    description: string;
+    schema: Record<string, any>;
+  }>;
+  lastToolCall: ToolCall | null;
+}
+
+const TestReactAgent: React.FC = () => {
+  const [conversationState, setConversationState] = useState<ConversationState>({
+    messages: [],
+    input: '',
+    isLoading: false,
+    isStreaming: false
+  });
+
+  const [agentState, setAgentState] = useState<AgentState>({
+    conversationState: conversationState,
+    availableTools: [
+      {
+        id: 'categorize_transaction',
+        name: 'Categorizar Transação',
+        description: 'Categoriza uma transação financeira baseada na descrição e valor usando regras pré-definidas e IA',
+        schema: {
+          description: 'string - Descrição da transação',
+          amount: 'number - Valor da transação'
+        }
+      },
+      {
+        id: 'search_company',
+        name: 'Buscar Empresa',
+        description: 'Busca informações sobre a empresa mencionada na transação',
+        schema: {
+          description: 'string - Nome da empresa para buscar'
+        }
+      },
+      {
+        id: 'validate_cnpj',
+        name: 'Validar CNPJ',
+        description: 'Valida se há CNPJ na descrição',
+        schema: {
+          description: 'string - Texto que pode conter CNPJ'
+        }
+      },
+      {
+        id: 'analyze_context',
+        name: 'Analisar Contexto',
+        description: 'Analisa o contexto financeiro da transação',
+        schema: {
+          description: 'string - Texto completo para análise'
+        }
+      }
+    ],
+    lastToolCall: null
+  });
+
+  // Categorias financeiras
+  const categories = {
+    alimentacao: 'Alimentação',
+    transporte: 'Transporte',
+    moradia: 'Moradia',
+    saude: 'Saúde',
+    educacao: 'Educação',
+    lazer: 'Lazer',
+    vestuario: 'Vestuário',
+    impostos: 'Impostos',
+    outras_despesas: 'Outras Despesas',
+    salario: 'Salário',
+    vendas: 'Vendas',
+    investimentos: 'Investimentos',
+    outras_receitas: 'Outras Receitas'
+  };
+
+  // Função de categorização por regras
+  const categorizeByRules = (description: string, amount: number) => {
+    const desc = description.toLowerCase();
+
+    // Regras específicas para o Brasil
+    if (desc.includes('ifood') || desc.includes('restaurante') || desc.includes('lanche')) {
+      return categories.alimentacao;
+    }
+    if (desc.includes('uber') || desc.includes('99taxi') || desc.includes('transporte')) {
+      return categories.transporte;
+    }
+    if (desc.includes('aluguel') || desc.includes('condominio')) {
+      return categories.moradia;
+    }
+    if (desc.includes('salario') || desc.includes('folha') || desc.includes('contracheque')) {
+      return categories.salario;
+    }
+    if (desc.includes('venda') || desc.includes('receita')) {
+      return categories.vendas;
+    }
+    if (desc.includes('investimento') || desc.includes('aplicação')) {
+      return categories.investimentos;
+    }
+
+    return categories.outras_despesas;
+  };
+
+  // Função para processar resposta da IA
+  const processAgentResponse = (response: string, isStreaming: boolean = false) => {
+    try {
+      // Tentar extrair JSON da resposta
+      let cleanedResponse = response;
+
+      // Remover marcadores de código se existirem
+      cleanedResponse = cleanedResponse.replace(/```json\n?/, '');
+      cleanedResponse = cleanedResponse.replace(/\n```\n?/, '');
+
+      // Tentar fazer parse do JSON
+      try {
+        const parsed = JSON.parse(cleanedResponse);
+        return parsed;
+      } catch {
+        // Se não conseguir parse, tenta extrair categoria com regex
+        const categoryMatch = cleanedResponse.match(/"categoria":\s*([^",]+)\s*"/);
+        const confidenceMatch = cleanedResponse.match(/"confiança":\s*(\d+\.?\d+%)/);
+
+        const category = categoryMatch ? categoryMatch[1] : categories.outras_despesas;
+        const confidence = confidenceMatch ?
+          parseFloat(confidenceMatch[1]) / 100 : 0.6;
+
+        return {
+          category,
+          confidence,
+          reasoning: `Extraído com regex: ${category} com confiança ${confidence}`,
+          source: 'ai'
+        };
+      }
+    } catch (error) {
+      console.error('Erro ao processar resposta:', error);
+      return {
+        category: categories.outras_despesas,
+        confidence: 0.5,
+        reasoning: `Erro no processamento: ${error.message}`,
+        source: 'ai'
+      };
+    }
+  };
+
+  // Simular chamada à API (em um ambiente real, usaria fetch)
+  const simulateAPI = async (messages: Array<{role: string, content: string }>) => {
+    // Simulação de resposta da IA com diferentes cenários
+    const testCases = [
+      { input: 'iFood', expectedOutput: categories.alimentacao },
+      { input: 'Uber 50.00', expectedOutput: categories.transporte },
+      { input: 'Aluguel 2000.00', expectedOutput: categories.moradia },
+      { input: 'Supermercado 300.00', expectedOutput: categories.vestuario },
+      { input: 'Netflix 39.90', expectedOutput: categories.lazer },
+      { input: 'Salário 5000.00', expectedOutput: categories.salario },
+    ];
+
+    const testCase = testCases.find(tc => tc.input === messages[0]?.content);
+    return testCase ? {
+      category: testCase.expectedOutput,
+      confidence: 0.9,
+      reasoning: `Classificado como "${testCase.expectedOutput}" baseado no teste`,
+      source: 'ai'
+    } : {
+      category: categories.outras_despesas,
+      confidence: 0.5,
+      reasoning: 'Nenhum dos casos de teste correspondeu',
+      source: 'ai'
+    };
+  };
+
+  // Gerar ID único para cada tool call
+  const generateToolCallId = () => {
+    return `tool_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Mensagem do sistema para tool calls
+  const generateSystemMessage = (toolCall: ToolCall): string => {
+    return JSON.stringify({
+      type: 'tool_call',
+      tool_call_id: toolCall.id,
+      tool_name: toolCall.name,
+      args: JSON.stringify(toolCall.args)
+    });
+  };
+
+  // Enviar mensagens do sistema
+  const addSystemMessage = (content: string, toolCall?: ToolCall) => {
+    const message: {
+      role: 'system',
+      content: toolCall ? generateSystemMessage(toolCall) : content
+    };
+
+    setConversationState(prev => ({
+      ...prev,
+      messages: [...prev.messages, message],
+      lastToolCall: toolCall || null
+    }));
+  };
+
+  // Enviar mensagens do usuário
+  const addUserMessage = (content: string) => {
+    const message: {
+      role: 'user',
+      content: content
+    };
+
+    setConversationState(prev => ({
+      ...prev,
+      messages: [...prev.messages, message]
+    }));
+  };
+
+  // Enviar mensagens do assistente
+  const addAssistantMessage = (content: string, isStreaming: boolean = false) => {
+    const message = {
+      role: 'assistant',
+      content: content,
+      ...(isStreaming ? { metadata: { type: 'stream_start' } } : {})
+    };
+
+    setConversationState(prev => ({
+      ...prev,
+      messages: [...prev.messages, message],
+      isStreaming: isStreaming
+    }));
+  };
+
+  // Enviar chunks de streaming
+  const addAssistantChunk = (content: string) => {
+    const message = {
+      role: 'assistant',
+      content: content,
+      ...(agentState.isStreaming ? { metadata: { type: 'stream_chunk' } } : {})
+    };
+
+    setConversationState(prev => {
+      ...prev,
+      messages: [...prev.messages, message]
+    }));
+  };
+
+  // Executar tool específica
+  const executeTool = async (toolName: string, args: Record<string, any>) => {
+    const tool = agentState.availableTools.find(t => t.id === toolName);
+    if (!tool) {
+      return { error: `Ferramenta "${toolName}" não encontrada` };
+    }
+
+    addSystemMessage(`Executando ferramenta: ${toolName} com args: ${JSON.stringify(args)}`);
+    setAgentState(prev => ({ ...prev, lastToolCall: { id: generateToolCallId(), name: toolName, args } }));
+
+    // Simular execução da ferramenta (em produção, chamaria API real)
+    const executeToolReal = async (toolName: string, args: Record<string, any>) => {
+    if (toolName === 'search_company') {
+      return {
+        result: `Empresa "${args.description}" encontrada (simulação)`,
+        confidence: 1.0,
+        reasoning: 'Busca simulada concluída com sucesso'
+      };
+    }
+
+    if (toolName === 'categorize_transaction') {
+      return categorizeByRules(args.description, parseFloat(args.amount));
+    }
+
+    if (toolName === 'validate_cnpj') {
+      const hasCNPJ = /\d{2}\.?\d{3}\.?\d{4}-?\d{2}-?\d{3}/.test(args.description);
+      return {
+        isValid: hasCNPJ,
+        result: hasCNPJ ? 'CNPJ válido encontrado' : 'Nenhum CNPJ encontrado',
+        confidence: hasCNPJ ? 1.0 : 0.5,
+        reasoning: hasCNPJ ? 'Padrão CNPJ detectado com regex' : 'Texto analisado não contém CNPJ'
+      };
+    }
+
+    return { result: 'Ferramenta executada com sucesso', confidence: 1.0 };
+  };
+
+  // Construir prompt dinâmico baseado nas ferramentas disponíveis
+  const buildDynamicPrompt = (context: AgentState, availableTools: Array<string>) => {
+    const toolList = availableTools.map(t => `- **${t.name}**: ${t.description}`).join('\n');
+
+    return `Você é um assistente financeiro especializado com acesso às seguintes ferramentas:\n${toolList}\n\nHistórico da conversa:\n${context.messages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}\n\nUse as ferramentas quando necessário para responder às perguntas do usuário.\n\n\nTransação atual: "${context.input}" no valor R$ ${agentState.input ? parseFloat(agentState.input).toFixed(2) : '0.00'}\n\n\nCategoria baseada em regras (se aplicável): ${categorizeByRules(context.input || '', parseFloat(context.input || 0))}\n\n\nInstruções:\n1. Tente categorizar primeiro usando regras conhecidas\n2. Se a categorização não tiver confiança alta (confiança < 0.7), use a IA\n3. Para transações complexas ou ambíguas, use "analisar_contexto"\n4. Sempre forneçaça honesta sobre as limitações do sistema\n\n\nClassifique sempre a categoria antes de confirmar com o usuário.`;
+  }`;
+  };
+
+  // Processar mensagens com o agente (simulado)
+  const processWithAgent = async (messages: Array<{role: string, content: string }>) => {
+    const startTime = Date.now();
+
+    // Adicionar mensagem do sistema
+    addSystemMessage('Processando transação com agente inteligente...');
+    setConversationState(prev => ({ ...prev, isLoading: true }));
+    setAgentState(prev => ({ ...prev, availableTools: agentState.availableTools }));
+
+    try {
+      // Simulação: em produção, buscaria informações externas se necessário
+      const initialContext = {
+        recentTransactions: [
+          { description: 'RESTAURANTE SUPERMERCADO 150.00', amount: 1500.00, category: 'Alimentação', date: '2024-10-15' },
+          { description: 'PAGAMENTO DE ENERGIA 8000.00', amount: 8000.00, category: 'Salário', date: '2024-10-01' }
+        ],
+        userInfo: { name: 'João Silva', email: 'joao@exemplo.com', phone: '11-9999-8888' }
+      };
+
+      // Montar prompt completo
+      const fullPrompt = buildDynamicPrompt({
+        messages,
+        input: agentState.input,
+        availableTools: agentState.availableTools,
+        context: { ...conversationState, recentTransactions, userInfo, input: agentState.input }
+      });
+
+      // Simular resposta do agente
+      const agentResponse = await simulateAPI(messages);
+      const processingTime = Date.now() - startTime;
+
+      // Processar resposta
+      const result = processAgentResponse(agentResponse, agentState.isStreaming);
+
+      addAssistantMessage(result.reasoning);
+
+      setConversationState(prev => ({
+        ...prev,
+        messages: [...prev.messages, { role: 'assistant', content: result.reasoning }],
+        isLoading: false,
+        isStreaming: false
+      }));
+      setAgentState(prev => ({
+        ...prev,
+        lastToolCall: null
+      }));
+
+      // Salvar no histórico se for categoriação
+      if (result.category !== result.source) {
+        addSystemMessage(`Transação categorizada como "${result.category}" (confiança: ${Math.round(result.confidence * 100)}%)`);
+      }
+
+      return {
+        ...result,
+        processingTime,
+        conversationHistory: [...conversationState.messages.slice(-6), { role: 'assistant', content: result.reasoning }]
+      };
+
+    } catch (error) {
+      addSystemMessage(`Erro ao processar transação: ${error.message}`);
+      setConversationState(prev => ({ ...prev, isLoading: false, isStreaming: false }));
+
+      return {
+        category: categories.outras_despesas,
+        confidence: 0.5,
+        reasoning: `Erro no processamento: ${error.message}`,
+        source: 'ai',
+        processingTime: Date.now() - startTime,
+        conversationHistory: [...conversationState.messages.slice(-6), { role: 'assistant', content: `Erro ao processar: ${error.message}` }]
+      };
+    }
+  };
+
+  const handleUserInput = async () => {
+    if (!conversationState.input.trim()) return;
+
+    addUserMessage(conversationState.input);
+    setConversationState(prev => ({ ...prev, isLoading: true }));
+    setAgentState(prev => ({ ...prev, availableTools: agentState.availableTools }));
+
+    try {
+      const response = await processWithAgent([
+        { role: 'user', content: conversationState.input },
+        { role: 'user', content: 'Por favor, categorize esta transação' }
+      ]);
+
+      setConversationState(prev => ({
+        ...prev,
+        input: conversationState.input,
+        isLoading: false,
+        isStreaming: false
+      }));
+
+    } catch (error) {
+      console.error('Erro ao processar com agente:', error);
+      setConversationState(prev => ({ ...prev, isLoading: false }));
+
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível processar a transação',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleToolCall = async (toolCall: string) => {
+    setConversationState(prev => ({ ...prev, lastToolCall: JSON.parse(toolCall), isStreaming: false }));
+
+    try {
+      const { tool_name, tool_call_id, args } = JSON.parse(toolCall);
+      const tool = agentState.availableTools.find(t => t.id === tool_name);
+
+      if (tool_name === 'categorize_transaction') {
+        const result = categorizeByRules(args.description, parseFloat(args.amount));
+        addSystemMessage(`Regra aplicada: "${result.category}" (confiança: ${result.confidence})`);
+      }
+
+      return executeToolReal(tool_name, args);
+
+    } catch (error) {
+      console.error('Erro na execução da ferramenta:', error);
+      return { error: error.message };
+    }
+  };
+
+  // Limpar conversa
+  const clearConversation = () => {
+    setConversationState({
+      messages: [],
+      input: '',
+      isLoading: false,
+      isStreaming: false
+    });
+    setAgentState({
+      ...agentState,
+      availableTools: agentState.availableTools
+    });
+  };
+
+  // Teste de funcionamento
+  const testAgentFunctioning = async () => {
+    const testMessages = [
+      { role: 'user', content: 'Teste: iFood R$ 50' },
+      { role: 'user', content: 'Execute categorize_transaction com iFood e R$ 50' },
+      { role: 'user', content: 'Teste: search_company com "iFood"' }
+    ];
+
+    for (const testMessage of testMessages) {
+      addSystemMessage(`Executando teste: ${testMessage.content}`);
+      const response = await processWithAgent([testMessage]);
+
+      console.log('Teste:', testMessage.content, '→', response);
+    }
+
+    return true;
+  };
+
+  // Componente de Tool Call
+  const ToolCallComponent: React.FC<{ toolCall: ToolCall; onResult: (result: any) => void }> = ({ toolCall, onResult }) => {
+    return (
+      <div className="mb-2 p-3 border-l rounded-lg bg-gray-100">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm text-gray-600">{toolCall.name}</div>
+          <div className="text-sm text-gray-500">({toolCall.id})</div>
+        </div>
+        <div className="text-sm text-gray-400">{JSON.stringify(toolCall.args)}</div>
+      </div>
+        <div className="text-right">
+          {toolCall.status === 'executing' && (
+            <div className="inline-flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-white text-xs">Executando...</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {toolCall.status === 'completed' && onResult && (
+        <div className="border-l-2 border-green-500 bg-green-50 rounded-lg p-2">
+          <div className="text-sm text-green-600">✅ Concluído</div>
+          <div className="text-sm text-gray-600">
+            Resultado: {JSON.stringify(onResult)}
+          </div>
+        </div>
+      )}
+
+      {toolCall.status === 'failed' && onResult && (
+        <div className="border-l-2 border-red-500 bg-red-50 rounded-lg p-2">
+          <div className="text-sm text-red-600">❌ Falhou</div>
+          <div className="text-sm text-gray-600">Erro: {onResult.error || 'Erro desconhecido'}</div>
+        </div>
+      )}
+    </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Agente React de Categorização Financeira</h1>
+          <p className="text-lg text-gray-600">
+            Baseado na documentação LangChain com arquitetura React e múltiplas ferramentas
+          </p>
+        </div>
+
+        {/* Status do Agente */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Status do Agente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="font-medium">Ferramentas:</span>
+                  <span className="font-bold text-green-600">{agentState.availableTools.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Última chamada:</span>
+                  <span className="text-gray-500">
+                    {agentState.lastToolCall ? (
+                      <span className="font-mono text-xs">
+                        {agentState.lastToolCall.id}: {agentState.lastToolCall.name}
+                      </span>
+                    ) : 'Nenhuma'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          </Card>
+
+          {/* Entrada de Dados */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Nova Transação</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <Textarea
+                    value={conversationState.input}
+                    onChange={(e) => setConversationState(prev => ({ ...prev, input: e.target.value, isStreaming: false, isLoading: false }))}
+                    placeholder="Ex: iFood R$ 50.00"
+                    className="min-h-24"
+                    disabled={conversationState.isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Valor (R$)</label>
+                  <Input
+                    type="number"
+                    value={conversationState.input}
+                    onChange={(e) => setConversationState(prev => ({ ...prev, input: e.target.value, isStreaming: false, isLoading: false }))}
+                    placeholder="50.00"
+                    step="0.01"
+                    disabled={conversationState.isLoading}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUserInput}
+                    disabled={conversationState.isLoading}
+                    className="flex-1"
+                  >
+                    {conversationState.isLoading ? 'Processando...' : 'Categorizar'}
+                  </Button>
+                  <Button
+                    onClick={clearConversation}
+                    variant="outline"
+                    disabled={conversationState.isLoading}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button onClick={testAgentFunctioning} variant="outline">
+                  Testar Funcionamento
+                </Button>
+                <Button onClick={clearConversation} variant="outline">
+                  Limpar Conversa
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Histórico da Conversa */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico da Conversa</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 overflow-y-auto space-y-2 bg-gray-50 rounded-lg p-4">
+                {conversationState.messages.length === 0 ? (
+                  <div className="text-gray-500 text-center py-8">
+                    Nenhuma mensagem na conversa ainda.
+                  </div>
+                ) : (
+                  conversationState.messages.slice(-10).map((message, index) => (
+                    <div key={message.id} className={`p-3 rounded-lg ${message.role === 'user' ? 'bg-blue-50' : 'bg-gray-100'}`}>
+                      <div className="font-medium text-gray-600 mb-1">
+                        {message.role === 'user' ? 'Você:' : 'Assistente:'}
+
+                        {message.role === 'user' ? (
+                          <div className="font-medium break-words">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <div className="text-gray-800 whitespace-pre-wrap">
+                            {message.content}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {new Date(message.timestamp).toLocaleString('pt-BR')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Status do Sistema */}
+          <Card>
+            <Car Header>
+              <CardTitle>Status do Sistema</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Mensagens:</span>
+                  <span className="font-bold text-green-600">{conversationState.messages.length}</span>
+                  </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Streaming:</span>
+                  <span className="font-medium">
+                    {conversationState.isStreaming ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+              </div>
+                <div className="justify-between">
+                  <span className="text-sm text-gray-600">Processando:</span>
+                  <span className="font-medium">
+                    {conversationState.isLoading ? 'Sim' : 'Não'}
+                  </span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600">Tempo de processamento:</span>
+                  <span className="font-medium">
+                    {conversationState.messages.length > 0 ? `${Math.round((conversationState.processingTime || 0) / conversationState.messages.length)}ms` : '0ms'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 mb-2">
+                <strong>🎯 Agente React LangChain - Funcionalidades:</strong>
+              </div>
+              <ul className="space-y-1 text-sm text-gray-700 list-disc">
+                <li>✅ Categorização inteligente com múltiplas ferramentas</li>
+                <li>✅ Sistema de prompts dinâmicos baseado no contexto</li>
+                <li>✅ Gerenciamento de estado e memória de conversação</li>
+                <li>✅ Processamento em streaming de respostas</li>
+                <li>✅ Histórico completo de interações</li>
+                <li>✅ Interface React intuitiva e responsiva</li>
+                <li>✅ Tratamento de erros com middleware</li>
+                <li>✅ Análise de contexto financeiro</li>
+                <li>✅ Busca e validação CNPJ</li>
+                <li>🔄 Integráveis para APIs externas (DuckDuckGo, OpenRouter)</li>
+              </ul>
+              </div>
+            </div>
+          </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TestReactAgent;
