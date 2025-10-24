@@ -21,6 +21,7 @@ interface UploadedFile {
   status: 'processing' | 'completed' | 'error';
   data?: ParsedOFX;
   analysis?: any;
+  apiData?: any; // Dados completos da API
   error?: string;
 }
 
@@ -54,34 +55,89 @@ export default function UploadPage() {
     const fileId = `${file.name}_${Date.now()}_${file.size}`.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 20);
 
     try {
-      if (file.name.toLowerCase().includes('.ofx')) {
-        // 1. Parser do OFX
-        console.log(`🔍 Fazendo parser do arquivo: ${file.name}`);
-        const data = await ofxParser.parseFile(file);
-        const analysis = ofxParser.analyzeOFXData(data);
+      console.log(`📁 Enviando arquivo para API: ${file.name}`);
 
-        // 2. Classificar cada transação com IA
-        console.log(`🤖 Classificando ${data.transactions.length} transações com IA...`);
-        const classifiedTransactions = await classifyTransactions(data.transactions, file.name, data.accountInfo);
+      // Criar FormData para enviar para API
+      const formData = new FormData();
+      formData.append('file', file);
 
-        return {
-          file,
-          id: fileId,
-          status: 'completed',
-          data: {
-            ...data,
-            transactions: classifiedTransactions
-          },
-          analysis: {
-            ...analysis,
-            categoryDistribution: getCategoryDistribution(classifiedTransactions),
-            averageConfidence: getAverageConfidence(classifiedTransactions)
-          }
-        };
-      } else {
-        throw new Error('Formato de arquivo não suportado. Use arquivos .ofx');
+      // Chamar API unificada que já processa tudo
+      const response = await fetch('/api/ofx/upload-and-analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erro na API: ${response.statusText}`);
       }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro no processamento do arquivo');
+      }
+
+      console.log(`✅ Arquivo processado pela API:`, {
+        uploadId: result.data.upload.id,
+        totalTransactions: result.data.statistics.totalTransactions,
+        savedToDatabase: result.data.savedToDatabase
+      });
+
+      // Transformar dados da API para o formato esperado pelo componente
+      const transformedData = {
+        accountInfo: {
+          bankId: result.data.account.bankName,
+          accountId: result.data.account.name,
+          branchId: 'N/A',
+          accountType: 'corrente'
+        },
+        transactions: result.data.transactions.map((tx: any) => ({
+          date: new Date(tx.date),
+          amount: tx.amount,
+          description: tx.description,
+          name: tx.description,
+          memo: tx.memo,
+          fitid: tx.fitid,
+          type: tx.type,
+          balance: tx.balance,
+          category: tx.category,
+          confidence: tx.confidence,
+          reasoning: tx.reasoning,
+          source: tx.source
+        })),
+        balance: {
+          amount: result.data.statistics.totalAmount
+        },
+        period: {
+          startDate: new Date(Math.min(...result.data.transactions.map((tx: any) => new Date(tx.date).getTime()))),
+          endDate: new Date(Math.max(...result.data.transactions.map((tx: any) => new Date(tx.date).getTime())))
+        }
+      };
+
+      const analysis = {
+        totalTransactions: result.data.statistics.totalTransactions,
+        totalCredits: result.data.statistics.credits,
+        totalDebits: result.data.statistics.debits,
+        netBalance: result.data.statistics.totalAmount,
+        averageTransaction: result.data.statistics.totalAmount / result.data.statistics.totalTransactions,
+        credits: result.data.transactions.filter((tx: any) => tx.amount > 0),
+        debits: result.data.transactions.filter((tx: any) => tx.amount < 0),
+        categoryDistribution: result.data.statistics.categoryDistribution,
+        averageConfidence: result.data.statistics.averageConfidence
+      };
+
+      return {
+        file,
+        id: fileId,
+        status: 'completed',
+        data: transformedData,
+        analysis,
+        apiData: result.data // Guardar dados completos da API para referência
+      };
+
     } catch (error) {
+      console.error(`❌ Erro ao processar arquivo ${file.name}:`, error);
       return {
         file,
         id: fileId,
@@ -432,17 +488,33 @@ export default function UploadPage() {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button
-                              onClick={() => saveTransactions(file)}
-                              disabled={isSaving}
-                            >
-                              {isSaving ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <Save className="w-4 h-4 mr-2" />
-                              )}
-                              {isSaving ? 'Salvando...' : 'Salvar Transações'}
-                            </Button>
+                            {/* Mostrar status de salvamento da API */}
+                            {file.apiData?.savedToDatabase ? (
+                              <div className="flex items-center space-x-2">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-sm text-green-600">
+                                  {file.apiData.statistics.databasePersistence.successful} transações salvas
+                                </span>
+                                {file.apiData.statistics.databasePersistence.failed > 0 && (
+                                  <span className="text-sm text-orange-600">
+                                    +{file.apiData.statistics.databasePersistence.failed} falhas
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <Button
+                                onClick={() => saveTransactions(file)}
+                                disabled={isSaving}
+                                variant="outline"
+                              >
+                                {isSaving ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4 mr-2" />
+                                )}
+                                {isSaving ? 'Salvando...' : 'Salvar Transações'}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -454,26 +526,26 @@ export default function UploadPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="text-center p-3 bg-primary/10 rounded-lg">
-                            <p className="text-2xl font-bold text-primary">
+                          <div className="text-center p-3 bg-card rounded-lg border">
+                            <p className="text-2xl font-bold text-foreground">
                               {file.analysis?.totalTransactions}
                             </p>
                             <p className="text-sm text-muted-foreground">Transações</p>
                           </div>
-                          <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          <div className="text-center p-3 bg-card rounded-lg border">
+                            <p className="text-2xl font-bold text-green-600">
                               {file.analysis?.credits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Créditos</p>
                           </div>
-                          <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                          <div className="text-center p-3 bg-card rounded-lg border">
+                            <p className="text-2xl font-bold text-red-600">
                               {file.analysis?.debits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Débitos</p>
                           </div>
-                          <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          <div className="text-center p-3 bg-card rounded-lg border">
+                            <p className="text-2xl font-bold text-foreground">
                               {formatCurrency(file.analysis?.netBalance || 0)}
                             </p>
                             <p className="text-sm text-muted-foreground">Saldo</p>
@@ -481,13 +553,13 @@ export default function UploadPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                          <div className="p-3 bg-gray-50 rounded-lg">
+                          <div className="p-3 bg-card rounded-lg border">
                             <p className="text-sm font-medium mb-2">Período</p>
                             <p className="text-sm">
                               {formatDate(file.data?.period.startDate)} a {formatDate(file.data?.period.endDate)}
                             </p>
                           </div>
-                          <div className="p-3 bg-gray-50 rounded-lg">
+                          <div className="p-3 bg-card rounded-lg border">
                             <p className="text-sm font-medium mb-2">Saldo Final</p>
                             <p className="text-lg font-medium">
                               {formatCurrency(file.data?.balance.amount || 0)}
@@ -619,26 +691,26 @@ export default function UploadPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                  <p className="text-2xl font-bold text-primary">
+                <div className="text-center p-3 bg-card rounded-lg border">
+                  <p className="text-2xl font-bold text-foreground">
                     {savedStats.totalTransactions}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Salvas</p>
                 </div>
-                <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <div className="text-center p-3 bg-card rounded-lg border">
+                  <p className="text-2xl font-bold text-foreground">
                     R$ {savedStats.totalAmount.toFixed(2)}
                   </p>
                   <p className="text-sm text-muted-foreground">Valor Total</p>
                 </div>
-                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-center p-3 bg-card rounded-lg border">
+                  <p className="text-2xl font-bold text-foreground">
                     {Object.keys(savedStats.categoryDistribution || {}).length}
                   </p>
                   <p className="text-sm text-muted-foreground">Categorias</p>
                 </div>
-                <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                <div className="text-center p-3 bg-card rounded-lg border">
+                  <p className="text-2xl font-bold text-foreground">
                     {(savedStats.averageConfidence * 100).toFixed(1)}%
                   </p>
                   <p className="text-sm text-muted-foreground">Confiança Média</p>
@@ -672,7 +744,13 @@ export default function UploadPage() {
         {/* Informações Adicionais */}
         <Card>
           <CardHeader>
-            <CardTitle>Funcionalidades Disponíveis</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Funcionalidades Disponíveis</CardTitle>
+              <Button variant="outline" onClick={() => window.location.href = '/uploads'}>
+                <FileText className="w-4 h-4 mr-2" />
+                Ver Uploads Anteriores
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -680,7 +758,8 @@ export default function UploadPage() {
                 <h4 className="font-medium text-green-600">✅ Implementado</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Importação de arquivos OFX</li>
-                  <li>• Processamento automático de transações</li>
+                  <li>• <strong>Salvamento automático no banco de dados</strong></li>
+                  <li>• <strong>Armazenamento de arquivos OFX originais</strong></li>
                   <li>• <strong>Categorização inteligente com IA</strong></li>
                   <li>• <strong>Pesquisa automática de empresas (CNPJ/CNAE)</strong></li>
                   <li>• <strong>Confiança de classificação</strong></li>
@@ -692,11 +771,11 @@ export default function UploadPage() {
               <div className="space-y-2">
                 <h4 className="font-medium text-blue-600">🚀 Em Breve</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Importação de múltiplos arquivos</li>
-                  <li>• Botão Salvar funcional (persistência no banco)</li>
+                  <li>• Listagem de uploads anteriores</li>
+                  <li>• Download dos arquivos OFX originais</li>
                   <li>• Suporte para Excel (XLS/XLSX)</li>
-                  <li>• Regras personalizadas de categorização</li>
-                  <li>• Integração com sistema financeiro completo</li>
+                  <li>• Validação de arquivos duplicados</li>
+                  <li>• Integração com Supabase Storage</li>
                   <li>• Edição manual de categorias</li>
                 </ul>
               </div>

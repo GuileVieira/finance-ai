@@ -5,27 +5,195 @@ import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { CategoryCard } from '@/components/categories/category-card';
 import { AutoRulesTable } from '@/components/categories/auto-rules-table';
 import { CategoryDialog } from '@/components/categories/category-dialog';
+import { CategoryRuleDialog } from '@/components/categories/category-rule-dialog';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
-import { mockCategories, mockAutoRules, categoryTypes } from '@/lib/mock-categories';
 import { Plus, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  useCategoriesOperations,
+  useCategoryRules,
+  useCreateCategoryRule,
+  useUpdateCategoryRule,
+  useDeleteCategoryRule,
+  useToggleCategoryRuleActive
+} from '@/hooks/use-categories';
+import { CategoryType, CategoryRule } from '@/lib/api/categories';
+
+// Tipos de categorias disponíveis
+const categoryTypes = [
+  { value: 'all', label: 'Todos' },
+  { value: 'revenue', label: 'Receitas' },
+  { value: 'variable_cost', label: 'Custos Variáveis' },
+  { value: 'fixed_cost', label: 'Custos Fixos' },
+  { value: 'non_operational', label: 'Não Operacionais' },
+];
 
 export default function CategoriesPage() {
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState<CategoryType | 'all'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [categories] = useState(mockCategories);
+  const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<CategoryRule | undefined>();
   const { toast } = useToast();
 
-  // Filtrar categorias por tipo
-  const filteredCategories = activeTab === 'all'
-    ? categories
-    : categories.filter(cat => cat.type === activeTab);
+  // Buscar categorias e resumo usando TanStack Query
+  const {
+    categories,
+    isLoading,
+    error,
+    summary,
+    refetch,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    toggleCategoryActive,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    isToggling,
+  } = useCategoriesOperations({
+    type: activeTab,
+    includeStats: true,
+    sortBy: 'totalAmount',
+    sortOrder: 'desc'
+  });
+
+  // Buscar regras automáticas
+  const { data: autoRules, isLoading: isLoadingRules, refetch: refetchRules } = useCategoryRules({ isActive: true });
+
+  // Hooks para mutações de regras
+  const createRule = useCreateCategoryRule();
+  const updateRule = useUpdateCategoryRule();
+  const deleteRule = useDeleteCategoryRule();
+  const toggleRule = useToggleCategoryRuleActive();
+
+  // Tratamento de erros
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-destructive mb-2">
+              Erro ao carregar categorias
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {error.message}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      </LayoutWrapper>
+    );
+  }
+
+  // Handlers para operações com categorias
+  const handleCreateCategory = (categoryData: any) => {
+    createCategory(categoryData, {
+      onSuccess: () => {
+        toast({
+          title: 'Categoria Criada',
+          description: `${categoryData.name} foi adicionada com sucesso!`,
+        });
+        setIsDialogOpen(false);
+      }
+    });
+  };
+
+  const handleUpdateCategory = (updatedCategory: any) => {
+    updateCategory(updatedCategory, {
+      onSuccess: () => {
+        toast({
+          title: 'Categoria Atualizada',
+          description: `${updatedCategory.name} foi atualizada com sucesso!`,
+        });
+      }
+    });
+  };
+
+  const handleDeleteCategory = (categoryId: string, categoryName: string) => {
+    deleteCategory(categoryId, {
+      onSuccess: () => {
+        toast({
+          title: 'Categoria Deletada',
+          description: `${categoryName} foi removida com sucesso!`,
+        });
+      }
+    });
+  };
+
+  const handleToggleCategory = (categoryId: string, active: boolean, categoryName: string) => {
+    toggleCategoryActive({ id: categoryId, active }, {
+      onSuccess: () => {
+        toast({
+          title: `Categoria ${active ? 'Ativada' : 'Desativada'}`,
+          description: `${categoryName} foi ${active ? 'ativada' : 'desativada'} com sucesso!`,
+        });
+      }
+    });
+  };
+
+  // Handlers para operações com regras
+  const handleCreateRule = (ruleData: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => {
+    createRule(ruleData, {
+      onSuccess: () => {
+        toast({
+          title: 'Regra Criada',
+          description: `${ruleData.name} foi criada com sucesso!`,
+        });
+        setIsRuleDialogOpen(false);
+        setEditingRule(undefined);
+      }
+    });
+  };
+
+  const handleEditRule = (rule: CategoryRule) => {
+    setEditingRule(rule);
+    setIsRuleDialogOpen(true);
+  };
+
+  const handleUpdateRule = (ruleData: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingRule) {
+      updateRule({ id: editingRule.id, ...ruleData }, {
+        onSuccess: () => {
+          toast({
+            title: 'Regra Atualizada',
+            description: `${ruleData.name} foi atualizada com sucesso!`,
+          });
+          setIsRuleDialogOpen(false);
+          setEditingRule(undefined);
+        }
+      });
+    }
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    deleteRule(ruleId, {
+      onSuccess: () => {
+        toast({
+          title: 'Regra Excluída',
+          description: 'A regra foi excluída com sucesso!',
+        });
+      }
+    });
+  };
+
+  const handleToggleRule = (ruleId: string, isActive: boolean) => {
+    toggleRule({ id: ruleId, isActive }, {
+      onSuccess: () => {
+        toast({
+          title: `Regra ${isActive ? 'Ativada' : 'Desativada'}`,
+          description: `A regra foi ${isActive ? 'ativada' : 'desativada'} com sucesso!`,
+        });
+      }
+    });
+  };
 
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-      
+
         {/* Filtro por Tipo de Categoria */}
         <div className="flex items-center gap-2">
           {categoryTypes.map((type) => (
@@ -33,7 +201,8 @@ export default function CategoriesPage() {
               key={type.value}
               variant={activeTab === type.value ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setActiveTab(type.value)}
+              onClick={() => setActiveTab(type.value as CategoryType | 'all')}
+              disabled={isLoading}
             >
               {type.label}
             </Button>
@@ -45,21 +214,44 @@ export default function CategoriesPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              Baseado em {categories.length} categorias financeiras
+              {isLoading ? 'Carregando categorias...' :
+               summary ?
+                 `Baseado em ${summary.totalCategories} categorias financeiras (${summary.activeCategories} ativas)` :
+                 `Baseado em ${categories.length} categorias financeiras`}
             </h2>
+            <Button onClick={() => setIsDialogOpen(true)} disabled={isCreating}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Categoria
+            </Button>
           </div>
 
-          {filteredCategories.length === 0 ? (
+          {isLoading ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhuma categoria encontrada para este filtro.</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando categorias...</p>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">
+                {activeTab === 'all' ?
+                  'Nenhuma categoria encontrada. Crie sua primeira categoria!' :
+                  'Nenhuma categoria encontrada para este filtro.'}
+              </p>
+              {activeTab === 'all' && (
+                <Button onClick={() => setIsDialogOpen(true)} disabled={isCreating}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeira Categoria
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCategories.map((category) => (
+              {categories.map((category) => (
                 <CategoryCard
                   key={category.id}
                   category={category}
                   showViewButton={true}
+                  loading={isToggling || isDeleting}
                   onEdit={() => {
                     toast({
                       title: 'Editar Categoria',
@@ -72,14 +264,14 @@ export default function CategoriesPage() {
                       description: `Verificando regras para ${category.name}...`,
                     });
                   }}
+                  onToggle={(active) => {
+                    handleToggleCategory(category.id, active, category.name);
+                  }}
                   onUpdate={(updatedCategory) => {
-                    setCategories(prev => prev.map(cat =>
-                      cat.id === updatedCategory.id ? updatedCategory : cat
-                    ));
-                    toast({
-                      title: 'Categoria Atualizada',
-                      description: `${updatedCategory.name} foi atualizada com sucesso!`,
-                    });
+                    handleUpdateCategory(updatedCategory);
+                  }}
+                  onDelete={() => {
+                    handleDeleteCategory(category.id, category.name);
                   }}
                 />
               ))}
@@ -90,17 +282,23 @@ export default function CategoriesPage() {
         {/* Tabela de Regras Automáticas */}
         <div className="bg-card rounded-lg border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Regras Automáticas Inteligentes</h3>
+            <h3 className="text-lg font-semibold">
+              Regras Automáticas Inteligentes
+              {autoRules && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({autoRules.length} regras ativas)
+                </span>
+              )}
+            </h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  toast({
-                    title: 'Nova Regra Automática',
-                    description: 'Abrindo formulário para criar nova regra...',
-                  });
+                  setEditingRule(undefined);
+                  setIsRuleDialogOpen(true);
                 }}
+                disabled={createRule.isPending}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Regra
@@ -108,44 +306,69 @@ export default function CategoriesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  toast({
-                    title: 'Configurar Regras',
-                    description: 'Abrindo configurações avançadas...',
-                  });
-                }}
+                onClick={() => refetchRules()}
+                disabled={isLoadingRules}
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Configurar
+                Atualizar
               </Button>
             </div>
           </div>
 
-          <AutoRulesTable rules={mockAutoRules} />
+          {isLoadingRules ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">Carregando regras...</p>
+            </div>
+          ) : autoRules && autoRules.length > 0 ? (
+            <AutoRulesTable
+              rules={autoRules}
+              onToggle={handleToggleRule}
+              onEdit={handleEditRule}
+              onDelete={handleDeleteRule}
+              loading={createRule.isPending || updateRule.isPending || deleteRule.isPending || toggleRule.isPending}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm">
+                Nenhuma regra automática encontrada.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Insights */}
-        <div className="mt-6 bg-muted/50 rounded-lg p-4">
-          <h4 className="font-medium mb-2">💡 Insights Baseados nos Dados Reais:</h4>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Salários representam 51.8% dos custos fixos</li>
-            <li>• Categorias financeiras mapeadas: 47 ativas</li>
-            <li>• 94% de acurácia na categorização automática</li>
-          </ul>
-        </div>
+        {/* Insights Baseados em Dados Reais */}
+        {summary && (
+          <div className="mt-6 bg-muted/50 rounded-lg p-4">
+            <h4 className="font-medium mb-2">💡 Insights Baseados nos Dados Reais:</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Total de categorias: {summary.totalCategories} ({summary.activeCategories} ativas)</li>
+              <li>• Distribuição por tipo:</li>
+              <li>  - Receitas: {summary.categoriesByType.revenue}</li>
+              <li>  - Custos Variáveis: {summary.categoriesByType.variable_cost}</li>
+              <li>  - Custos Fixos: {summary.categoriesByType.fixed_cost}</li>
+              <li>  - Não Operacionais: {summary.categoriesByType.non_operational}</li>
+              {summary.mostUsedCategories.length > 0 && (
+                <li>• Categoria mais usada: {summary.mostUsedCategories[0].name} ({summary.mostUsedCategories[0].transactionCount} transações)</li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Dialog para Nova Categoria */}
       <CategoryDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSave={(category) => {
-          toast({
-            title: 'Categoria Criada',
-            description: `${category.name} foi adicionada com sucesso!`,
-          });
-          setIsDialogOpen(false);
-        }}
+        onSave={handleCreateCategory}
+      />
+
+      {/* Dialog para Nova/Editar Regra */}
+      <CategoryRuleDialog
+        open={isRuleDialogOpen}
+        onOpenChange={setIsRuleDialogOpen}
+        onSave={editingRule ? handleUpdateRule : handleCreateRule}
+        initialData={editingRule}
       />
 
       {/* Toaster para notificações */}

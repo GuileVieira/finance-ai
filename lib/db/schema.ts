@@ -85,6 +85,8 @@ export const uploads = pgTable('financeai_uploads', {
   fileType: varchar('file_type', { length: 10 }).notNull(), // ofx, xlsx, csv
   fileSize: integer('file_size').notNull(),
   filePath: text('file_path'),
+  fileHash: varchar('file_hash', { length: 64 }), // SHA-256 hash para detectar duplicatas
+  storageProvider: varchar('storage_provider', { length: 20 }).default('filesystem'), // filesystem, supabase, etc
   status: varchar('status', { length: 20 }).notNull(), // pending, processing, completed, failed
   processingLog: json('processing_log'),
   totalTransactions: integer('total_transactions').default(0),

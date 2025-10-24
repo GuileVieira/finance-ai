@@ -3,20 +3,31 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AutoRule } from '@/lib/types';
+import { CategoryRule } from '@/lib/api/categories';
 import { Play, Pause, Trash2, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AutoRulesTableProps {
-  rules: AutoRule[];
+  rules: CategoryRule[];
+  onToggle?: (id: string, isActive: boolean) => void;
+  onEdit?: (rule: CategoryRule) => void;
+  onDelete?: (id: string) => void;
+  loading?: boolean;
 }
 
-export function AutoRulesTable({ rules }: AutoRulesTableProps) {
-  const getAccuracyColor = (accuracy: number) => {
-    if (accuracy >= 100) return 'bg-success/10 text-success border-success/20';
-    if (accuracy >= 95) return 'bg-primary/10 text-primary border-primary/20';
-    if (accuracy >= 90) return 'bg-warning/10 text-warning border-warning/20';
-    return 'bg-danger/10 text-danger border-danger/20';
+export function AutoRulesTable({
+  rules,
+  onToggle,
+  onEdit,
+  onDelete,
+  loading = false
+}: AutoRulesTableProps) {
+
+  const getPriorityColor = (priority: number) => {
+    if (priority >= 8) return 'bg-success/10 text-success border-success/20';
+    if (priority >= 5) return 'bg-primary/10 text-primary border-primary/20';
+    if (priority >= 3) return 'bg-warning/10 text-warning border-warning/20';
+    return 'bg-muted/10 text-muted-foreground border-muted/20';
   };
 
   
@@ -26,10 +37,10 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Padrão Real</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Acerto</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Padrão</TableHead>
+              <TableHead>ID Categoria</TableHead>
+              <TableHead>Prioridade</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -38,7 +49,12 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
             {rules.map((rule) => (
               <TableRow key={rule.id} className="hover:bg-muted/50">
                 <TableCell className="font-medium">
-                  {rule.category}
+                  <div>
+                    <div className="font-medium">{rule.name}</div>
+                    {rule.description && (
+                      <div className="text-sm text-muted-foreground">{rule.description}</div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <code className="px-2 py-1 bg-muted rounded text-sm">
@@ -46,39 +62,28 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                   </code>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={rule.type === 'exact' ? 'default' : 'secondary'}>
-                    {rule.type === 'exact' ? 'Exato' : 'Contém'}
-                  </Badge>
+                  <code className="text-xs text-muted-foreground">
+                    {rule.categoryId.slice(0, 8)}...
+                  </code>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-full max-w-[60px] bg-muted rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${rule.accuracy}%`,
-                          backgroundColor: rule.accuracy >= 95 ? 'hsl(var(--success))' : rule.accuracy >= 90 ? 'hsl(var(--warning))' : 'hsl(var(--danger))'
-                        }}
-                      />
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs', getAccuracyColor(rule.accuracy))}
-                    >
-                      {rule.accuracy}%
-                    </Badge>
-                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn('text-xs', getPriorityColor(rule.priority))}
+                  >
+                    Prioridade {rule.priority}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        rule.status === 'active' ? 'bg-success' : 'bg-muted-foreground'
+                        rule.isActive ? 'bg-success' : 'bg-muted-foreground'
                       )}
                     />
                     <span className="text-sm">
-                      {rule.status === 'active' ? 'Ativo' : 'Inativo'}
+                      {rule.isActive ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
                 </TableCell>
@@ -88,9 +93,11 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0"
-                      onClick={() => console.log('Toggle rule:', rule.id)}
+                      onClick={() => onToggle?.(rule.id, !rule.isActive)}
+                      disabled={loading}
+                      title={rule.isActive ? 'Desativar regra' : 'Ativar regra'}
                     >
-                      {rule.status === 'active' ? (
+                      {rule.isActive ? (
                         <Pause className="h-4 w-4" />
                       ) : (
                         <Play className="h-4 w-4" />
@@ -100,7 +107,9 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0"
-                      onClick={() => console.log('Edit rule:', rule.id)}
+                      onClick={() => onEdit?.(rule)}
+                      disabled={loading}
+                      title="Editar regra"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -108,7 +117,9 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      onClick={() => console.log('Delete rule:', rule.id)}
+                      onClick={() => onDelete?.(rule.id)}
+                      disabled={loading}
+                      title="Excluir regra"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -124,21 +135,21 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
       <div className="flex items-center justify-between text-sm text-muted-foreground p-4 bg-muted/30 rounded-lg">
         <div className="flex items-center gap-6">
           <span>Total: {rules.length} regras</span>
-          <span>Ativas: {rules.filter(r => r.status === 'active').length}</span>
-          <span>Acurácia média: {Math.round(rules.reduce((acc, r) => acc + r.accuracy, 0) / rules.length)}%</span>
+          <span>Ativas: {rules.filter(r => r.isActive).length}</span>
+          <span>Prioridade média: {rules.length > 0 ? Math.round(rules.reduce((acc, r) => acc + r.priority, 0) / rules.length) : 0}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-success" />
-            <span className="text-xs">≥ 95%</span>
+            <span className="text-xs">Alta (≥8)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-primary" />
+            <span className="text-xs">Média (5-7)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-warning" />
-            <span className="text-xs">90-94%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-danger" />
-            <span className="text-xs">&lt; 90%</span>
+            <span className="text-xs">Baixa (3-4)</span>
           </div>
         </div>
       </div>
