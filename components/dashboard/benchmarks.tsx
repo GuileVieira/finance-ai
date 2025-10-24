@@ -50,7 +50,7 @@ export function Benchmarks() {
             <div className="flex items-center gap-2">
               <Progress
                 value={mockBenchmarks.margin.current}
-                className="flex-1"
+                className="flex-1 h-2"
               />
               <span className={`text-sm font-medium ${getBenchmarkColor(mockBenchmarks.margin.status)}`}>
                 {mockBenchmarks.margin.difference > 0 ? '+' : ''}{mockBenchmarks.margin.difference}pp
@@ -73,7 +73,7 @@ export function Benchmarks() {
             <div className="flex items-center gap-2">
               <Progress
                 value={Math.min(mockBenchmarks.growth.current * 5, 100)}
-                className="flex-1"
+                className="flex-1 h-2"
               />
               <span className={`text-sm font-medium ${getBenchmarkColor(mockBenchmarks.growth.status)}`}>
                 +{mockBenchmarks.growth.difference}pp
@@ -96,7 +96,7 @@ export function Benchmarks() {
             <div className="flex items-center gap-2">
               <Progress
                 value={mockBenchmarks.costRatio.current}
-                className="flex-1"
+                className="flex-1 h-2"
               />
               <span className={`text-sm font-medium ${getBenchmarkColor(mockBenchmarks.costRatio.status)}`}>
                 +{mockBenchmarks.costRatio.difference}pp

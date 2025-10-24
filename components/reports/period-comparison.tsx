@@ -301,7 +301,7 @@ export default function PeriodComparison({
                   ]}
                   labelFormatter={(label) => `Período: ${label}`}
                 />
-                <Bar dataKey={comparisonMetric} fill={metricConfig.color} />
+                <Bar dataKey={comparisonMetric} fill={metricConfig.color} barSize={20} maxBarSize={25} />
               </BarChart>
             </ResponsiveContainer>
           )}
