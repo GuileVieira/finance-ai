@@ -57,11 +57,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Logo e Branding */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-emerald-700 mb-2">
+          <h1 className="text-4xl font-bold text-primary mb-2">
             FinanceAI
           </h1>
           <p className="text-gray-600 text-sm">
@@ -139,7 +139,7 @@ export default function LoginPage() {
             <CardFooter className="flex flex-col space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 disabled={loading}
               >
                 {loading ? (
@@ -156,7 +156,7 @@ export default function LoginPage() {
                 <div>
                   <Link
                     href="/forgot-password"
-                    className="text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="text-primary hover:text-primary/80 hover:underline"
                   >
                     Esqueceu a senha?
                   </Link>
@@ -165,7 +165,7 @@ export default function LoginPage() {
                   Não tem conta?{" "}
                   <Link
                     href="/register"
-                    className="text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="text-primary hover:text-primary/80 hover:underline"
                   >
                     Cadastre-se
                   </Link>

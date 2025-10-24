@@ -22,14 +22,14 @@ export default function HomePage() {
 
   return (
     <LayoutWrapper requireAuth={false}>
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background">
         {/* Hero Section */}
         <div className="container mx-auto px-4 py-16">
           <div className="text-center max-w-4xl mx-auto">
             <div className="mb-8">
               <h1 className="text-5xl font-bold text-gray-900 mb-6">
                 FinanceAI
-                <span className="text-emerald-600">.</span>
+                <span className="text-primary">.</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
                 Gestão financeira inteligente com IA para categorização automática de transações.
@@ -37,7 +37,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/login">
-                  <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3">
                     Começar Gratuitamente
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -53,19 +53,19 @@ export default function HomePage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-600 mb-2">94%</div>
+                <div className="text-3xl font-bold text-primary mb-2">94%</div>
                 <div className="text-sm text-gray-600">Acurácia na Categorização</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-600 mb-2">53</div>
+                <div className="text-3xl font-bold text-primary mb-2">53</div>
                 <div className="text-sm text-gray-600">Categorias Financeiras</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-600 mb-2">8</div>
+                <div className="text-3xl font-bold text-primary mb-2">8</div>
                 <div className="text-sm text-gray-600">Bancos Suportados</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-600 mb-2">24/7</div>
+                <div className="text-3xl font-bold text-primary mb-2">24/7</div>
                 <div className="text-sm text-gray-600">Disponibilidade</div>
               </div>
             </div>
@@ -86,7 +86,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <BarChart3 className="h-8 w-8 text-emerald-600 mb-2" />
+                <BarChart3 className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Dashboard Completo</CardTitle>
               </CardHeader>
               <CardContent>
@@ -98,7 +98,7 @@ export default function HomePage() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <TrendingUp className="h-8 w-8 text-emerald-600 mb-2" />
+                <TrendingUp className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Transações Inteligentes</CardTitle>
               </CardHeader>
               <CardContent>
@@ -110,7 +110,7 @@ export default function HomePage() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <Users className="h-8 w-8 text-emerald-600 mb-2" />
+                <Users className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Categorias Personalizadas</CardTitle>
               </CardHeader>
               <CardContent>
@@ -122,7 +122,7 @@ export default function HomePage() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <Upload className="h-8 w-8 text-emerald-600 mb-2" />
+                <Upload className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Importação Automática</CardTitle>
               </CardHeader>
               <CardContent>
@@ -134,7 +134,7 @@ export default function HomePage() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <FileText className="h-8 w-8 text-emerald-600 mb-2" />
+                <FileText className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Relatórios Detalhados</CardTitle>
               </CardHeader>
               <CardContent>
@@ -146,7 +146,7 @@ export default function HomePage() {
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <TrendingUp className="h-8 w-8 text-emerald-600 mb-2" />
+                <TrendingUp className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Previsões e Análises</CardTitle>
               </CardHeader>
               <CardContent>
@@ -160,21 +160,21 @@ export default function HomePage() {
 
         {/* CTA Section */}
         <div className="container mx-auto px-4 py-16">
-          <div className="bg-emerald-600 rounded-2xl p-12 text-center max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="bg-primary rounded-2xl p-12 text-center max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-primary-foreground mb-4">
               Pronto para transformar sua gestão financeira?
             </h2>
-            <p className="text-emerald-100 text-lg mb-8">
+            <p className="text-primary-foreground/90 text-lg mb-8">
               Comece agora mesmo e veja o poder da IA trabalhando para suas finanças.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/login">
-                <Button size="lg" className="bg-white text-emerald-600 hover:bg-gray-100 px-8 py-3">
+                <Button size="lg" className="bg-background text-primary hover:bg-muted px-8 py-3">
                   Criar Conta Gratuita
                 </Button>
               </Link>
               <Link href="/dashboard">
-                <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-emerald-600 px-8 py-3">
+                <Button variant="outline" size="lg" className="border-primary-foreground text-primary-foreground hover:bg-background hover:text-primary px-8 py-3">
                   Explorar Demo
                 </Button>
               </Link>

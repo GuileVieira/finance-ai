@@ -244,7 +244,7 @@ export default function TransactionsPage() {
               </TableHeader>
               <TableBody>
                 {paginatedTransactions.map((transaction) => (
-                  <TableRow key={transaction.id} className="hover:bg-gray-50">
+                  <TableRow key={transaction.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">
                       {formatDate(transaction.date)}
                     </TableCell>

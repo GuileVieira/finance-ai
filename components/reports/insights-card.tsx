@@ -35,7 +35,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'low':
         return 'bg-primary/10 text-primary border-primary/20';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -63,7 +63,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'trend':
         return 'border-yellow-200 bg-yellow-50';
       default:
-        return 'border-gray-200 bg-gray-50';
+        return 'border-border bg-muted';
     }
   };
 
