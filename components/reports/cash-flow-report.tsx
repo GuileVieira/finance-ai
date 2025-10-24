@@ -124,9 +124,9 @@ export default function CashFlowReportComponent({
               <Line
                 type="monotone"
                 dataKey="balance"
-                stroke="#059669"
+                stroke="#10b981"
                 strokeWidth={2}
-                dot={{ fill: '#059669', r: 3 }}
+                dot={{ fill: "#10b981", r: 3 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -141,8 +141,8 @@ export default function CashFlowReportComponent({
               <XAxis dataKey="date" />
               <YAxis tickFormatter={(value) => `R$ ${value/1000}k`} />
               <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
-              <Bar dataKey="income" fill="#10B981" name="Entradas" />
-              <Bar dataKey="expense" fill="#EF4444" name="Saídas" />
+              <Bar dataKey="income" fill="#10b981" name="Entradas" />
+              <Bar dataKey="expense" fill="#ef4444" name="Saídas" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -163,7 +163,7 @@ export default function CashFlowReportComponent({
           {showDetails && (
             <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 sticky top-0">
+                <thead className="bg-muted sticky top-0">
                   <tr className="text-sm text-left">
                     <th className="p-3">Data</th>
                     <th className="p-3">Descrição</th>
@@ -184,12 +184,12 @@ export default function CashFlowReportComponent({
                         </div>
                       </td>
                       <td className={`p-3 text-right font-medium ${
-                        flow.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                        flow.amount >= 0 ? 'text-success' : 'text-danger'
                       }`}>
                         {flow.amount >= 0 ? '+' : ''}{formatCurrency(flow.amount)}
                       </td>
                       <td className={`p-3 text-right font-medium ${
-                        flow.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                        flow.balance >= 0 ? 'text-success' : 'text-danger'
                       }`}>
                         {formatCurrency(flow.balance)}
                       </td>
@@ -213,14 +213,14 @@ export default function CashFlowReportComponent({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Saldo Inicial</span>
+            <span className="text-sm text-muted-foreground">Saldo Inicial</span>
             <span className="font-semibold">{formatCurrency(data.openingBalance)}</span>
           </div>
           <Separator />
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Saldo Final</span>
+            <span className="text-sm text-muted-foreground">Saldo Final</span>
             <span className={`font-bold text-lg ${
-              data.closingBalance >= 0 ? 'text-green-600' : 'text-red-600'
+              data.closingBalance >= 0 ? 'text-success' : 'text-danger'
             }`}>
               {formatCurrency(data.closingBalance)}
             </span>
@@ -239,18 +239,18 @@ export default function CashFlowReportComponent({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <ArrowUpCircle className="w-4 h-4 text-green-500" />
-            <span className="text-sm text-gray-600">Total Entradas</span>
+            <ArrowUpCircle className="w-4 h-4 text-success" />
+            <span className="text-sm text-muted-foreground">Total Entradas</span>
           </div>
-          <div className="font-semibold text-green-600">
+          <div className="font-semibold text-success">
             {formatCurrency(data.totalIncome)}
           </div>
 
           <div className="flex items-center gap-2">
-            <ArrowDownCircle className="w-4 h-4 text-red-500" />
-            <span className="text-sm text-gray-600">Total Saídas</span>
+            <ArrowDownCircle className="w-4 h-4 text-danger" />
+            <span className="text-sm text-muted-foreground">Total Saídas</span>
           </div>
-          <div className="font-semibold text-red-600">
+          <div className="font-semibold text-danger">
             {formatCurrency(data.totalExpense)}
           </div>
         </CardContent>
@@ -263,26 +263,26 @@ export default function CashFlowReportComponent({
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <div className="text-sm text-gray-600">Média Entradas</div>
-            <div className="font-semibold text-green-600">
+            <div className="text-sm text-muted-foreground">Média Entradas</div>
+            <div className="font-semibold text-success">
               {formatCurrency(dailyStats.avgDailyIncome)}
             </div>
           </div>
 
           <div>
-            <div className="text-sm text-gray-600">Média Saídas</div>
-            <div className="font-semibold text-red-600">
+            <div className="text-sm text-muted-foreground">Média Saídas</div>
+            <div className="font-semibold text-danger">
               {formatCurrency(dailyStats.avgDailyExpense)}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <div className="text-gray-600">Dias Positivos</div>
+              <div className="text-muted-foreground">Dias Positivos</div>
               <div className="font-semibold">{dailyStats.daysPositive}</div>
             </div>
             <div>
-              <div className="text-gray-600">Dias Negativos</div>
+              <div className="text-muted-foreground">Dias Negativos</div>
               <div className="font-semibold">{dailyStats.daysNegative}</div>
             </div>
           </div>
@@ -291,14 +291,14 @@ export default function CashFlowReportComponent({
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <div className="text-gray-600">Maior Saldo</div>
-              <div className="font-semibold text-green-600">
+              <div className="text-muted-foreground">Maior Saldo</div>
+              <div className="font-semibold text-success">
                 {formatCurrency(dailyStats.highestBalance)}
               </div>
             </div>
             <div>
-              <div className="text-gray-600">Menor Saldo</div>
-              <div className="font-semibold text-red-600">
+              <div className="text-muted-foreground">Menor Saldo</div>
+              <div className="font-semibold text-danger">
                 {formatCurrency(dailyStats.lowestBalance)}
               </div>
             </div>

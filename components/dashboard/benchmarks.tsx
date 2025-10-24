@@ -9,22 +9,22 @@ export function Benchmarks() {
   const getBenchmarkColor = (status: string) => {
     switch (status) {
       case 'above':
-        return 'text-green-600';
+        return 'text-success';
       case 'below':
-        return 'text-red-600';
+        return 'text-danger';
       default:
-        return 'text-gray-600';
+        return 'text-muted-foreground';
     }
   };
 
   const getProgressColor = (status: string) => {
     switch (status) {
       case 'above':
-        return 'bg-green-500';
+        return 'bg-success';
       case 'below':
-        return 'bg-red-500';
+        return 'bg-danger';
       default:
-        return 'bg-gray-500';
+        return 'bg-muted';
     }
   };
 

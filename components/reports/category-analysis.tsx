@@ -109,11 +109,11 @@ export default function CategoryAnalysis({
   const getCategoryTypeColor = (type: DRECategory['type']) => {
     switch (type) {
       case 'variable':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-warning/10 text-warning';
       case 'fixed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-danger/10 text-danger';
       case 'non_operating':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted-foreground/10 text-muted-foreground';
       default:
         return 'bg-primary/10 text-primary';
     }
@@ -348,7 +348,7 @@ export default function CategoryAnalysis({
             {sortedCategories.map((category) => (
               <div
                 key={category.name}
-                className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                 onClick={() => onCategoryClick?.(category)}
               >
                 <div className="flex items-start justify-between gap-4">

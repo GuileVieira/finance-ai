@@ -24,12 +24,12 @@ export function CashFlowChart() {
               ]}
               contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
             />
-            <Bar dataKey="inflow" fill="#10B981" name="inflow" />
-            <Bar dataKey="outflow" fill="#EF4444" name="outflow" />
+            <Bar dataKey="inflow" fill="#10b981" name="inflow" />
+            <Bar dataKey="outflow" fill="#ef4444" name="outflow" />
             <Line
               type="monotone"
               dataKey="balance"
-              stroke="#3B82F6"
+              stroke="#8b5cf6"
               strokeWidth={2}
               name="balance"
             />

@@ -13,10 +13,10 @@ interface AutoRulesTableProps {
 
 export function AutoRulesTable({ rules }: AutoRulesTableProps) {
   const getAccuracyColor = (accuracy: number) => {
-    if (accuracy >= 100) return 'bg-green-100 text-green-800 border-green-200';
+    if (accuracy >= 100) return 'bg-success/10 text-success border-success/20';
     if (accuracy >= 95) return 'bg-primary/10 text-primary border-primary/20';
-    if (accuracy >= 90) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-orange-100 text-orange-800 border-orange-200';
+    if (accuracy >= 90) return 'bg-warning/10 text-warning border-warning/20';
+    return 'bg-danger/10 text-danger border-danger/20';
   };
 
   
@@ -57,7 +57,7 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                         className="h-2 rounded-full transition-all duration-300"
                         style={{
                           width: `${rule.accuracy}%`,
-                          backgroundColor: rule.accuracy >= 95 ? '#10B981' : rule.accuracy >= 90 ? '#F59E0B' : '#EF4444'
+                          backgroundColor: rule.accuracy >= 95 ? 'hsl(var(--success))' : rule.accuracy >= 90 ? 'hsl(var(--warning))' : 'hsl(var(--danger))'
                         }}
                       />
                     </div>
@@ -74,7 +74,7 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
                     <div
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        rule.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                        rule.status === 'active' ? 'bg-success' : 'bg-muted-foreground'
                       )}
                     />
                     <span className="text-sm">
@@ -129,15 +129,15 @@ export function AutoRulesTable({ rules }: AutoRulesTableProps) {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
+            <div className="w-3 h-3 rounded-full bg-success" />
             <span className="text-xs">≥ 95%</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+            <div className="w-3 h-3 rounded-full bg-warning" />
             <span className="text-xs">90-94%</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
+            <div className="w-3 h-3 rounded-full bg-danger" />
             <span className="text-xs">&lt; 90%</span>
           </div>
         </div>

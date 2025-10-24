@@ -109,25 +109,25 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
               <SelectContent>
                 <SelectItem value="revenue">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-600" />
+                    <div className="w-3 h-3 rounded-full bg-success" />
                     Receitas
                   </div>
                 </SelectItem>
                 <SelectItem value="variable_cost">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-600" />
+                    <div className="w-3 h-3 rounded-full bg-warning" />
                     Custos Variáveis
                   </div>
                 </SelectItem>
                 <SelectItem value="fixed_cost">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-600" />
+                    <div className="w-3 h-3 rounded-full bg-danger" />
                     Custos Fixos
                   </div>
                 </SelectItem>
                 <SelectItem value="non_operating">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-600" />
+                    <div className="w-3 h-3 rounded-full bg-muted-foreground" />
                     Não Operacionais
                   </div>
                 </SelectItem>

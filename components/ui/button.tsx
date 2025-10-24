@@ -18,6 +18,15 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Variantes monocromáticas
+        primary: "bg-primary text-primary-foreground hover:bg-primary-600",
+        "primary-light": "bg-primary-100 text-primary-700 hover:bg-primary-200",
+        "primary-outline": "border border-primary-300 text-primary-700 hover:bg-primary-50",
+        // Variantes semânticas
+        success: "bg-success text-success-foreground hover:bg-success/90",
+        "success-outline": "border border-success/30 text-success hover:bg-success/10",
+        danger: "bg-danger text-danger-foreground hover:bg-danger/90",
+        "danger-outline": "border border-danger/30 text-danger hover:bg-danger/10",
       },
       size: {
         default: "h-10 px-4 py-2",

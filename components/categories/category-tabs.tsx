@@ -10,7 +10,7 @@ interface CategoryTabsProps {
 
 export function CategoryTabs({ activeTab, onTabChange, categoryTypes }: CategoryTabsProps) {
   const tabs = [
-    { id: 'all', name: 'Todas', color: '#6B7280' },
+    { id: 'all', name: 'Todas', color: 'hsl(var(--muted-foreground))' },
     ...Object.entries(categoryTypes).map(([key, value]) => ({
       id: key,
       name: value.name,

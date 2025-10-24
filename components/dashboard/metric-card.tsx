@@ -20,17 +20,17 @@ export function MetricCard({ metric }: MetricCardProps) {
             <p className="text-sm font-medium text-muted-foreground">
               {metric.title}
             </p>
-            <p className="text-2xl font-bold" style={{ color: metric.color }}>
+            <p className="text-2xl font-bold text-primary">
               {metric.value}
             </p>
           </div>
           <Badge
             variant={isPositive ? 'default' : 'secondary'}
-            className="flex items-center gap-1"
-            style={{
-              backgroundColor: isPositive ? metric.color + '20' : undefined,
-              color: metric.color
-            }}
+            className={`flex items-center gap-1 ${
+              isPositive
+                ? 'bg-success/20 text-success border-success/30'
+                : 'bg-primary/20 text-primary border-primary/30'
+            }`}
           >
             {isPositive ? (
               <TrendingUp className="h-3 w-3" />

@@ -24,21 +24,21 @@ export function TrendChart() {
             <Line
               type="monotone"
               dataKey="revenue"
-              stroke="#10B981"
+              stroke="#10b981"
               strokeWidth={2}
               name="Receita"
             />
             <Line
               type="monotone"
               dataKey="expenses"
-              stroke="#EF4444"
+              stroke="#ef4444"
               strokeWidth={2}
               name="Despesas"
             />
             <Line
               type="monotone"
               dataKey="result"
-              stroke="#059669"
+              stroke="#8b5cf6"
               strokeWidth={2}
               name="Resultado"
             />
@@ -47,8 +47,8 @@ export function TrendChart() {
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">📈 Insight:</span> As despesas estão crescendo
-            <span className="text-red-600 font-semibold"> 21.2%</span> nos últimos 3 meses,
-            enquanto a receita cresceu <span className="text-green-600 font-semibold">7.9%</span>.
+            <span className="text-danger font-semibold"> 21.2%</span> nos últimos 3 meses,
+            enquanto a receita cresceu <span className="text-success font-semibold">7.9%</span>.
             É necessário controlar o ritmo de aumento dos custos.
           </p>
         </div>

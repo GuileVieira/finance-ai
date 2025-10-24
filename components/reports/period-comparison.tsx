@@ -115,10 +115,10 @@ export default function PeriodComparison({
 
   const getMetricConfig = (metric: string) => {
     const configs = {
-      revenue: { label: 'Receita Bruta', color: '#10B981' },
-      costs: { label: 'Custos Totais', color: '#EF4444' },
-      result: { label: 'Resultado Líquido', color: '#059669' },
-      margin: { label: 'Margem de Contribuição', color: '#3B82F6' }
+      revenue: { label: 'Receita Bruta', color: 'oklch(var(--success))' },
+      costs: { label: 'Custos Totais', color: 'oklch(var(--danger))' },
+      result: { label: 'Resultado Líquido', color: 'oklch(var(--primary))' },
+      margin: { label: 'Margem de Contribuição', color: 'oklch(var(--primary-700))' }
     };
     return configs[metric] || configs.revenue;
   };
@@ -137,7 +137,7 @@ export default function PeriodComparison({
           </div>
           {variation && (
             <div className={`flex items-center gap-1 text-sm ${
-              variation.isPositive ? 'text-green-600' : 'text-red-600'
+              variation.isPositive ? 'text-success' : 'text-danger'
             }`}>
               {variation.isPositive ? (
                 <ArrowUpRight className="w-4 h-4" />
@@ -323,19 +323,19 @@ export default function PeriodComparison({
                 label: 'Receita Bruta',
                 current: currentPeriod.grossRevenue,
                 previous: previousPeriod?.grossRevenue,
-                color: 'text-green-600'
+                color: 'text-success'
               },
               {
                 label: 'Impostos',
                 current: currentPeriod.taxes,
                 previous: previousPeriod?.taxes,
-                color: 'text-red-600'
+                color: 'text-danger'
               },
               {
                 label: 'Custos Financeiros',
                 current: currentPeriod.financialCosts,
                 previous: previousPeriod?.financialCosts,
-                color: 'text-red-600'
+                color: 'text-danger'
               },
               {
                 label: 'Receita Líquida',
@@ -347,31 +347,31 @@ export default function PeriodComparison({
                 label: 'Custo Variável',
                 current: currentPeriod.variableCosts,
                 previous: previousPeriod?.variableCosts,
-                color: 'text-orange-600'
+                color: 'text-primary-700'
               },
               {
                 label: 'Custo Fixo',
                 current: currentPeriod.fixedCosts,
                 previous: previousPeriod?.fixedCosts,
-                color: 'text-red-600'
+                color: 'text-danger'
               },
               {
                 label: 'Resultado Operacional',
                 current: currentPeriod.operationalResult,
                 previous: previousPeriod?.operationalResult,
-                color: 'text-purple-600'
+                color: 'text-primary-600'
               },
               {
                 label: 'Despesas Não Operacionais',
                 current: currentPeriod.nonOperationalExpenses,
                 previous: previousPeriod?.nonOperationalExpenses,
-                color: 'text-red-600'
+                color: 'text-danger'
               },
               {
                 label: 'Resultado Líquido',
                 current: currentPeriod.netResult,
                 previous: previousPeriod?.netResult,
-                color: currentPeriod.netResult >= 0 ? 'text-green-600' : 'text-red-600'
+                color: currentPeriod.netResult >= 0 ? 'text-success' : 'text-danger'
               }
             ].map((item, index) => {
               const variation = item.previous ? calculateVariation(item.current, item.previous) : null;
@@ -391,7 +391,7 @@ export default function PeriodComparison({
                       </div>
                       {variation && (
                         <div className={`flex items-center gap-1 text-sm ${
-                          variation.isPositive ? 'text-green-600' : 'text-red-600'
+                          variation.isPositive ? 'text-success' : 'text-danger'
                         }`}>
                           {variation.isPositive ? (
                             <TrendingUp className="w-4 h-4" />
@@ -423,13 +423,13 @@ export default function PeriodComparison({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <h4 className="font-medium flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <TrendingUp className="w-4 h-4 text-success" />
                   Pontos Positivos
                 </h4>
                 <ul className="space-y-2 text-sm">
                   {currentPeriod.grossRevenue > previousPeriod.grossRevenue && (
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
+                      <span className="text-success mt-1">•</span>
                       <span>Receita aumentou {formatPercentage(
                         ((currentPeriod.grossRevenue - previousPeriod.grossRevenue) / previousPeriod.grossRevenue) * 100
                       )}</span>
@@ -437,7 +437,7 @@ export default function PeriodComparison({
                   )}
                   {currentPeriod.contributionMargin.percentage > previousPeriod.contributionMargin.percentage && (
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
+                      <span className="text-success mt-1">•</span>
                       <span>Margem melhorou em {formatPercentage(
                         currentPeriod.contributionMargin.percentage - previousPeriod.contributionMargin.percentage
                       )}</span>
@@ -445,7 +445,7 @@ export default function PeriodComparison({
                   )}
                   {currentPeriod.netResult > previousPeriod.netResult && (
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
+                      <span className="text-success mt-1">•</span>
                       <span>Resultado líquido aumentou {formatCurrency(
                         currentPeriod.netResult - previousPeriod.netResult
                       )}</span>
@@ -456,13 +456,13 @@ export default function PeriodComparison({
 
               <div className="space-y-3">
                 <h4 className="font-medium flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-red-500" />
+                  <TrendingDown className="w-4 h-4 text-danger" />
                   Pontos de Atenção
                 </h4>
                 <ul className="space-y-2 text-sm">
                   {currentPeriod.variableCosts > previousPeriod.variableCosts && (
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">•</span>
+                      <span className="text-danger mt-1">•</span>
                       <span>Custos variáveis aumentaram {formatCurrency(
                         currentPeriod.variableCosts - previousPeriod.variableCosts
                       )}</span>
@@ -470,7 +470,7 @@ export default function PeriodComparison({
                   )}
                   {currentPeriod.fixedCosts > previousPeriod.fixedCosts && (
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">•</span>
+                      <span className="text-danger mt-1">•</span>
                       <span>Custos fixos aumentaram {formatCurrency(
                         currentPeriod.fixedCosts - previousPeriod.fixedCosts
                       )}</span>
@@ -478,7 +478,7 @@ export default function PeriodComparison({
                   )}
                   {currentPeriod.netResult < previousPeriod.netResult && currentPeriod.netResult < 0 && (
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">•</span>
+                      <span className="text-danger mt-1">•</span>
                       <span>Prejuízo aumentou {formatCurrency(
                         Math.abs(currentPeriod.netResult - previousPeriod.netResult)
                       )}</span>

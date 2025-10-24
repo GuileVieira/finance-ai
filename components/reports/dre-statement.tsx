@@ -71,7 +71,7 @@ export default function DREStatementComponent({
       <div className="space-y-1">
         <div
           className={`flex justify-between items-center py-2 px-3 rounded ${
-            isResult ? (value >= 0 ? 'bg-green-50' : 'bg-red-50') : ''
+            isResult ? (value >= 0 ? 'bg-success/10' : 'bg-danger/10') : ''
           } ${indent > 0 ? `ml-${indent * 4}` : ''}`}
           style={color ? { color } : {}}
         >
@@ -83,7 +83,7 @@ export default function DREStatementComponent({
           <div className="flex items-center gap-2">
             {variation && (
               <div className={`flex items-center gap-1 text-sm ${
-                variation.isPositive ? 'text-green-600' : 'text-red-600'
+                variation.isPositive ? 'text-success' : 'text-danger'
               }`}>
                 {variation.isPositive ? (
                   <TrendingUp className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default function DREStatementComponent({
               </div>
             )}
             <span className={`font-bold ${
-              isResult ? (value >= 0 ? 'text-green-600' : 'text-red-600') : ''
+              isResult ? (value >= 0 ? 'text-success' : 'text-danger') : ''
             }`}>
               {value >= 0 ? '+' : ''}{formatCurrency(value)}
             </span>
@@ -139,8 +139,8 @@ export default function DREStatementComponent({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
-              <div className="text-sm text-gray-600 font-medium">Receita Bruta</div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-sm text-muted-foreground font-medium">Receita Bruta</div>
+              <div className="text-2xl font-bold text-success">
                 {formatCurrency(data.grossRevenue)}
               </div>
             </CardContent>
@@ -148,8 +148,8 @@ export default function DREStatementComponent({
 
           <Card>
             <CardContent className="p-4">
-              <div className="text-sm text-gray-600 font-medium">Margem Contribuição</div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-sm text-muted-foreground font-medium">Margem Contribuição</div>
+              <div className="text-2xl font-bold text-success">
                 {formatPercentage(data.contributionMargin.percentage)}
               </div>
             </CardContent>
@@ -157,8 +157,8 @@ export default function DREStatementComponent({
 
           <Card>
             <CardContent className="p-4">
-              <div className="text-sm text-gray-600 font-medium">Resultado Operacional</div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-sm text-muted-foreground font-medium">Resultado Operacional</div>
+              <div className="text-2xl font-bold text-success">
                 {formatCurrency(data.operationalResult)}
               </div>
             </CardContent>
@@ -166,9 +166,9 @@ export default function DREStatementComponent({
 
           <Card>
             <CardContent className="p-4">
-              <div className="text-sm text-gray-600 font-medium">Resultado Líquido</div>
+              <div className="text-sm text-muted-foreground font-medium">Resultado Líquido</div>
               <div className={`text-2xl font-bold ${
-                data.netResult >= 0 ? 'text-green-600' : 'text-red-600'
+                data.netResult >= 0 ? 'text-success' : 'text-danger'
               }`}>
                 {formatCurrency(data.netResult)}
               </div>
@@ -177,7 +177,7 @@ export default function DREStatementComponent({
         </div>
 
         {/* DRE Detalhado */}
-        <div className="bg-gray-50 rounded-lg p-6">
+        <div className="bg-muted rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">DRE Detalhado</h3>
 
           {formatDRELine(
@@ -209,7 +209,7 @@ export default function DREStatementComponent({
             true,
             previousPeriod?.netRevenue,
             0,
-            '#059669'
+            'hsl(var(--success))'
           )}
 
           {formatDRELine(
@@ -226,7 +226,7 @@ export default function DREStatementComponent({
             true,
             previousPeriod?.contributionMargin.value,
             0,
-            '#0D9488'
+            'hsl(var(--primary-600))'
           )}
 
           {formatDRELine(
@@ -235,7 +235,7 @@ export default function DREStatementComponent({
             false,
             undefined,
             2,
-            '#6B7280'
+            'hsl(var(--muted-foreground))'
           )}
 
           {formatDRELine(
@@ -252,7 +252,7 @@ export default function DREStatementComponent({
             true,
             previousPeriod?.operationalResult,
             0,
-            '#7C3AED'
+            'hsl(var(--primary-700))'
           )}
 
           {formatDRELine(
@@ -269,7 +269,7 @@ export default function DREStatementComponent({
             true,
             previousPeriod?.netResult,
             0,
-            data.netResult >= 0 ? '#DC2626' : '#DC2626'
+            data.netResult >= 0 ? 'hsl(var(--success))' : 'hsl(var(--danger))'
           )}
         </div>
 
@@ -282,7 +282,7 @@ export default function DREStatementComponent({
               <Card key={category.name} className="overflow-hidden">
                 <CardContent className="p-0">
                   <div
-                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => toggleCategory(category.name)}
                   >
                     <div className="flex justify-between items-center">
@@ -313,7 +313,7 @@ export default function DREStatementComponent({
                   </div>
 
                   {expandedCategories.includes(category.name) && category.drilldown && (
-                    <div className="border-t border-gray-200 bg-gray-50 p-4 max-h-64 overflow-y-auto">
+                    <div className="border-t border-border bg-muted p-4 max-h-64 overflow-y-auto">
                       <h4 className="font-medium mb-3 text-sm">
                         Transações ({category.drilldown.length})
                       </h4>
@@ -321,7 +321,7 @@ export default function DREStatementComponent({
                         {category.drilldown.slice(0, 10).map((transaction) => (
                           <div
                             key={transaction.id}
-                            className="flex justify-between items-center text-sm py-2 border-b border-gray-200 last:border-0"
+                            className="flex justify-between items-center text-sm py-2 border-b border-border last:border-0"
                           >
                             <div>
                               <div className="font-medium">{transaction.description}</div>
@@ -329,7 +329,7 @@ export default function DREStatementComponent({
                                 {new Date(transaction.date).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            <span className={transaction.amount >= 0 ? 'text-success' : 'text-danger'}>
                               {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                             </span>
                           </div>

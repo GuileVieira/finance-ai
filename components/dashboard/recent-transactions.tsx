@@ -6,15 +6,9 @@ import { Button } from '@/components/ui/button';
 import { mockRecentTransactions } from '@/lib/mock-data';
 
 export function RecentTransactions() {
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      'Salários e Encargos': '#DC2626',
-      'Aluguel e Ocupação': '#B91C1C',
-      'Tecnologia e Software': '#991B1B',
-      'Vendas de Produtos': '#10B981',
-      'Comissões Variáveis': '#D97706'
-    };
-    return colors[category] || '#6B7280';
+  const getCategoryVariant = (category: string) => {
+    // Todas as categorias usam variantes monocromáticas
+    return 'primary-light';
   };
 
   return (
@@ -36,18 +30,14 @@ export function RecentTransactions() {
               <div className="truncate">{transaction.description}</div>
               <div>
                 <Badge
-                  variant="secondary"
+                  variant={getCategoryVariant(transaction.category)}
                   className="text-xs"
-                  style={{
-                    backgroundColor: getCategoryColor(transaction.category) + '20',
-                    color: getCategoryColor(transaction.category)
-                  }}
                 >
                   {transaction.category}
                 </Badge>
               </div>
               <div className={`text-right font-medium ${
-                transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                transaction.amount > 0 ? 'text-success' : 'text-danger'
               }`}>
                 {transaction.amount > 0 ? '+' : ''}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR')}
               </div>
