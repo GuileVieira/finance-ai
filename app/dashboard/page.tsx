@@ -5,9 +5,15 @@ import { CategoryChart } from '@/components/dashboard/category-chart';
 import { TopExpenses } from '@/components/dashboard/top-expenses';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { Insights } from '@/components/dashboard/insights';
+import { TrendChart } from '@/components/dashboard/trend-chart';
+import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
+import { BudgetComparison } from '@/components/dashboard/budget-comparison';
+import { StrategicAlerts } from '@/components/dashboard/strategic-alerts';
+import { Benchmarks } from '@/components/dashboard/benchmarks';
+import { Scenarios } from '@/components/dashboard/scenarios';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload } from 'lucide-react';
+import { Upload, AlertTriangle } from 'lucide-react';
 import { mockMetrics, mockCategories } from '@/lib/mock-data';
 
 export default function DashboardPage() {
@@ -18,7 +24,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Visão geral das suas finanças
+            Visão estratégica das suas finanças
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -50,11 +56,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Alertas Estratégicos */}
+      <StrategicAlerts />
+
       {/* Cards de métricas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {mockMetrics.map((metric, index) => (
           <MetricCard key={index} metric={metric} />
         ))}
+      </div>
+
+      {/* Análises Temporais */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TrendChart />
+        <CashFlowChart />
+      </div>
+
+      {/* Comparações e Benchmarks */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BudgetComparison />
+        <Benchmarks />
       </div>
 
       {/* Grid principal */}
@@ -70,7 +91,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Segunda linha */}
+      {/* Cenários e Projeções */}
+      <Scenarios />
+
+      {/* Transações e Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Transações Recentes */}
         <div className="lg:col-span-2">
