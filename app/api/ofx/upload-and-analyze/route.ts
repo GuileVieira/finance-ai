@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseOFXFile } from '@/lib/ofx-parser';
 import { categorizeTransaction } from '@/lib/transaction-classifier';
+import { db } from '@/lib/db/connection';
+import { companies, accounts, uploads, transactions, categories } from '@/lib/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
+import FileStorageService from '@/lib/storage/file-storage.service';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
     console.log('\n=== [OFX-UPLOAD-ANALYZE] Nova requisição de upload e análise ===');
+
+    // Inicializar banco de dados se necessário
+    console.log('🔧 Verificando banco de dados...');
+    await initializeDatabase();
+
+    // Obter empresa e conta padrão
+    const defaultCompany = await getDefaultCompany();
+    if (!defaultCompany) {
+      return NextResponse.json({
+        success: false,
+        error: 'Nenhuma empresa encontrada. Configure uma empresa primeiro.'
+      }, { status: 400 });
+    }
+
+    const defaultAccount = await getDefaultAccount(defaultCompany.id);
+    if (!defaultAccount) {
+      return NextResponse.json({
+        success: false,
+        error: 'Nenhuma conta bancária encontrada. Configure uma conta primeiro.'
+      }, { status: 400 });
+    }
+
+    console.log(`🏢 Usando empresa: ${defaultCompany.name} (${defaultCompany.id})`);
+    console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id})`);
 
     // Verificar se é multipart/form-data (upload de arquivo)
     const contentType = request.headers.get('content-type');
@@ -49,6 +78,23 @@ export async function POST(request: NextRequest) {
 
     console.log('📋 Arquivo lido, tamanho:', ofxContent.length, 'caracteres');
 
+    // Salvar arquivo fisicamente
+    console.log('💾 Salvando arquivo no sistema...');
+    const storageResult = await FileStorageService.saveOFXFile(
+      fileBuffer,
+      file.name,
+      defaultCompany.id
+    );
+
+    if (!storageResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: `Erro ao salvar arquivo: ${storageResult.error}`
+      }, { status: 500 });
+    }
+
+    console.log('✅ Arquivo salvo:', storageResult.filePath);
+
     // Parser OFX
     console.log('🔍 Fazendo parser do arquivo OFX...');
     const parseResult = await parseOFXFile(ofxContent);
@@ -65,9 +111,28 @@ export async function POST(request: NextRequest) {
       bankInfo: parseResult.bankInfo
     });
 
-    // Classificar cada transação
-    console.log('🤖 Classificando transações...');
+    // Criar registro de upload
+    console.log('📝 Criando registro de upload...');
+    const [newUpload] = await db.insert(uploads).values({
+      companyId: defaultCompany.id,
+      accountId: defaultAccount.id,
+      filename: storageResult.metadata?.filename || file.name,
+      originalName: file.name,
+      fileType: 'ofx',
+      fileSize: file.size,
+      filePath: storageResult.filePath,
+      status: 'processing',
+      totalTransactions: parseResult.transactions.length,
+      uploadedAt: new Date()
+    }).returning();
+
+    console.log(`✅ Upload registrado: ${newUpload.id}`);
+
+    // Classificar cada transação e salvar no banco
+    console.log('🤖 Classificando e salvando transações...');
     const classifiedTransactions = [];
+    let successfulSaves = 0;
+    let failedSaves = 0;
 
     for (let i = 0; i < parseResult.transactions.length; i++) {
       const transaction = parseResult.transactions[i];
@@ -96,34 +161,78 @@ export async function POST(request: NextRequest) {
           })
         });
 
+        let categoryData: any = null;
+        let categoryName = 'Não classificado';
+        let confidence = 0;
+        let reasoning = '';
+
         if (!classifyResponse.ok) {
           console.error(`❌ Erro ao classificar transação ${i + 1}:`, classifyResponse.statusText);
-          classifiedTransactions.push({
-            ...transaction,
-            category: 'Utilidades e Insumos',
-            confidence: 0.1,
-            reasoning: `Erro na classificação: ${classifyResponse.statusText}`,
-            source: 'ai'
-          });
+          reasoning = `Erro na classificação: ${classifyResponse.statusText}`;
         } else {
           const classifyResult = await classifyResponse.json();
           if (classifyResult.success) {
-            console.log(`✅ Transação ${i + 1} classificada:`, classifyResult.data.category);
-            classifiedTransactions.push({
-              ...transaction,
-              ...classifyResult.data
-            });
+            categoryData = classifyResult.data;
+            categoryName = classifyResult.data.category;
+            confidence = classifyResult.data.confidence || 0;
+            reasoning = classifyResult.data.reasoning || '';
+            console.log(`✅ Transação ${i + 1} classificada: ${categoryName} (${confidence})`);
           } else {
             console.error(`❌ Erro na resposta da classificação ${i + 1}:`, classifyResult.error);
-            classifiedTransactions.push({
-              ...transaction,
-              category: 'Utilidades e Insumos',
-              confidence: 0.1,
-              reasoning: `Erro na resposta: ${classifyResult.error}`,
-              source: 'ai'
-            });
+            reasoning = `Erro na resposta: ${classifyResult.error}`;
           }
         }
+
+        // Buscar categoria no banco
+        let categoryId = null;
+        if (categoryName && categoryName !== 'Não classificado') {
+          const [foundCategory] = await db.select()
+            .from(categories)
+            .where(and(
+              eq(categories.companyId, defaultCompany.id),
+              eq(categories.name, categoryName),
+              eq(categories.active, true)
+            ))
+            .limit(1);
+
+          if (foundCategory) {
+            categoryId = foundCategory.id;
+          }
+        }
+
+        // Salvar transação no banco
+        const transactionData = {
+          accountId: defaultAccount.id,
+          categoryId,
+          uploadId: newUpload.id,
+          description: transaction.description,
+          amount: transaction.amount.toString(),
+          type: transaction.amount >= 0 ? 'credit' : 'debit',
+          transactionDate: new Date(transaction.date),
+          rawDescription: transaction.description,
+          metadata: {
+            fitid: transaction.fitid,
+            memo: transaction.memo,
+            originalAmount: transaction.amount
+          },
+          manuallyCategorized: false,
+          verified: false,
+          confidence: confidence.toString(),
+          reasoning
+        };
+
+        await db.insert(transactions).values(transactionData);
+        successfulSaves++;
+
+        // Adicionar à lista de transações classificadas para retorno
+        classifiedTransactions.push({
+          ...transaction,
+          category: categoryName,
+          confidence,
+          reasoning,
+          categoryId,
+          source: 'ai'
+        });
 
         // Pequeno delay para não sobrecarregar a API
         if (i < parseResult.transactions.length - 1) {
@@ -131,16 +240,36 @@ export async function POST(request: NextRequest) {
         }
 
       } catch (error) {
-        console.error(`❌ Erro ao classificar transação ${i + 1}:`, error);
+        console.error(`❌ Erro ao processar transação ${i + 1}:`, error);
+        failedSaves++;
+
         classifiedTransactions.push({
           ...transaction,
-          category: 'Utilidades e Insumos',
-          confidence: 0.1,
+          category: 'Não classificado',
+          confidence: 0,
           reasoning: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-          source: 'ai'
+          source: 'error'
         });
       }
     }
+
+    // Atualizar status do upload
+    await db.update(uploads)
+      .set({
+        status: failedSaves > 0 ? 'completed' : 'completed', // ainda completed mesmo com erros parciais
+        successfulTransactions: successfulSaves,
+        failedTransactions: failedSaves,
+        processedAt: new Date(),
+        processingLog: {
+          totalProcessed: parseResult.transactions.length,
+          successful: successfulSaves,
+          failed: failedSaves,
+          processingTime: Date.now() - startTime
+        }
+      })
+      .where(eq(uploads.id, newUpload.id));
+
+    console.log(`✅ Transações salvas: ${successfulSaves} sucesso, ${failedSaves} falhas`);
 
     console.log('📊 Análise concluída:', {
       totalTransactions: parseResult.transactions.length,
@@ -166,6 +295,24 @@ export async function POST(request: NextRequest) {
         uploadDate: new Date().toISOString()
       },
       bankInfo: parseResult.bankInfo,
+      company: {
+        id: defaultCompany.id,
+        name: defaultCompany.name
+      },
+      account: {
+        id: defaultAccount.id,
+        name: defaultAccount.name,
+        bankName: defaultAccount.bankName
+      },
+      upload: {
+        id: newUpload.id,
+        filename: newUpload.filename,
+        filePath: newUpload.filePath,
+        totalTransactions: newUpload.totalTransactions,
+        successfulTransactions: newUpload.successfulTransactions,
+        failedTransactions: newUpload.failedTransactions,
+        status: newUpload.status
+      },
       transactions: classifiedTransactions,
       statistics: {
         totalTransactions: classifiedTransactions.length,
@@ -173,10 +320,16 @@ export async function POST(request: NextRequest) {
         credits: credits,
         debits: debits,
         categoryDistribution: categoryStats,
-        averageConfidence: classifiedTransactions.reduce((sum, t) => sum + (t.confidence || 0), 0) / classifiedTransactions.length
+        averageConfidence: classifiedTransactions.reduce((sum, t) => sum + (t.confidence || 0), 0) / classifiedTransactions.length,
+        databasePersistence: {
+          successful: successfulSaves,
+          failed: failedSaves,
+          totalProcessed: parseResult.transactions.length
+        }
       },
       processingTime: Date.now() - startTime,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      savedToDatabase: successfulSaves > 0
     };
 
     console.log('🎯 Resultado final da análise:', analysisResult);

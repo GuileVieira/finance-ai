@@ -43,3 +43,6 @@ next-env.d.ts
 # docs/examples
 docs/examples/*
 !docs/examples/.gitkeep
+
+# storage temporário - dados do app
+storage_tmp/

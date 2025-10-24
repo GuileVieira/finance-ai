@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, BarChart3, Clock, CheckCircle, AlertCircle, X, Save, Eye } from 'lucide-react';
+import { Upload, FileText, BarChart3, Clock, CheckCircle, AlertCircle, X, Save, Eye, Database, Building2, CreditCard } from 'lucide-react';
 
 interface OFXTransaction {
   id?: string;
@@ -26,6 +26,24 @@ interface AnalysisResult {
     bankName?: string;
     accountId?: string;
   };
+  company?: {
+    id: string;
+    name: string;
+  };
+  account?: {
+    id: string;
+    name: string;
+    bankName: string;
+  };
+  upload?: {
+    id: string;
+    filename: string;
+    filePath: string;
+    totalTransactions: number;
+    successfulTransactions: number;
+    failedTransactions: number;
+    status: string;
+  };
   transactions: OFXTransaction[];
   statistics: {
     totalTransactions: number;
@@ -34,8 +52,14 @@ interface AnalysisResult {
     debits: number;
     categoryDistribution: Record<string, number>;
     averageConfidence: number;
+    databasePersistence?: {
+      successful: number;
+      failed: number;
+      totalProcessed: number;
+    };
   };
   processingTime: number;
+  savedToDatabase?: boolean;
 }
 
 export default function OFXUploadAnalyzer() {
@@ -184,16 +208,119 @@ export default function OFXUploadAnalyzer() {
               >
                 Novo Arquivo
               </button>
-              <button
-                disabled
-                className=\"px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center\"
-              >
-                <Save className=\"w-4 h-4 mr-2\" />
-                Salvar
-              </button>
+              {analysisResult.savedToDatabase && (
+                <div className=\"flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-md text-sm font-medium\">
+                  <CheckCircle className=\"w-4 h-4 mr-2\" />
+                  Salvo no Banco
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Informações do Upload e Banco de Dados */}
+        {analysisResult.upload && (
+          <div className=\"grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6\">
+            {/* Informações do Upload */}
+            <div className=\"bg-white rounded-lg shadow-sm border border-gray-200 p-6\">
+              <div className=\"flex items-center mb-4\">
+                <Upload className=\"w-5 h-5 text-blue-600 mr-2\" />
+                <h2 className=\"text-lg font-semibold text-gray-900\">Informações do Upload</h2>
+              </div>
+
+              <div className=\"space-y-3\">
+                <div className=\"flex justify-between items-center\">
+                  <span className=\"text-sm text-gray-600\">Empresa:</span>
+                  <div className=\"flex items-center text-sm font-medium text-gray-900\">
+                    <Building2 className=\"w-4 h-4 mr-1\" />
+                    {analysisResult.company?.name || 'N/A'}
+                  </div>
+                </div>
+
+                <div className=\"flex justify-between items-center\">
+                  <span className=\"text-sm text-gray-600\">Conta:</span>
+                  <div className=\"flex items-center text-sm font-medium text-gray-900\">
+                    <CreditCard className=\"w-4 h-4 mr-1\" />
+                    {analysisResult.account?.name || 'N/A'}
+                  </div>
+                </div>
+
+                <div className=\"flex justify-between items-center\">
+                  <span className=\"text-sm text-gray-600\">Status:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    analysisResult.upload.status === 'completed'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {analysisResult.upload.status === 'completed' ? 'Concluído' : 'Processando'}
+                  </span>
+                </div>
+
+                <div className=\"flex justify-between items-center\">
+                  <span className=\"text-sm text-gray-600\">Arquivo:</span>
+                  <span className=\"text-sm font-medium text-gray-900 truncate ml-2 max-w-[200px]\" title={analysisResult.upload.originalName}>
+                    {analysisResult.upload.originalName}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Status do Banco de Dados */}
+            <div className=\"bg-white rounded-lg shadow-sm border border-gray-200 p-6\">
+              <div className=\"flex items-center mb-4\">
+                <Database className=\"w-5 h-5 text-green-600 mr-2\" />
+                <h2 className=\"text-lg font-semibold text-gray-900\">Persistência no Banco</h2>
+              </div>
+
+              {analysisResult.statistics.databasePersistence ? (
+                <div className=\"space-y-3\">
+                  <div className=\"flex justify-between items-center\">
+                    <span className=\"text-sm text-gray-600\">Status:</span>
+                    <div className=\"flex items-center text-sm font-medium text-green-600\">
+                      <CheckCircle className=\"w-4 h-4 mr-1\" />
+                      Salvo com sucesso
+                    </div>
+                  </div>
+
+                  <div className=\"flex justify-between items-center\">
+                    <span className=\"text-sm text-gray-600\">Processadas:</span>
+                    <span className=\"text-sm font-medium text-gray-900\">
+                      {analysisResult.statistics.databasePersistence.totalProcessed}
+                    </span>
+                  </div>
+
+                  <div className=\"flex justify-between items-center\">
+                    <span className=\"text-sm text-gray-600\">Sucesso:</span>
+                    <span className=\"text-sm font-medium text-green-600\">
+                      {analysisResult.statistics.databasePersistence.successful}
+                    </span>
+                  </div>
+
+                  <div className=\"flex justify-between items-center\">
+                    <span className=\"text-sm text-gray-600\">Falhas:</span>
+                    <span className=\"text-sm font-medium text-red-600\">
+                      {analysisResult.statistics.databasePersistence.failed}
+                    </span>
+                  </div>
+
+                  <div className=\"mt-3 pt-3 border-t border-gray-200\">
+                    <div className=\"flex items-center justify-between\">
+                      <span className=\"text-sm text-gray-600\">ID do Upload:</span>
+                      <span className=\"text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded\">
+                        {analysisResult.upload.id.slice(0, 8)}...
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className=\"flex items-center justify-center py-8 text-gray-500\">
+                  <Database className=\"w-8 h-8 mr-3 text-gray-400\" />
+                  <span className=\"text-sm\">Aguardando processamento...</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Resumo e Estatísticas */}
         <div className=\"grid grid-cols-1 md:grid-cols-4 gap-6\">
