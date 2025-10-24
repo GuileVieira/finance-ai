@@ -38,12 +38,12 @@ export function Header({ userName }: HeaderProps) {
   }, [userName]);
 
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="bg-background shadow-sm border-b">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="font-bold text-xl text-emerald-700">FINANCEAI</div>
+            <div className="font-bold text-xl text-primary">FINANCEAI</div>
           </Link>
 
           {/* Navigation Tabs */}
@@ -67,7 +67,7 @@ export function Header({ userName }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-emerald-100 text-emerald-700">
+                    <AvatarFallback className="bg-primary-100 text-primary">
                       {currentUser.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>

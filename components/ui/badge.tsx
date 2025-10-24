@@ -20,10 +20,10 @@ const badgeVariants = cva(
         "primary-light": "border-transparent bg-primary-100 text-primary-700 hover:bg-primary-200",
         "primary-outline": "border-primary-300 text-primary-700 bg-primary-50/50",
         // Variantes semânticas
-        success: "border-transparent bg-success text-success-foreground hover:bg-success/80",
-        "success-light": "border-transparent bg-success/10 text-success hover:bg-success/20",
-        danger: "border-transparent bg-danger text-danger-foreground hover:bg-danger/80",
-        "danger-light": "border-transparent bg-danger/10 text-danger hover:bg-danger/20",
+        success: "border-transparent bg-success text-success-foreground",
+        "success-light": "border-transparent bg-success/10 text-success",
+        danger: "border-transparent bg-danger text-danger-foreground",
+        "danger-light": "border-transparent bg-danger/10 text-danger",
       },
     },
     defaultVariants: {
