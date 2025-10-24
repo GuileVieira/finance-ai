@@ -45,7 +45,7 @@ footer{text-align:center;margin-top:80px;padding:30px 0;border-top:3px solid #e8
 <p style="font-size:12pt;margin-top:20px;font-weight:400">Especificação Executiva para Aprovação</p>
 </div>
 <h1>FinanceAI - Sistema de Gestão Financeira Automatizada</h1>
-<p><strong>Versão:</strong> 1.0 | <strong>Data:</strong> Outubro 2025 | <strong>Status:</strong> Especificação para Desenvolvimento</p>
+<p><strong>Versão:</strong> 1.1 | <strong>Data:</strong> Outubro 2025 | <strong>Status:</strong> Em Desenvolvimento - MVP</p>
 <hr />
 <h2>🎯 O Problema que Estamos Resolvendo</h2>
 <h3>A Situação Atual</h3>
@@ -202,6 +202,31 @@ footer{text-align:center;margin-top:80px;padding:30px 0;border-top:3px solid #e8
 </tr>
 </tbody>
 </table>
+<hr />
+<h2>🛠️ Stack Tecnológico</h2>
+<h3>Tecnologias Selecionadas</h3>
+<p><strong>Frontend:</strong></p>
+<ul>
+<li><strong>Next.js 15</strong> - Framework React com App Router e Turbopack</li>
+<li><strong>TypeScript</strong> - Type safety e melhor desenvolvimento</li>
+<li><strong>Tailwind CSS v4</strong> - Framework CSS moderno com tema OKLCH</li>
+<li><strong>shadcn/ui</strong> - Componentes UI de alta qualidade</li>
+<li><strong>Lucide Icons</strong> - Biblioteca de ícones consistente</li>
+</ul>
+<p><strong>Design System:</strong></p>
+<ul>
+<li><strong>Tema OKLCH</strong> - Cores modernas com melhor acessibilidade</li>
+<li><strong>Design System consistente</strong> - Componentes reutilizáveis</li>
+<li><strong>Dark Mode nativo</strong> - Suporte completo a temas claro/escuro</li>
+<li><strong>Layout responsivo</strong> - Mobile-first approach</li>
+</ul>
+<p><strong>Por que esta stack?</strong></p>
+<ul>
+<li><strong>Performance:</strong> Next.js 15 com Turbopack = desenvolvimento rápido</li>
+<li><strong>Manutenibilidade:</strong> TypeScript + Tailwind = código limpo</li>
+<li><strong>UX/UI:</strong> shadcn/ui + tema OKLCH = interface profissional</li>
+<li><strong>Escala:</strong> Arquitetura preparada para crescimento</li>
+</ul>
 <hr />
 <h2>📊 Como Funciona na Prática (Exemplo Real)</h2>
 <h3>Cliente: Empresária com 30 Lojas de Esmalteria</h3>
@@ -421,43 +446,32 @@ acima/abaixo da média do setor.
 - Exportar simulação para PDF</p>
 <hr />
 <h2>⏱️ Cronograma de Desenvolvimento</h2>
-<h3>Fase 1: MVP (30-45 dias)</h3>
-<p><strong>Semana 1-2: Estrutura Base</strong>
+<h3>Fase 1: MVP Focado em Dashboard (30-45 dias)</h3>
+<p><strong>Prioridade 1: Upload de Extratos (Semana 1-2)</strong>
+- Interface de upload drag & drop
+- Suporte para PDF, Excel, OFX
+- Processamento e extração de transações
+- Preview e validação dos dados</p>
+<p><strong>Prioridade 2: Dashboard Financeiro (Semana 3-4)</strong>
+- Cards principais com KPIs (Receita, Despesas, Resultado)
+- Gráficos interativos (Evolução, Composição, Fluxo)
+- Tabelas de transações recentes
+- Indicadores de margem e alertas</p>
+<p><strong>Prioridade 3: Estrutura Base (Semana 5-6)</strong>
 - Sistema de login e cadastro
 - Cadastro de empresas (CNPJ, dados básicos)
-- Cadastro de contas bancárias</p>
-<p><strong>Semana 3-4: Processar Extratos</strong>
-- Upload de arquivos (PDF, Excel, OFX)
-- Ler e extrair transações de cada formato
-- Armazenar transações no banco de dados</p>
-<p><strong>Semana 5-6: Categorização Automática</strong>
-- Criar categorias padrão (plano de contas)
-- Inteligência artificial para categorizar
-- Tela de revisão manual (transações ambíguas)
-- Sistema de aprendizado (guardar correções)</p>
-<p><strong>Semana 7: DRE de Caixa</strong>
-- Calcular DRE com base nas transações categorizadas
-- Tela mostrando DRE formatado
-- Detalhamento (clicar para ver transações)
-- Exportar para PDF/Excel</p>
-<p><strong>Semana 8-9: Dashboard</strong>
-- Cards com KPIs principais
-- Gráficos (evolução, composição, fluxo)
-- Filtros de período
-- Alertas automáticos</p>
-<p><strong>Semana 10: Relatório Mensal</strong>
-- Geração automática de relatório
-- Envio por email dia 1º do mês
-- PDF profissional com insights</p>
-<p><strong>Semana 11: Simulador</strong>
-- Tela de simulação interativa
-- Cálculos de break-even
-- Salvar cenários</p>
-<p><strong>Semana 12-13: Testes e Ajustes</strong>
-- Testar com dados reais
-- Corrigir erros
-- Ajustar categorizações
-- Melhorar interface</p>
+- Navegação entre Dashboard e Upload
+- Componentes reutilizáveis com design system</p>
+<p><strong>Prioridade 4: Categorização e DRE (Semana 7-8)</strong>
+- Sistema de categorização automática
+- DRE de caixa com detalhamento
+- Interface de revisão manual
+- Exportação de relatórios</p>
+<p><strong>Semana 9-10: Testes e Refinamento</strong>
+- Testes com dados reais de clientes
+- Ajustes finais na interface
+- Otimização de performance
+- Validação da experiência do usuário</p>
 <h3>Fase 2: Melhorias (após MVP)</h3>
 <p><strong>Mês 2-3:</strong>
 - Contas a pagar e receber (futuro)
@@ -479,6 +493,15 @@ acima/abaixo da média do setor.
 <li><strong>Velocidade:</strong> Dashboard carrega em menos de 2 segundos</li>
 <li><strong>Processamento:</strong> 100 transações em menos de 30 segundos</li>
 <li><strong>Confiabilidade:</strong> Funciona 99% do tempo (disponibilidade)</li>
+<li><strong>Performance Mobile:</strong> Dashboard funciona perfeitamente em celular</li>
+</ul>
+<h3>Experiência do Usuário (UX/UI)</h3>
+<ul>
+<li><strong>Usabilidade:</strong> Cliente consegue fazer upload sozinho sem ajuda</li>
+<li><strong>Navegação:</strong> 90%+ dos usuários encontram informações desejadas em 3 cliques</li>
+<li><strong>Visualização:</strong> Dashboard compreensível sem conhecimento técnico</li>
+<li><strong>Design:</strong> Interface profissional com tema OKLCH consistente</li>
+<li><strong>Acessibilidade:</strong> WCAG AA compliance em todos os elementos</li>
 </ul>
 <h3>Negócio (Valor para Cliente)</h3>
 <ul>
@@ -486,21 +509,32 @@ acima/abaixo da média do setor.
 <li><strong>Satisfação:</strong> NPS (Net Promoter Score) acima de 50</li>
 <li><strong>Retenção:</strong> Menos de 5% de clientes cancelam por mês</li>
 <li><strong>Adoção:</strong> 70%+ dos clientes abrem o relatório mensal por email</li>
+<li><strong>Insights:</strong> 80%+ identificam pelo menos 1 insight acionável no primeiro mês</li>
 </ul>
 <h3>Validação com Usuário Real</h3>
 <p><strong>Teste com 3 clientes piloto:</strong>
 1. Empresa com múltiplas lojas (varejo)
 2. Indústria pequena/média
 3. Profissional liberal (serviços)</p>
-<p><strong>O que validar:</strong>
+<p><strong>O que validar:</strong></p>
+<p><strong>Funcionalidade:</strong>
 - Cliente consegue fazer upload sozinho?
 - Categorizações fazem sentido?
 - DRE reflete a realidade?
-- Relatório é compreensível?
-- Cliente identifica insights úteis?</p>
+- Relatório é compreensível?</p>
+<p><strong>Interface e Experiência:</strong>
+- Dashboard é visualmente claro e profissional?
+- Navegação é intuitiva (mobile e desktop)?
+- Tema claro/escuro funciona bem?
+- Tempo de carregamento é satisfatório?</p>
+<p><strong>Valor e Insights:</strong>
+- Cliente identifica insights úteis?
+- Interface facilita tomada de decisão?
+- Design system ajuda na compreensão dos dados?</p>
 <p><strong>Critério de aprovação:</strong>
 - Cliente diz: "Nunca tive essa visão antes"
 - Cliente toma pelo menos 1 decisão baseada nos dados
+- Cliente elogia a interface e facilidade de uso
 - Cliente aceita pagar pelo serviço após teste</p>
 <hr />
 <h2>⚠️ Riscos e Como Evitar</h2>
@@ -542,6 +576,67 @@ acima/abaixo da média do setor.
 ❌ Integração com fundos de antecipação
 ❌ App mobile nativo (web responsivo suficiente)
 ❌ Multi-idioma (foco Brasil inicialmente)</p>
+<hr />
+<h2>🎨 Requisitos de UI/UX e Design System</h2>
+<h3>Princípios de Design</h3>
+<p><strong>Clareza e Simplicidade:</strong></p>
+<ul>
+<li>Interface limpa com foco nos dados financeiros</li>
+<li>Linguagem simples, sem jargões técnicos excessivos</li>
+<li>Fluxo intuitivo do upload até o dashboard</li>
+<li>Feedback visual claro para todas as ações</li>
+</ul>
+<p><strong>Consistência Visual:</strong></p>
+<ul>
+<li><strong>Design System unificado</strong> com shadcn/ui</li>
+<li><strong>Tema OKLCH</strong> aplicado em todos os componentes</li>
+<li>Padrões de cores, tipografia e espaçamento consistentes</li>
+<li>Ícones e elementos visuais coesos</li>
+</ul>
+<p><strong>Responsividade e Performance:</strong></p>
+<ul>
+<li><strong>Mobile-first approach</strong> - funciona perfeitamente no celular</li>
+<li>Dashboard responsivo que se adapta a qualquer tela</li>
+<li>Carregamento rápido (menos de 2 segundos para dashboard)</li>
+<li>Animações sutis que melhoram a UX</li>
+</ul>
+<h3>Componentes Essenciais</h3>
+<p><strong>Dashboard Principal:</strong></p>
+<ul>
+<li>Cards de KPIs com valores grandes e claros</li>
+<li>Gráficos interativos (recharts) com tooltips</li>
+<li>Tabelas de transações ordenáveis e filtráveis</li>
+<li>Alertas e notificações contextuais</li>
+</ul>
+<p><strong>Upload de Extratos:</strong></p>
+<ul>
+<li>Área de drag & drop com feedback visual</li>
+<li>Preview dos arquivos antes do processamento</li>
+<li>Indicadores de progresso em tempo real</li>
+<li>Lista de arquivos processados com status</li>
+</ul>
+<p><strong>Dark Mode e Acessibilidade:</strong></p>
+<ul>
+<li><strong>Tema completo claro/escuro</strong> com OKLCH</li>
+<li>Contraste mínimo WCAG AA em todos os elementos</li>
+<li>Navegação por teclado funcional</li>
+<li>Screen readers suportados</li>
+</ul>
+<h3>Fluxo do Usuário</h3>
+<p><strong>Onboarding simples:</strong></p>
+<ol>
+<li>Cadastro rápido da empresa</li>
+<li>Upload do primeiro extrato</li>
+<li>Dashboard inicial com insights automáticos</li>
+<li>Primeira recomendação acionável</li>
+</ol>
+<p><strong>Navegação principal:</strong></p>
+<ul>
+<li><strong>Dashboard:</strong> Visão geral e KPIs</li>
+<li><strong>Extratos:</strong> Upload e histórico</li>
+<li><strong>Relatórios:</strong> DRE detalhado e exportações</li>
+<li><strong>Simulador:</strong> Cenários e break-even</li>
+</ul>
 <p><strong>Foco:</strong> Fazer 1 coisa muito bem = entregar visão de caixa real que ninguém mais entrega.</p>
 <hr />
 <h2>🎬 Conclusão</h2>
@@ -555,19 +650,22 @@ acima/abaixo da média do setor.
 - Reduz tempo de setup em 90% (45 dias → 3 dias)
 - Entrega visão e insights que nenhum ERP tradicional entrega</p>
 <p><strong>Diferencial técnico:</strong>
-- IA para categorização automática
-- Aprendizado contínuo (melhora com uso)
-- Relatórios com linguagem natural
-- Recomendações acionáveis</p>
+- Stack moderna: Next.js 15, Tailwind CSS v4, shadcn/ui
+- <strong>Tema OKLCH</strong> para melhor visualização e acessibilidade
+- IA para categorização automática com aprendizado contínuo
+- <strong>Design System consistente</strong> em todos os componentes
+- Interface mobile-first com performance otimizada
+- Relatórios com linguagem natural e recomendações acionáveis</p>
 <p><strong>Resultado esperado:</strong>
 Cliente pela primeira vez na vida tem visibilidade financeira real e pode tomar decisões baseadas em dados, não no "feeling".</p>
 <hr />
-<p><strong>Documento preparado para:</strong> Aprovação e desenvolvimento
-<strong>Próximo passo:</strong> Validar especificações → Iniciar desenvolvimento do MVP</p>
+<p><strong>Documento preparado para:</strong> Desenvolvimento do MVP
+<strong>Stack definida:</strong> Next.js 15, Tailwind CSS v4, shadcn/ui, Tema OKLCH
+<strong>Próximo passo:</strong> Implementar estrutura base → Upload de extratos → Dashboard financeiro</p>
 <footer>
 <p><strong>Documento Confidencial</strong></p>
 <p>Preparado para: Análise e Aprovação</p>
-<p>Versão 1.0 | Outubro 2025</p>
+<p>Versão 1.1 | Outubro 2025</p>
 </footer>
 </body>
 </html>
