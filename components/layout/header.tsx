@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -16,16 +15,11 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, User, LogOut, Settings } from 'lucide-react';
 import { navigationItems, mockUserData } from '@/lib/mock-data';
+import { useAuth } from '@/hooks/useAuth';
 
 export function Header() {
   const pathname = usePathname();
-  const [isLoggedIn] = useState(true); // Mock: sempre logado
-
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userName');
-    window.location.href = '/login';
-  };
+  const { isLoggedIn, logout } = useAuth();
 
   if (!isLoggedIn && pathname !== '/login') {
     return null;
@@ -103,7 +97,7 @@ export function Header() {
                 <span>Configurações</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>

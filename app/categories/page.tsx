@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Header } from '@/components/layout/header';
+import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { CategoryTabs } from '@/components/categories/category-tabs';
 import { CategoryCard } from '@/components/categories/category-card';
 import { AutoRulesTable } from '@/components/categories/auto-rules-table';
@@ -11,10 +11,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { mockCategories, mockAutoRules, categoryTypes } from '@/lib/mock-categories';
 import { Plus, Settings, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { CategoryFormData } from '@/lib/types';
 
 export default function CategoriesPage() {
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [categories] = useState(mockCategories);
   const { toast } = useToast();
@@ -25,44 +24,45 @@ export default function CategoriesPage() {
     : categories.filter(cat => cat.type === activeTab);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header Principal */}
-      <Header />
-
-      {/* Navegação por Tabs */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <CategoryTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              categoryTypes={categoryTypes}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  toast({
-                    title: 'Importar XMIND',
-                    description: 'Buscando arquivo XMIND para importação...',
-                  });
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Importar XMIND
-              </Button>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Categoria
-              </Button>
-            </div>
+    <LayoutWrapper>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
+            <p className="text-gray-600">
+              Gerencie suas categorias de transações
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  title: 'Importar XMIND',
+                  description: 'Buscando arquivo XMIND para importação...',
+                });
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Importar XMIND
+            </Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Categoria
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Conteúdo Principal */}
-      <div className="container mx-auto px-4 py-6">
+        {/* Navegação por Tabs */}
+        <CategoryTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          categoryTypes={categoryTypes}
+        />
+
+        {/* Conteúdo Principal */}
         {/* Cards de Categorias */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -151,7 +151,7 @@ export default function CategoriesPage() {
       <CategoryDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSave={(category: CategoryFormData) => {
+        onSave={(category) => {
           toast({
             title: 'Categoria Criada',
             description: `${category.name} foi adicionada com sucesso!`,
@@ -162,6 +162,6 @@ export default function CategoriesPage() {
 
       {/* Toaster para notificações */}
       <Toaster />
-    </div>
+    </LayoutWrapper>
   );
 }

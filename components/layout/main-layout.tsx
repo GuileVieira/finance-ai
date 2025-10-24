@@ -1,32 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Header } from './header';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isLoggedIn, isLoading, redirectIfNotLoggedIn } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      setIsLoggedIn(loggedIn);
-      setIsLoading(false);
-
-      if (!loggedIn && pathname !== '/login') {
-        router.push('/login');
-      }
-    };
-
-    checkAuth();
-  }, [router, pathname]);
+  // Redirecionar se não estiver logado (exceto na página de login)
+  if (!isLoading && !isLoggedIn && pathname !== '/login') {
+    redirectIfNotLoggedIn();
+  }
 
   // Se for página de login, renderiza sem o header
   if (pathname === '/login') {

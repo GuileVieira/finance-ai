@@ -15,10 +15,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, AlertTriangle } from 'lucide-react';
 import { mockMetrics, mockCategories } from '@/lib/mock-data';
+import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <LayoutWrapper>
+      <div className="space-y-6">
       {/* Header com filtros */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -106,6 +108,7 @@ export default function DashboardPage() {
           <Insights />
         </div>
       </div>
-    </div>
+      </div>
+    </LayoutWrapper>
   );
 }
