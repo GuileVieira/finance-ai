@@ -71,7 +71,7 @@ export default function DREStatementComponent({
       <div className="space-y-1">
         <div
           className={`flex justify-between items-center py-2 px-3 rounded ${
-            isResult ? (value >= 0 ? 'bg-success/10' : 'bg-danger/10') : ''
+            isResult ? (value >= 0 ? 'bg-green-50' : 'bg-red-50') : ''
           } ${indent > 0 ? `ml-${indent * 4}` : ''}`}
           style={color ? { color } : {}}
         >
@@ -83,7 +83,7 @@ export default function DREStatementComponent({
           <div className="flex items-center gap-2">
             {variation && (
               <div className={`flex items-center gap-1 text-sm ${
-                variation.isPositive ? 'text-success' : 'text-danger'
+                variation.isPositive ? 'text-green-600' : 'text-red-600'
               }`}>
                 {variation.isPositive ? (
                   <TrendingUp className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default function DREStatementComponent({
               </div>
             )}
             <span className={`font-bold ${
-              isResult ? (value >= 0 ? 'text-success' : 'text-danger') : ''
+              isResult ? (value >= 0 ? 'text-green-600' : 'text-red-600') : ''
             }`}>
               {value >= 0 ? '+' : ''}{formatCurrency(value)}
             </span>
@@ -168,7 +168,7 @@ export default function DREStatementComponent({
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Resultado Líquido</div>
               <div className={`text-2xl font-bold ${
-                data.netResult >= 0 ? 'text-success' : 'text-danger'
+                data.netResult >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 {formatCurrency(data.netResult)}
               </div>
