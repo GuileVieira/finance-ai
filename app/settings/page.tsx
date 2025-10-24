@@ -208,7 +208,7 @@ export default function SettingsPage() {
                     <p className="text-muted-foreground mb-4">
                       Configure suas contas bancárias para importação automática de extratos
                     </p>
-                    <Button onClick={() => window.location.href = '/accounts'}>
+                    <Button onClick={() => window.location.href = '/settings/accounts'}>
                       Gerenciar Contas
                     </Button>
                   </CardContent>
@@ -232,7 +232,7 @@ export default function SettingsPage() {
                     <p className="text-muted-foreground mb-4">
                       Adicione e gerencie múltiplas empresas no sistema
                     </p>
-                    <Button onClick={() => window.location.href = '/companies'}>
+                    <Button onClick={() => window.location.href = '/settings/companies'}>
                       Gerenciar Empresas
                     </Button>
                   </CardContent>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
                     <p className="text-muted-foreground mb-4">
                       Acompanhe o status e histórico de suas importações
                     </p>
-                    <Button onClick={() => window.location.href = '/uploads/history'}>
+                    <Button onClick={() => window.location.href = '/settings/uploads'}>
                       Ver Histórico
                     </Button>
                   </CardContent>
