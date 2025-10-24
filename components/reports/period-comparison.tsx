@@ -341,13 +341,13 @@ export default function PeriodComparison({
                 label: 'Receita Líquida',
                 current: currentPeriod.netRevenue,
                 previous: previousPeriod?.netRevenue,
-                color: 'text-primary'
+                color: 'text-success'
               },
               {
                 label: 'Custo Variável',
                 current: currentPeriod.variableCosts,
                 previous: previousPeriod?.variableCosts,
-                color: 'text-primary-700'
+                color: 'text-danger'
               },
               {
                 label: 'Custo Fixo',
@@ -359,7 +359,7 @@ export default function PeriodComparison({
                 label: 'Resultado Operacional',
                 current: currentPeriod.operationalResult,
                 previous: previousPeriod?.operationalResult,
-                color: 'text-primary-600'
+                color: currentPeriod.operationalResult >= 0 ? 'text-success' : 'text-danger'
               },
               {
                 label: 'Despesas Não Operacionais',

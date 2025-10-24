@@ -29,7 +29,7 @@ export function CashFlowChart() {
             <Line
               type="monotone"
               dataKey="balance"
-              stroke="#8b5cf6"
+              stroke="#374151"
               strokeWidth={2}
               name="balance"
             />

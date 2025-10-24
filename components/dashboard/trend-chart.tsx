@@ -38,7 +38,7 @@ export function TrendChart() {
             <Line
               type="monotone"
               dataKey="result"
-              stroke="#8b5cf6"
+              stroke="#374151"
               strokeWidth={2}
               name="Resultado"
             />

@@ -115,7 +115,7 @@ export default function CategoryAnalysis({
       case 'non_operating':
         return 'bg-muted-foreground/10 text-muted-foreground';
       default:
-        return 'bg-primary/10 text-primary';
+        return 'bg-success/10 text-success';
     }
   };
 

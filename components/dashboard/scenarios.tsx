@@ -45,13 +45,13 @@ export function Scenarios() {
               <div className="grid grid-cols-3 gap-4 text-base">
                 <div>
                   <span className="text-muted-foreground">Receita:</span>
-                  <div className="font-semibold text-success text-lg">
+                  <div className="font-semibold text-red-600 text-lg">
                     R$ {scenario.revenue.toLocaleString('pt-BR')}
                   </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Despesas:</span>
-                  <div className="font-semibold text-danger text-lg">
+                  <div className="font-semibold text-red-600 text-lg">
                     R$ {scenario.expenses.toLocaleString('pt-BR')}
                   </div>
                 </div>
@@ -65,8 +65,8 @@ export function Scenarios() {
             </div>
           ))}
         </div>
-        <div className="mt-4 p-3 bg-success/10 border border-success/20 rounded-lg">
-          <p className="text-base text-success">
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-base text-red-800">
             <span className="font-medium">💡 Recomendação:</span>
             O cenário de corte de 10% no custo fixo
             oferece o melhor ROI (33.3% de margem) com risco baixo.

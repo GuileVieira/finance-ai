@@ -20,7 +20,7 @@ export function MetricCard({ metric }: MetricCardProps) {
             <p className="text-sm font-medium text-muted-foreground">
               {metric.title}
             </p>
-            <p className="text-2xl font-bold text-primary">
+            <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
               {metric.value}
             </p>
           </div>

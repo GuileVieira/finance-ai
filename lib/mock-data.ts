@@ -121,14 +121,14 @@ export const mockRecentTransactions: Transaction[] = [
 ];
 
 export const mockTopExpenses = [
-  { description: 'SALÁRIOS', amount: 28500, transactions: 156, icon: '🏦', category: 'Salários e Encargos' },
-  { description: 'ALUGUEL', amount: 12500, transactions: 12, icon: '🏠', category: 'Aluguel e Ocupação' },
-  { description: 'SOFTWARES', amount: 4200, transactions: 8, icon: '💻', category: 'Tecnologia e Software' },
-  { description: 'TELEFONES MÓVEIS', amount: 1800, transactions: 34, icon: '📱', category: 'Utilidades' },
-  { description: 'ENERGIA ELÉTRICA', amount: 1500, transactions: 1, icon: '⚡', category: 'Utilidades' },
-  { description: 'MATERIAL EMBALAGEM', amount: 1200, transactions: 23, icon: '📦', category: 'Custos de Produtos' },
-  { description: 'OPERADORES LOGÍSTICOS', amount: 900, transactions: 5, icon: '🚚', category: 'Logística' },
-  { description: 'CONSERVAÇÃO/LIMPEZA', amount: 800, transactions: 4, icon: '🧼', category: 'Manutenção' }
+  { description: 'SALÁRIOS', amount: -28500, transactions: 156, icon: '🏦', category: 'Salários e Encargos' },
+  { description: 'ALUGUEL', amount: -12500, transactions: 12, icon: '🏠', category: 'Aluguel e Ocupação' },
+  { description: 'SOFTWARES', amount: -4200, transactions: 8, icon: '💻', category: 'Tecnologia e Software' },
+  { description: 'TELEFONES MÓVEIS', amount: -1800, transactions: 34, icon: '📱', category: 'Utilidades' },
+  { description: 'ENERGIA ELÉTRICA', amount: -1500, transactions: 1, icon: '⚡', category: 'Utilidades' },
+  { description: 'MATERIAL EMBALAGEM', amount: -1200, transactions: 23, icon: '📦', category: 'Custos de Produtos' },
+  { description: 'OPERADORES LOGÍSTICOS', amount: -900, transactions: 5, icon: '🚚', category: 'Logística' },
+  { description: 'CONSERVAÇÃO/LIMPEZA', amount: -800, transactions: 4, icon: '🧼', category: 'Manutenção' }
 ];
 
 export const mockMetrics: MetricCard[] = [
@@ -137,14 +137,14 @@ export const mockMetrics: MetricCard[] = [
     value: 'R$ 125.400',
     change: 12.5,
     changeType: 'increase',
-    color: '#10B981'
+    color: '#059669'
   },
   {
     title: 'Despesas',
     value: 'R$ 87.300',
-    change: 8.2,
-    changeType: 'increase',
-    color: '#EF4444'
+    change: -8.2,
+    changeType: 'decrease',
+    color: '#DC2626'
   },
   {
     title: 'Resultado',

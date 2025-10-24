@@ -140,7 +140,7 @@ export default function DREStatementComponent({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Receita Bruta</div>
-              <div className="text-2xl font-bold text-success">
+              <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(data.grossRevenue)}
               </div>
             </CardContent>
@@ -149,7 +149,7 @@ export default function DREStatementComponent({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Margem Contribuição</div>
-              <div className="text-2xl font-bold text-success">
+              <div className="text-2xl font-bold text-green-600">
                 {formatPercentage(data.contributionMargin.percentage)}
               </div>
             </CardContent>
@@ -158,7 +158,7 @@ export default function DREStatementComponent({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Resultado Operacional</div>
-              <div className="text-2xl font-bold text-success">
+              <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(data.operationalResult)}
               </div>
             </CardContent>
@@ -269,7 +269,7 @@ export default function DREStatementComponent({
             true,
             previousPeriod?.netResult,
             0,
-            data.netResult >= 0 ? 'hsl(var(--success))' : 'hsl(var(--danger))'
+            data.netResult >= 0 ? 'text-green-600' : 'text-red-600'
           )}
         </div>
 
