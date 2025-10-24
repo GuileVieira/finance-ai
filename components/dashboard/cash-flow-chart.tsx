@@ -38,7 +38,7 @@ export function CashFlowChart() {
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">💰 Insight:</span> Saldo mínimo nos últimos 10 dias foi
-            <span className="text-blue-600 font-semibold"> R$ 38.000</span>.
+            <span className="text-primary font-semibold"> R$ 38.000</span>.
             Mantenha um buffer de caixa de pelo menos 30 dias de despesas fixas.
           </p>
         </div>

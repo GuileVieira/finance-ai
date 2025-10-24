@@ -1,7 +1,7 @@
 // Dados mock completos baseados no wireframe atualizado com dados financeiros reais
 import { Category, AutoRule } from '@/lib/types';
 
-// Dados baseados no wireframe atualizado - 53 categorias financeiras reais
+// Dados baseados no wireframe atualizado - 53 categorias financeiras
 export const mockCategories: Category[] = [
   // Receitas (#10B981)
   {

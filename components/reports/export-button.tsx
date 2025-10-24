@@ -116,7 +116,7 @@ export default function ExportButton({
                   key={format}
                   className={`cursor-pointer transition-all ${
                     exportOptions.format === format
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-primary bg-primary/5'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                   onClick={() =>

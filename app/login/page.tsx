@@ -176,8 +176,8 @@ export default function LoginPage() {
         </Card>
 
         {/* Demo Credentials Info */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-800 font-medium mb-2">
+        <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+          <p className="text-xs text-primary font-medium mb-2">
             📋 Modo Demo - Credenciais de Teste:
           </p>
           <p className="text-xs text-blue-700 mb-1">
@@ -186,7 +186,7 @@ export default function LoginPage() {
           <p className="text-xs text-blue-700 mb-1">
             Senha: FinanceAI123
           </p>
-          <p className="text-xs text-blue-600 mt-2">
+          <p className="text-xs text-primary/80 mt-2">
             Ou use qualquer email válido + 8+ caracteres de senha
           </p>
         </div>

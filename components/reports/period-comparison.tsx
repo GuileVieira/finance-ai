@@ -341,7 +341,7 @@ export default function PeriodComparison({
                 label: 'Receita Líquida',
                 current: currentPeriod.netRevenue,
                 previous: previousPeriod?.netRevenue,
-                color: 'text-blue-600'
+                color: 'text-primary'
               },
               {
                 label: 'Custo Variável',

@@ -25,8 +25,8 @@ export default function UploadPage() {
                 <p className="text-sm font-medium text-green-600">
                   🚀 Processamento com IA para categorização
                 </p>
-                <p className="text-sm font-medium text-blue-600">
-                  📊 Baseado em 53 categorias financeiras reais
+                <p className="text-sm font-medium text-primary">
+                  📊 Baseado em 53 categorias financeiras
                 </p>
               </div>
             </div>

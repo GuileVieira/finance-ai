@@ -115,7 +115,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  53 categorias financeiras reais com regras automáticas inteligentes configuráveis para seu negócio.
+                  53 categorias financeiras com regras automáticas inteligentes configuráveis para seu negócio.
                 </p>
               </CardContent>
             </Card>

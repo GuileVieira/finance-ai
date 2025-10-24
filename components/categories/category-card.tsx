@@ -45,7 +45,7 @@ export function CategoryCard({ category, onEdit, onRules }: CategoryCardProps) {
               borderColor: category.color
             }}
           >
-            {category.transactions} trans
+            {category.transactions} transações
           </Badge>
         </div>
 

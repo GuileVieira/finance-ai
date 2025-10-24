@@ -115,7 +115,7 @@ export default function CategoryAnalysis({
       case 'non_operating':
         return 'bg-gray-100 text-gray-800';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary/10 text-primary';
     }
   };
 

@@ -16,7 +16,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'alert':
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
       case 'recommendation':
-        return <Lightbulb className="w-5 h-5 text-blue-500" />;
+        return <Lightbulb className="w-5 h-5 text-primary" />;
       case 'positive':
         return <TrendingUp className="w-5 h-5 text-green-500" />;
       case 'trend':
@@ -33,7 +33,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'medium':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'low':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-primary/10 text-primary border-primary/20';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -57,7 +57,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'alert':
         return 'border-red-200 bg-red-50';
       case 'recommendation':
-        return 'border-blue-200 bg-blue-50';
+        return 'border-primary/20 bg-primary/5';
       case 'positive':
         return 'border-green-200 bg-green-50';
       case 'trend':
@@ -144,7 +144,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
                     {insight.comparison && (
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium">Comparação:</span>
-                        <span className="text-blue-600">{insight.comparison}</span>
+                        <span className="text-primary">{insight.comparison}</span>
                       </div>
                     )}
 
@@ -164,7 +164,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
 
         {insights.length > 5 && (
           <div className="text-center pt-4 border-t">
-            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <button className="text-sm text-primary hover:text-primary/80 font-medium">
               Ver todos os insights ({insights.length} no total)
             </button>
           </div>

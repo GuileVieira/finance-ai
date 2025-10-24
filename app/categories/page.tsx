@@ -45,7 +45,7 @@ export default function CategoriesPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              Baseado em {categories.length} categorias financeiras reais
+              Baseado em {categories.length} categorias financeiras
             </h2>
           </div>
 
