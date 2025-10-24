@@ -86,8 +86,12 @@ const AI_MODELS = {
 async function categorizeByAI(description: string, amount: number) {
   const modelsToTry = [AI_MODELS.primary, AI_MODELS.fallback];
 
+  console.log('🔄 Modelos para tentar (em ordem):', modelsToTry);
+
   for (const model of modelsToTry) {
     try {
+      console.log(`🚀 Tentando modelo: ${model}`);
+
       const messages = [
         {
           role: 'system',
@@ -114,6 +118,8 @@ Responda apenas com o nome da categoria.`
         }
       ];
 
+      console.log(`📤 Enviando requisição para ${model}...`);
+
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -128,6 +134,8 @@ Responda apenas com o nome da categoria.`
         })
       });
 
+      console.log(`📡 Resposta HTTP de ${model}:`, response.status, response.statusText);
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -140,6 +148,8 @@ Responda apenas com o nome da categoria.`
 
       const aiCategory = result.choices[0]?.message?.content?.trim() || categories.outras_despesas;
 
+      console.log(`✅ Sucesso com modelo ${model}! Categoria: "${aiCategory}"`);
+
       return {
         category: aiCategory,
         confidence: 0.9,
@@ -148,10 +158,14 @@ Responda apenas com o nome da categoria.`
         model_used: model
       };
     } catch (error) {
-      console.error(`Erro no modelo ${model}:`, error);
+      console.error(`❌ Erro no modelo ${model}:`, {
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString()
+      });
 
       // Se for o último modelo da lista, retorna erro
       if (model === modelsToTry[modelsToTry.length - 1]) {
+        console.log(`💥 Todos os modelos falharam! Último erro:`, error);
         return {
           category: categories.outras_despesas,
           confidence: 0.1,
@@ -161,12 +175,14 @@ Responda apenas com o nome da categoria.`
         };
       }
 
+      console.log(`🔄 Tentando próximo modelo...`);
       // Tenta o próximo modelo
       continue;
     }
   }
 
   // Fallback final
+  console.log(`💥 Fallback final - nenhum modelo funcionou`);
   return {
     category: categories.outras_despesas,
     confidence: 0.1,
@@ -177,11 +193,22 @@ Responda apenas com o nome da categoria.`
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
+    console.log('\n=== [WORK-CATEGORIZE] Nova requisição de categorização ===');
+
     const body = await request.json();
     const { description, amount } = body;
 
+    console.log('📥 Dados recebidos:', {
+      description,
+      amount,
+      timestamp: new Date().toISOString()
+    });
+
     if (!description || !amount) {
+      console.log('❌ Erro: Descrição e valor são obrigatórios');
       return NextResponse.json({
         success: false,
         error: 'Descrição e valor são obrigatórios'
@@ -189,37 +216,65 @@ export async function POST(request: NextRequest) {
     }
 
     const numAmount = parseFloat(amount);
+    console.log('💰 Valor processado:', numAmount);
 
     // Primeiro tentar categorização por regras
+    console.log('🔍 Tentando categorização por regras...');
     const ruleResult = categorizeByRules(description, numAmount);
+    console.log('✅ Resultado das regras:', ruleResult);
 
     // Se regras tiverem alta confiança, usa o resultado
     if (ruleResult.confidence >= 0.7) {
+      const finalResult = {
+        ...ruleResult,
+        timestamp: new Date().toISOString(),
+        processingTime: Date.now() - startTime
+      };
+
+      console.log('🎯 Usando resultado das regras (alta confiança):', finalResult);
+      console.log('=== [WORK-CATEGORIZE] Fim da requisição (regras) ===\n');
+
       return NextResponse.json({
         success: true,
-        data: {
-          ...ruleResult,
-          timestamp: new Date().toISOString()
-        }
+        data: finalResult
       });
     }
 
     // Senão, usa IA
+    console.log('🤖 Confiança baixa nas regras, usando IA...');
+    console.log('🔧 Modelos configurados:', AI_MODELS);
+
     const aiResult = await categorizeByAI(description, numAmount);
+    console.log('🤖 Resultado da IA:', aiResult);
+
+    const finalResult = {
+      ...aiResult,
+      timestamp: new Date().toISOString(),
+      processingTime: Date.now() - startTime
+    };
+
+    console.log('🎯 Resultado final (IA):', finalResult);
+    console.log('=== [WORK-CATEGORIZE] Fim da requisição (IA) ===\n');
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...aiResult,
-        timestamp: new Date().toISOString()
-      }
+      data: finalResult
     });
 
   } catch (error) {
-    console.error('Erro na API de categorização:', error);
+    const processingTime = Date.now() - startTime;
+    console.error('❌ Erro na API de categorização:', {
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      stack: error instanceof Error ? error.stack : undefined,
+      processingTime: `${processingTime}ms`,
+      timestamp: new Date().toISOString()
+    });
+    console.log('=== [WORK-CATEGORIZE] Fim da requisição (ERRO) ===\n');
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro interno do servidor'
+      error: error instanceof Error ? error.message : 'Erro interno do servidor',
+      processingTime
     }, { status: 500 });
   }
 }
