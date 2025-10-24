@@ -1,0 +1,2 @@
+- estamos usando pnpm
+- garanta que todos so componentes sigam o tema definido
