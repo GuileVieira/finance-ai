@@ -1,49 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Insight } from '@/lib/types';
-import { mockInsights } from '@/lib/mock-reports';
+import { initializeDatabase } from '@/lib/db/init-db';
+import InsightsService from '@/lib/services/insights.service';
 
 export async function GET(request: NextRequest) {
   try {
+    await initializeDatabase();
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'current';
     const category = searchParams.get('category');
     const type = searchParams.get('type'); // alert, recommendation, positive, trend
+    const companyId = searchParams.get('companyId') || undefined;
+    const accountId = searchParams.get('accountId') || undefined;
 
-    // Filtrar insights com base nos parâmetros
-    let filteredInsights = [...mockInsights];
+    console.log('📊 [INSIGHTS-API] Buscando insights com filtros:', { period, category, type, companyId, accountId });
 
-    if (category) {
-      filteredInsights = filteredInsights.filter(
-        insight => insight.category?.toLowerCase().includes(category.toLowerCase())
-      );
-    }
-
-    if (type) {
-      filteredInsights = filteredInsights.filter(
-        insight => insight.type === type
-      );
-    }
-
-    // Ordenar por impacto (high -> medium -> low)
-    filteredInsights.sort((a, b) => {
-      const impactOrder = { high: 0, medium: 1, low: 2 };
-      return impactOrder[a.impact] - impactOrder[b.impact];
+    const insightsData = await InsightsService.getFinancialInsights({
+      period,
+      category,
+      type,
+      companyId,
+      accountId
     });
 
     return NextResponse.json({
       success: true,
-      data: {
-        insights: filteredInsights,
-        total: filteredInsights.length,
-        period
-      }
+      data: insightsData
     });
   } catch (error) {
     console.error('Error fetching insights:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch insights'
+        error: error instanceof Error ? error.message : 'Failed to fetch insights'
       },
       { status: 500 }
     );

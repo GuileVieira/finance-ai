@@ -185,35 +185,8 @@ export default function UploadPage() {
     return totalConfidence / validTransactions.length;
   };
 
-  // Obter cor para categoria
-  const getCategoryColor = (category?: string): string => {
-    if (!category) return 'bg-gray-100 text-gray-800';
-
-    const colors: Record<string, string> = {
-      'Vendas de Produtos': 'bg-green-100 text-green-800',
-      'Salários e Encargos': 'bg-red-100 text-red-800',
-      'Aluguel e Ocupação': 'bg-purple-100 text-purple-800',
-      'Tecnologia e Software': 'bg-blue-100 text-blue-800',
-      'Serviços Profissionais': 'bg-yellow-100 text-yellow-800',
-      'Custos de Produtos': 'bg-orange-100 text-orange-800',
-      'Logística e Distribuição': 'bg-indigo-100 text-indigo-800',
-      'Tributos e Contribuições': 'bg-pink-100 text-pink-800',
-      'Utilidades e Insumos': 'bg-gray-100 text-gray-800',
-      'Manutenção e Serviços': 'bg-teal-100 text-teal-800',
-      'Financeiros e Bancários': 'bg-cyan-100 text-cyan-800',
-    };
-
-    return colors[category] || 'bg-gray-100 text-gray-800';
-  };
-
-  // Obter cor para confiança
-  const getConfidenceColor = (confidence?: number): string => {
-    if (!confidence) return 'bg-red-100 text-red-800';
-    if (confidence >= 0.8) return 'bg-green-100 text-green-800';
-    if (confidence >= 0.6) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
+  
+  
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsProcessing(true);
 
@@ -462,7 +435,6 @@ export default function UploadPage() {
                             <Button
                               onClick={() => saveTransactions(file)}
                               disabled={isSaving}
-                              className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
                               {isSaving ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -482,26 +454,26 @@ export default function UploadPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="text-center p-3 bg-blue-50 rounded-lg">
-                            <p className="text-2xl font-bold text-blue-600">
+                          <div className="text-center p-3 bg-primary/10 rounded-lg">
+                            <p className="text-2xl font-bold text-primary">
                               {file.analysis?.totalTransactions}
                             </p>
                             <p className="text-sm text-muted-foreground">Transações</p>
                           </div>
-                          <div className="text-center p-3 bg-green-50 rounded-lg">
-                            <p className="text-2xl font-bold text-green-600">
+                          <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                               {file.analysis?.credits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Créditos</p>
                           </div>
-                          <div className="text-center p-3 bg-red-50 rounded-lg">
-                            <p className="text-2xl font-bold text-red-600">
+                          <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                               {file.analysis?.debits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Débitos</p>
                           </div>
-                          <div className="text-center p-3 bg-purple-50 rounded-lg">
-                            <p className="text-2xl font-bold text-purple-600">
+                          <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                               {formatCurrency(file.analysis?.netBalance || 0)}
                             </p>
                             <p className="text-sm text-muted-foreground">Saldo</p>
@@ -563,7 +535,7 @@ export default function UploadPage() {
                                     </div>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant="outline" className={getCategoryColor(tx.category)}>
+                                    <Badge variant="secondary">
                                       {tx.category || 'Não classificado'}
                                     </Badge>
                                   </TableCell>
@@ -573,7 +545,13 @@ export default function UploadPage() {
                                     </Badge>
                                   </TableCell>
                                   <TableCell>
-                                    <Badge variant={getConfidenceColor(tx.confidence)}>
+                                    <Badge
+                                      variant={
+                                        tx.confidence && tx.confidence >= 0.8 ? 'default' :
+                                        tx.confidence && tx.confidence >= 0.6 ? 'secondary' :
+                                        'destructive'
+                                      }
+                                    >
                                       {tx.confidence ? `${(tx.confidence * 100).toFixed(0)}%` : 'N/A'}
                                     </Badge>
                                   </TableCell>
@@ -641,26 +619,26 @@ export default function UploadPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">
+                <div className="text-center p-3 bg-primary/10 rounded-lg">
+                  <p className="text-2xl font-bold text-primary">
                     {savedStats.totalTransactions}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Salvas</p>
                 </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                     R$ {savedStats.totalAmount.toFixed(2)}
                   </p>
                   <p className="text-sm text-muted-foreground">Valor Total</p>
                 </div>
-                <div className="text-center p-3 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">
+                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                     {Object.keys(savedStats.categoryDistribution || {}).length}
                   </p>
                   <p className="text-sm text-muted-foreground">Categorias</p>
                 </div>
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-600">
+                <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                     {(savedStats.averageConfidence * 100).toFixed(1)}%
                   </p>
                   <p className="text-sm text-muted-foreground">Confiança Média</p>

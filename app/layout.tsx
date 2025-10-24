@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Sistema de gestão financeira com IA para categorização automática de transações",
 };
 
+import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider";
 import { MainLayout } from "@/components/layout/main-layout";
 
 export default function RootLayout({
@@ -29,9 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MainLayout>
-          {children}
-        </MainLayout>
+        <QueryClientProviderWrapper>
+          <MainLayout>
+            {children}
+          </MainLayout>
+        </QueryClientProviderWrapper>
       </body>
     </html>
   );

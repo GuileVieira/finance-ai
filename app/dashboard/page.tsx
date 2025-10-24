@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { CategoryChart } from '@/components/dashboard/category-chart';
 import { TopExpenses } from '@/components/dashboard/top-expenses';
@@ -13,89 +14,204 @@ import { Benchmarks } from '@/components/dashboard/benchmarks';
 import { Scenarios } from '@/components/dashboard/scenarios';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, AlertTriangle } from 'lucide-react';
-import { mockMetrics, mockCategories } from '@/lib/mock-data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Upload, AlertTriangle, RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
+import { useDashboard, useDashboardMetrics } from '@/hooks/use-dashboard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { MetricCardSkeleton } from '@/components/transactions/metric-card-skeleton';
 
 export default function DashboardPage() {
+  const [filters, setFilters] = useState({
+    period: '2025-10',
+    accountId: 'all',
+    companyId: 'all'
+  });
+
+  // Usar hooks do TanStack Query para buscar dados do dashboard
+  const {
+    dashboardData,
+    metrics,
+    categorySummary,
+    trendData,
+    topExpenses,
+    recentTransactions,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+    isEmpty,
+    hasError
+  } = useDashboard(filters, {
+    enabled: true,
+    refetchInterval: 1000 * 60 * 10, // Atualizar a cada 10 minutos
+  });
+
+  // Converter métricas para formato esperado pelos componentes
+  const dashboardMetrics = useMemo(() => {
+    if (!metrics) return [];
+
+    return [
+      {
+        title: 'Receitas',
+        value: metrics.totalIncome,
+        change: metrics.growthRate,
+        changeType: metrics.growthRate >= 0 ? 'increase' as const : 'decrease' as const,
+        icon: '📈',
+        color: 'text-green-600'
+      },
+      {
+        title: 'Despesas',
+        value: metrics.totalExpenses,
+        change: -5.2, // TODO: Calcular variação real
+        changeType: 'decrease' as const,
+        icon: '📉',
+        color: 'text-red-600'
+      },
+      {
+        title: 'Saldo',
+        value: metrics.netBalance,
+        change: 12.8, // TODO: Calcular variação real
+        changeType: 'increase' as const,
+        icon: '💰',
+        color: metrics.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'
+      },
+      {
+        title: 'Transações',
+        value: metrics.transactionCount,
+        change: 8.4, // TODO: Calcular variação real
+        changeType: 'increase' as const,
+        icon: '🔄',
+        color: 'text-blue-600'
+      }
+    ];
+  }, [metrics]);
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleRefresh = () => {
+    refetch();
+  };
+
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-      {/* Filtros do Dashboard */}
-      <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-        <Select defaultValue="setembro-2025">
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Selecione o período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="setembro-2025">Setembro/2025</SelectItem>
-            <SelectItem value="agosto-2025">Agosto/2025</SelectItem>
-            <SelectItem value="julho-2025">Julho/2025</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select defaultValue="todas">
-          <SelectTrigger className="w-full sm:w-[140px]">
-            <SelectValue placeholder="Conta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas</SelectItem>
-            <SelectItem value="bb">Banco do Brasil</SelectItem>
-            <SelectItem value="itau">Itaú</SelectItem>
-            <SelectItem value="santander">Santander</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Alertas Estratégicos */}
-      <StrategicAlerts />
-
-      {/* Cards de métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockMetrics.map((metric, index) => (
-          <MetricCard key={index} metric={metric} />
-        ))}
-      </div>
-
-      {/* Análises Temporais */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrendChart />
-        <CashFlowChart />
-      </div>
-
-      {/* Comparações e Benchmarks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BudgetComparison />
-        <Benchmarks />
-      </div>
-
-      {/* Grid principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico de categorias */}
-        <div className="lg:col-span-2">
-          <CategoryChart categories={mockCategories} />
+        {/* Filtros do Dashboard */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2025-10">Outubro/2025</SelectItem>
+              <SelectItem value="2025-09">Setembro/2025</SelectItem>
+              <SelectItem value="2025-08">Agosto/2025</SelectItem>
+              <SelectItem value="2025-07">Julho/2025</SelectItem>
+              <SelectItem value="all">Todos os períodos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="bb">Banco do Brasil</SelectItem>
+              <SelectItem value="itau">Itaú</SelectItem>
+              <SelectItem value="santander">Santander</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefetching}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
 
-        {/* Top Despesas */}
-        <div>
-          <TopExpenses />
-        </div>
-      </div>
+        {/* Mensagem de Erro */}
+        {hasError && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>Erro ao carregar dashboard:</strong> {error?.message || 'Erro desconhecido'}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Cenários e Projeções */}
-      <Scenarios />
+        {/* Alertas Estratégicos */}
+        <StrategicAlerts />
 
-      {/* Transações e Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Transações Recentes */}
-        <div className="lg:col-span-2">
-          <RecentTransactions />
+        {/* Cards de métricas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <MetricCardSkeleton key={index} />
+            ))
+          ) : (
+            dashboardMetrics.map((metric, index) => (
+              <MetricCard key={index} metric={metric} />
+            ))
+          )}
         </div>
 
-        {/* Insights */}
-        <div>
-          <Insights />
+        {/* Análises Temporais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TrendChart data={trendData} isLoading={isLoading} />
+          <CashFlowChart data={trendData} isLoading={isLoading} />
         </div>
-      </div>
+
+        {/* Comparações e Benchmarks */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BudgetComparison isLoading={isLoading} />
+          <Benchmarks isLoading={isLoading} />
+        </div>
+
+        {/* Grid principal */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Gráfico de categorias */}
+          <div className="lg:col-span-2">
+            <CategoryChart
+              categories={categorySummary}
+              isLoading={isLoading}
+              isEmpty={!isLoading && categorySummary.length === 0}
+            />
+          </div>
+
+          {/* Top Despesas */}
+          <div>
+            <TopExpenses
+              expenses={topExpenses}
+              isLoading={isLoading}
+              isEmpty={!isLoading && topExpenses.length === 0}
+            />
+          </div>
+        </div>
+
+        {/* Cenários e Projeções */}
+        <Scenarios isLoading={isLoading} />
+
+        {/* Transações e Insights */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Transações Recentes */}
+          <div className="lg:col-span-2">
+            <RecentTransactions
+              transactions={recentTransactions}
+              isLoading={isLoading}
+              isEmpty={!isLoading && recentTransactions.length === 0}
+            />
+          </div>
+
+          {/* Insights */}
+          <div>
+            <Insights isLoading={isLoading} />
+          </div>
+        </div>
       </div>
     </LayoutWrapper>
   );

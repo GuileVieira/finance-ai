@@ -289,7 +289,7 @@ export class TransactionsService {
   /**
    * Obter tendência mensal
    */
-  private async getMonthlyTrend(filters: TransactionFilters = {})): Promise<TransactionStats['monthlyTrend']> {
+  private async getMonthlyTrend(filters: TransactionFilters = {}): Promise<TransactionStats['monthlyTrend']> {
     try {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);

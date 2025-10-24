@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CashFlowReport } from '@/lib/types';
-import { mockCashFlow } from '@/lib/mock-reports';
+import { initializeDatabase } from '@/lib/db/init-db';
+import CashFlowService from '@/lib/services/cash-flow.service';
 
 export async function GET(request: NextRequest) {
   try {
+    await initializeDatabase();
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'current';
-    const days = searchParams.get('days') || '30';
+    const days = parseInt(searchParams.get('days') || '30');
+    const companyId = searchParams.get('companyId') || undefined;
+    const accountId = searchParams.get('accountId') || undefined;
 
-    // Simular busca no banco de dados
-    const data = mockCashFlow;
+    console.log('📊 [CASH-FLOW-API] Buscando fluxo de caixa com filtros:', { period, days, companyId, accountId });
+
+    const cashFlowData = await CashFlowService.getCashFlowReport({
+      period,
+      days,
+      companyId,
+      accountId
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        report: data,
-        period: data.period,
-        days: parseInt(days)
+        report: cashFlowData,
+        period: cashFlowData.period,
+        days
       }
     });
   } catch (error) {
@@ -24,7 +34,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch cash flow data'
+        error: error instanceof Error ? error.message : 'Failed to fetch cash flow data'
       },
       { status: 500 }
     );
@@ -33,22 +43,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { startDate, endDate } = body;
+    await initializeDatabase();
 
-    // Lógica para calcular fluxo de caixa com base em transações
-    // Por enquanto, retorna dados mockados
+    const body = await request.json();
+    const { startDate, endDate, companyId, accountId } = body;
+
+    console.log('📊 [CASH-FLOW-API] Calculando fluxo de caixa personalizado:', { startDate, endDate, companyId, accountId });
+
+    const cashFlowData = await CashFlowService.getCashFlowReport({
+      startDate,
+      endDate,
+      companyId,
+      accountId
+    });
 
     return NextResponse.json({
       success: true,
-      data: mockCashFlow
+      data: cashFlowData
     });
   } catch (error) {
     console.error('Error calculating cash flow:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to calculate cash flow'
+        error: error instanceof Error ? error.message : 'Failed to calculate cash flow'
       },
       { status: 500 }
     );
