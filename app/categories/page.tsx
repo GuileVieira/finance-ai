@@ -59,6 +59,7 @@ export default function CategoriesPage() {
                 <CategoryCard
                   key={category.id}
                   category={category}
+                  showViewButton={true}
                   onEdit={() => {
                     toast({
                       title: 'Editar Categoria',
@@ -69,6 +70,15 @@ export default function CategoriesPage() {
                     toast({
                       title: 'Regras Automáticas',
                       description: `Verificando regras para ${category.name}...`,
+                    });
+                  }}
+                  onUpdate={(updatedCategory) => {
+                    setCategories(prev => prev.map(cat =>
+                      cat.id === updatedCategory.id ? updatedCategory : cat
+                    ));
+                    toast({
+                      title: 'Categoria Atualizada',
+                      description: `${updatedCategory.name} foi atualizada com sucesso!`,
                     });
                   }}
                 />
