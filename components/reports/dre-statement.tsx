@@ -63,23 +63,49 @@ export default function DREStatementComponent({
     isResult = false,
     previousValue?: number,
     indent = 0,
-    color = ''
+    color = '',
+    lineDetails?: any[],
+    transactions?: number
   ) => {
     const variation = previousValue ? getVariation(value, previousValue) : null;
+    const lineKey = `dre-line-${label.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const isExpanded = expandedCategories.includes(lineKey);
+    const hasDetails = lineDetails && lineDetails.length > 0;
 
     return (
       <div className="space-y-1">
         <div
           className={`flex justify-between items-center py-2 px-3 rounded ${
             isResult ? (value >= 0 ? 'bg-green-50' : 'bg-red-50') : ''
-          } ${indent > 0 ? `ml-${indent * 4}` : ''}`}
+          } ${indent > 0 ? `ml-${indent * 4}` : ''} ${
+            hasDetails ? 'cursor-pointer hover:bg-muted/50' : ''
+          }`}
           style={color ? { color } : {}}
+          onClick={() => {
+            if (hasDetails) {
+              toggleCategory(lineKey);
+            }
+          }}
         >
-          <span className={`${indent > 0 ? 'ml-8' : ''} font-medium ${
-            isResult ? 'text-lg' : ''
-          }`}>
-            {label}
-          </span>
+          <div className="flex items-center gap-2">
+            {hasDetails && (
+              <>
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                )}
+                <Badge variant="secondary" className="text-xs">
+                  {transactions || lineDetails.reduce((sum, item) => sum + (item.transactions || 0), 0)} trans
+                </Badge>
+              </>
+            )}
+            <span className={`${indent > 0 ? 'ml-8' : ''} font-medium ${
+              isResult ? 'text-lg' : ''
+            }`}>
+              {label}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             {variation && (
               <div className={`flex items-center gap-1 text-sm ${
@@ -100,6 +126,55 @@ export default function DREStatementComponent({
             </span>
           </div>
         </div>
+
+        {isExpanded && hasDetails && (
+          <div className="ml-8 mr-3 border-l-2 border-border bg-muted/30 p-4">
+            <h4 className="font-medium mb-3 text-sm">
+              Detalhamento por Categoria
+            </h4>
+            <div className="space-y-3">
+              {lineDetails.map((item) => (
+                <div key={item.label} className="border-b border-border pb-3 last:border-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">{item.label}</span>
+                    <span className={item.value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {item.value >= 0 ? '+' : ''}{formatCurrency(item.value)}
+                    </span>
+                  </div>
+                  {item.drilldown && item.drilldown.length > 0 && (
+                    <div className="space-y-2 ml-4">
+                      <div className="text-sm text-muted-foreground">
+                        Transações ({item.drilldown.length}):
+                      </div>
+                      {item.drilldown.slice(0, 5).map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          className="flex justify-between items-center text-sm py-1 border-b border-border/50 last:border-0"
+                        >
+                          <div>
+                            <div className="font-medium">{transaction.description}</div>
+                            <div className="text-muted-foreground text-xs">
+                              {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                            </div>
+                          </div>
+                          <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                          </span>
+                        </div>
+                      ))}
+                      {item.drilldown.length > 5 && (
+                        <div className="text-sm text-muted-foreground text-center py-1">
+                          ... e mais {item.drilldown.length - 5} transações
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {indent === 0 && <Separator />}
       </div>
     );
@@ -184,7 +259,11 @@ export default function DREStatementComponent({
             "RECEITA BRUTA",
             data.grossRevenue,
             false,
-            previousPeriod?.grossRevenue
+            previousPeriod?.grossRevenue,
+            0,
+            '',
+            data.lineDetails?.grossRevenue,
+            data.lineDetails?.grossRevenue?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -192,7 +271,10 @@ export default function DREStatementComponent({
             -data.taxes,
             false,
             previousPeriod?.taxes ? -previousPeriod.taxes : undefined,
-            1
+            1,
+            '',
+            data.lineDetails?.taxes,
+            data.lineDetails?.taxes?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -200,7 +282,10 @@ export default function DREStatementComponent({
             -data.financialCosts,
             false,
             previousPeriod?.financialCosts ? -previousPeriod.financialCosts : undefined,
-            1
+            1,
+            '',
+            data.lineDetails?.financialCosts,
+            data.lineDetails?.financialCosts?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -217,7 +302,10 @@ export default function DREStatementComponent({
             -data.variableCosts,
             false,
             previousPeriod?.variableCosts ? -previousPeriod.variableCosts : undefined,
-            1
+            1,
+            '',
+            data.lineDetails?.variableCosts,
+            data.lineDetails?.variableCosts?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -243,7 +331,10 @@ export default function DREStatementComponent({
             -data.fixedCosts,
             false,
             previousPeriod?.fixedCosts ? -previousPeriod.fixedCosts : undefined,
-            1
+            1,
+            '',
+            data.lineDetails?.fixedCosts,
+            data.lineDetails?.fixedCosts?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -260,7 +351,10 @@ export default function DREStatementComponent({
             data.nonOperational.revenue,
             false,
             previousPeriod?.nonOperational?.revenue,
-            1
+            1,
+            '',
+            data.lineDetails?.nonOperationalRevenue,
+            data.lineDetails?.nonOperationalRevenue?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(
@@ -268,7 +362,10 @@ export default function DREStatementComponent({
             -data.nonOperational.expenses,
             false,
             previousPeriod?.nonOperational?.expenses ? -previousPeriod.nonOperational.expenses : undefined,
-            1
+            1,
+            '',
+            data.lineDetails?.nonOperationalExpenses,
+            data.lineDetails?.nonOperationalExpenses?.reduce((sum, item) => sum + (item.transactions || 0), 0)
           )}
 
           {formatDRELine(

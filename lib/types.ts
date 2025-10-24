@@ -81,6 +81,15 @@ export interface DREStatement {
   };
   netResult: number;
   categories: DRECategory[];
+  lineDetails?: {
+    grossRevenue?: DRELineItem[];
+    taxes?: DRELineItem[];
+    financialCosts?: DRELineItem[];
+    variableCosts?: DRELineItem[];
+    fixedCosts?: DRELineItem[];
+    nonOperationalRevenue?: DRELineItem[];
+    nonOperationalExpenses?: DRELineItem[];
+  };
 }
 
 export interface DRECategory {
@@ -91,6 +100,15 @@ export interface DRECategory {
   color: string;
   transactions: number;
   drilldown?: Transaction[];
+}
+
+export interface DRELineItem {
+  label: string;
+  value: number;
+  type: 'revenue' | 'expense' | 'result';
+  category?: 'operational' | 'non_operational';
+  drilldown?: Transaction[];
+  transactions?: number;
 }
 
 export interface CashFlowItem {
