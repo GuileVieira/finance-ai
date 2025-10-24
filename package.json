@@ -7,15 +7,16 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:init": "node scripts/init-database.js",
-    "db:server": "node scripts/start-pg-server.js",
+    "db:init": "curl -X POST http://localhost:3000/api/db-init",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:custom": "node scripts/migrate-postgres.js",
+    "db:reset": "node scripts/clean-and-migrate",
+    "db:seed:categories": "tsx scripts/seed-categories.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.11",
     "@hookform/resolvers": "^5.2.2",
     "@langchain/core": "^1.0.1",
     "@langchain/langgraph": "^1.0.1",
@@ -41,6 +42,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "fuse.js": "^7.1.0",
     "jspdf": "^3.0.3",
@@ -52,6 +54,7 @@
     "next-themes": "^0.4.6",
     "node-persist": "^4.0.4",
     "ofx-data-extractor": "^1.4.8",
+    "pg": "^8.16.3",
     "react": "19.1.0",
     "react-day-picker": "^9.11.1",
     "react-dom": "19.1.0",
@@ -76,6 +79,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.6",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

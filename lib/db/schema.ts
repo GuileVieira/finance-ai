@@ -13,7 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 // Empresas
-export const companies = pgTable('companies', {
+export const companies = pgTable('financeai_companies', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
   cnpj: varchar('cnpj', { length: 14 }).unique(),
@@ -34,7 +34,7 @@ export const companies = pgTable('companies', {
 }));
 
 // Contas bancárias
-export const accounts = pgTable('accounts', {
+export const accounts = pgTable('financeai_accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
@@ -54,7 +54,7 @@ export const accounts = pgTable('accounts', {
 }));
 
 // Categorias de transações
-export const categories = pgTable('categories', {
+export const categories = pgTable('financeai_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 100 }).notNull(),
@@ -63,6 +63,8 @@ export const categories = pgTable('categories', {
   parentType: varchar('parent_type', { length: 30 }),
   parentCategoryId: uuid('parent_category_id').references(() => categories.id),
   colorHex: varchar('color_hex', { length: 7 }).default('#6366F1'),
+  icon: varchar('icon', { length: 10 }).default('📊'), // Emoji para ícones das categorias
+  examples: json('examples'), // Array de exemplos de transações
   isSystem: boolean('is_system').default(false),
   active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
@@ -74,7 +76,7 @@ export const categories = pgTable('categories', {
 }));
 
 // Uploads de arquivos
-export const uploads = pgTable('uploads', {
+export const uploads = pgTable('financeai_uploads', {
   id: uuid('id').primaryKey().defaultRandom(),
   companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
@@ -99,7 +101,7 @@ export const uploads = pgTable('uploads', {
 }));
 
 // Transações financeiras
-export const transactions = pgTable('transactions', {
+export const transactions = pgTable('financeai_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
   accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
@@ -127,7 +129,7 @@ export const transactions = pgTable('transactions', {
 }));
 
 // Usuários (simplificado para MVP)
-export const users = pgTable('users', {
+export const users = pgTable('financeai_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
@@ -141,7 +143,7 @@ export const users = pgTable('users', {
 }));
 
 // Regras de categorização automática
-export const categoryRules = pgTable('category_rules', {
+export const categoryRules = pgTable('financeai_category_rules', {
   id: uuid('id').primaryKey().defaultRandom(),
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }),
   companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),

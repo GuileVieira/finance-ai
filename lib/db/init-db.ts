@@ -1,32 +1,7 @@
 import { db } from './connection';
 import { companies, accounts, categories } from './schema';
 import { eq } from 'drizzle-orm';
-
-// Dados iniciais de categorias baseadas no mock-categories.ts
-const DEFAULT_CATEGORIES = [
-  // Receitas
-  { name: 'Vendas de Produtos', type: 'revenue', colorHex: '#10B981' },
-  { name: 'Prestação de Serviços', type: 'revenue', colorHex: '#3B82F6' },
-  { name: 'Receitas Financeiras', type: 'revenue', colorHex: '#8B5CF6' },
-
-  // Custos Variáveis
-  { name: 'Comissões e Bonificações', type: 'variable_cost', colorHex: '#F59E0B' },
-  { name: 'Custos dos Produtos Vendidos', type: 'variable_cost', colorHex: '#EF4444' },
-  { name: 'Logística e Entrega', type: 'variable_cost', colorHex: '#EC4899' },
-  { name: 'Marketing e Publicidade', type: 'variable_cost', colorHex: '#06B6D4' },
-
-  // Custos Fixos
-  { name: 'Salários e Encargos', type: 'fixed_cost', colorHex: '#DC2626' },
-  { name: 'Aluguel e Condomínio', type: 'fixed_cost', colorHex: '#7C3AED' },
-  { name: 'Software e Tecnologia', type: 'fixed_cost', colorHex: '#0891B2' },
-  { name: 'Serviços Profissionais', type: 'fixed_cost', colorHex: '#DB2777' },
-  { name: 'Seguros', type: 'fixed_cost', colorHex: '#059669' },
-
-  // Não Operacionais
-  { name: 'Impostos e Taxas', type: 'non_operational', colorHex: '#6B7280' },
-  { name: 'Despesas Bancárias', type: 'non_operational', colorHex: '#4B5563' },
-  { name: 'Manutenção e Reparos', type: 'non_operational', colorHex: '#9333EA' }
-];
+import { mockCategories } from '../mock-categories';
 
 export async function initializeDatabase() {
   try {
@@ -62,19 +37,22 @@ export async function initializeDatabase() {
 
       console.log(`✅ Conta criada: ${newAccount.name}`);
 
-      // Criar categorias padrão
+      // Criar categorias padrão usando mockCategories
       console.log('📊 Criando categorias padrão...');
-      const categoriesToInsert = DEFAULT_CATEGORIES.map(cat => ({
+      const categoriesToInsert = mockCategories.map(cat => ({
         companyId: newCompany.id,
         name: cat.name,
+        description: cat.description,
         type: cat.type,
-        colorHex: cat.colorHex,
+        colorHex: cat.color,
+        icon: cat.icon,
+        examples: cat.examples,
         isSystem: true,
         active: true
       }));
 
       await db.insert(categories).values(categoriesToInsert);
-      console.log(`✅ ${categoriesToInsert.length} categorias criadas`);
+      console.log(`✅ ${categoriesToInsert.length} categorias criadas com dados completos`);
 
       console.log('🎉 Banco de dados inicializado com sucesso!');
       return { company: newCompany, account: newAccount };

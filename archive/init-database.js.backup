@@ -176,27 +176,51 @@ async function initializeDatabase() {
       WHERE c.name = 'Empresa Padrão'
       AND NOT EXISTS (SELECT 1 FROM accounts WHERE company_id = c.id LIMIT 1);
 
-      -- Inserir categorias padrão
+      -- Inserir 12 categorias padrão baseadas no mock-categories.ts
       INSERT INTO categories (company_id, name, type, color_hex, is_system, active)
       SELECT
         c.id,
         unnest(ARRAY[
-          'Vendas de Produtos', 'Prestação de Serviços', 'Receitas Financeiras',
-          'Comissões e Bonificações', 'Custos dos Produtos Vendidos', 'Logística e Entrega', 'Marketing e Publicidade',
-          'Salários e Encargos', 'Aluguel e Condomínio', 'Software e Tecnologia', 'Serviços Profissionais', 'Seguros',
-          'Impostos e Taxas', 'Despesas Bancárias', 'Manutenção e Reparos'
+          'Vendas de Produtos',
+          'Comissões e Variáveis',
+          'Custos de Produtos',
+          'Logística e Distribuição',
+          'Salários e Encargos',
+          'Aluguel e Ocupação',
+          'Tecnologia e Software',
+          'Serviços Profissionais',
+          'Tributos e Contribuições',
+          'Utilidades e Insumos',
+          'Manutenção e Serviços',
+          'Financeiros e Bancários'
         ]),
         unnest(ARRAY[
-          'revenue', 'revenue', 'revenue',
-          'variable_cost', 'variable_cost', 'variable_cost', 'variable_cost',
-          'fixed_cost', 'fixed_cost', 'fixed_cost', 'fixed_cost', 'fixed_cost',
-          'non_operational', 'non_operational', 'non_operational'
+          'revenue',
+          'variable_cost',
+          'variable_cost',
+          'variable_cost',
+          'fixed_cost',
+          'fixed_cost',
+          'fixed_cost',
+          'fixed_cost',
+          'fixed_cost',
+          'non_operating',
+          'non_operating',
+          'non_operating'
         ]),
         unnest(ARRAY[
-          '#10B981', '#3B82F6', '#8B5CF6',
-          '#F59E0B', '#EF4444', '#EC4899', '#06B6D4',
-          '#DC2626', '#7C3AED', '#0891B2', '#DB2777', '#059669',
-          '#6B7280', '#4B5563', '#9333EA'
+          '#059669', -- Vendas de Produtos (verde escuro)
+          '#D97706', -- Comissões e Variáveis (laranja)
+          '#B45309', -- Custos de Produtos (laranja escuro)
+          '#92400E', -- Logística e Distribuição (marrom)
+          '#DC2626', -- Salários e Encargos (vermelho)
+          '#B91C1C', -- Aluguel e Ocupação (vermelho escuro)
+          '#991B1B', -- Tecnologia e Software (vermelho bem escuro)
+          '#7F1D1D', -- Serviços Profissionais (vermelho quase preto)
+          '#C2410C', -- Tributos e Contribuições (laranja)
+          '#6B7280', -- Utilidades e Insumos (cinza)
+          '#4B5563', -- Manutenção e Serviços (cinza escuro)
+          '#374151'  -- Financeiros e Bancários (cinza muito escuro)
         ]),
         true,
         true
