@@ -1,2 +1,3 @@
 - estamos usando pnpm
 - garanta que todos so componentes sigam o tema definido
+- arquivos md devem ser salvos na pasta docs na raiz do projeto a menos que seja especificado onde
