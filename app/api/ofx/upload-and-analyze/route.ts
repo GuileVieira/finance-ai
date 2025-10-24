@@ -13,6 +13,10 @@ export async function POST(request: NextRequest) {
 
   try {
     console.log('\n=== [OFX-UPLOAD-ANALYZE] Nova requisição de upload e análise ===');
+    console.log('🔧 Headers:', {
+      contentType: request.headers.get('content-type'),
+      userAgent: request.headers.get('user-agent')?.substring(0, 50)
+    });
 
     // Inicializar banco de dados se necessário
     console.log('🔧 Verificando banco de dados...');
@@ -27,89 +31,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Primeiro, extrair informações bancárias do OFX para verificação
-    console.log('🔍 Extraindo informações bancárias do OFX...');
-    const tempParseResult = await parseOFXFile(ofxContent);
-
-    if (!tempParseResult.success) {
-      return NextResponse.json({
-        success: false,
-        error: `Não foi possível extrair informações bancárias do arquivo OFX: ${tempParseResult.error}`
-      }, { status: 400 });
-    }
-
-    const bankInfo = tempParseResult.bankInfo;
-    console.log('🏦 Informações bancárias do OFX:', bankInfo);
-
-    // Buscar todas as contas da empresa
-    const allAccounts = await db.select().from(accounts).where(eq(accounts.companyId, defaultCompany.id));
-    console.log(`📋 Encontradas ${allAccounts.length} contas para a empresa`);
-
-    let defaultAccount = null;
-    let accountMatchType = '';
-
-    // Estratégia 1: Tentar encontrar conta exata pelo número da conta
-    if (bankInfo?.accountId) {
-      const exactMatch = allAccounts.find(acc =>
-        acc.accountNumber === bankInfo.accountId ||
-        acc.accountNumber.replace(/[^0-9-]/g, '') === bankInfo.accountId.replace(/[^0-9-]/g, '')
-      );
-
-      if (exactMatch) {
-        defaultAccount = exactMatch;
-        accountMatchType = 'conta exata';
-        console.log(`✅ Encontrada conta exata: ${exactMatch.name} (${exactMatch.accountNumber})`);
-      }
-    }
-
-    // Estratégia 2: Tentar encontrar pelo banco se não encontrou pela conta
-    if (!defaultAccount && bankInfo?.bankName) {
-      const bankMatch = allAccounts.find(acc =>
-        acc.bankName?.toLowerCase().includes(bankInfo.bankName.toLowerCase()) ||
-        bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || '')
-      );
-
-      if (bankMatch) {
-        defaultAccount = bankMatch;
-        accountMatchType = 'banco correspondente';
-        console.log(`✅ Encontrada conta do mesmo banco: ${bankMatch.name} (${bankMatch.bankName})`);
-      }
-    }
-
-    // Estratégia 3: Usar primeira conta existente se nenhuma correspondência
-    if (!defaultAccount && allAccounts.length > 0) {
-      defaultAccount = allAccounts[0];
-      accountMatchType = 'primeira disponível';
-      console.log(`⚠️ Usando primeira conta disponível: ${defaultAccount.name} (${defaultAccount.bankName})`);
-    }
-
-    // Estratégia 4: Criar nova conta se não existir nenhuma
-    if (!defaultAccount) {
-      console.log('🏦 Nenhuma conta encontrada. Criando automaticamente...');
-
-      const [newAccount] = await db.insert(accounts).values({
-        companyId: defaultCompany.id,
-        name: bankInfo?.accountId
-          ? `Conta ${bankInfo.bankName || 'Banco'} - ${bankInfo.accountId}`
-          : 'Conta Extraída do OFX',
-        bankName: bankInfo?.bankName || 'Banco Não Identificado',
-        bankCode: bankInfo?.bankId || '000',
-        agencyNumber: bankInfo?.branchId || '0000',
-        accountNumber: bankInfo?.accountId || '00000-0',
-        accountType: bankInfo?.accountType || 'checking',
-        openingBalance: 0,
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
-
-      defaultAccount = newAccount;
-      accountMatchType = 'criada automaticamente';
-      console.log(`✅ Conta criada automaticamente: ${newAccount.name} (${newAccount.bankName})`);
-    }
-
     console.log(`🏢 Usando empresa: ${defaultCompany.name} (${defaultCompany.id})`);
-    console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id}) - ${accountMatchType}`);
 
     // Verificar se é multipart/form-data (upload de arquivo)
     const contentType = request.headers.get('content-type');
@@ -123,6 +45,7 @@ export async function POST(request: NextRequest) {
     // Parse do formulário multipart
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const safeMode = formData.get('safeMode') === 'true'; // Modo seguro para testes
 
     if (!file) {
       return NextResponse.json({
@@ -213,10 +136,89 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Parser OFX concluído:', {
       numTransactions: parseResult.transactions?.length || 0,
-      bankInfo: parseResult.bankInfo
+      bankInfo: parseResult.bankInfo,
+      safeMode
     });
 
-    // Criar registro de upload
+    // Modo seguro: limitar a primeira transação apenas
+    if (safeMode && parseResult.transactions && parseResult.transactions.length > 1) {
+      console.log(`🔒 Modo seguro: limitando de ${parseResult.transactions.length} para 1 transação`);
+      parseResult.transactions = [parseResult.transactions[0]];
+    }
+
+    // Agora extrair informações bancárias do OFX para gerenciamento de contas
+    console.log('🔍 Extraindo informações bancárias do OFX...');
+
+    // Buscar todas as contas da empresa
+    const allAccounts = await db.select().from(accounts).where(eq(accounts.companyId, defaultCompany.id));
+    console.log(`📋 Encontradas ${allAccounts.length} contas para a empresa`);
+
+    let defaultAccount = null;
+    let accountMatchType = '';
+
+    // Estratégia 1: Tentar encontrar conta exata pelo número da conta
+    if (parseResult.bankInfo?.accountId) {
+      const exactMatch = allAccounts.find(acc =>
+        acc.accountNumber === parseResult.bankInfo.accountId ||
+        acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo.accountId.replace(/[^0-9-]/g, '')
+      );
+
+      if (exactMatch) {
+        defaultAccount = exactMatch;
+        accountMatchType = 'conta exata';
+        console.log(`✅ Encontrada conta exata: ${exactMatch.name} (${exactMatch.accountNumber})`);
+      }
+    }
+
+    // Estratégia 2: Tentar encontrar pelo banco se não encontrou pela conta
+    if (!defaultAccount && parseResult.bankInfo?.bankName) {
+      const bankMatch = allAccounts.find(acc =>
+        acc.bankName?.toLowerCase().includes(parseResult.bankInfo.bankName.toLowerCase()) ||
+        parseResult.bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || '')
+      );
+
+      if (bankMatch) {
+        defaultAccount = bankMatch;
+        accountMatchType = 'banco correspondente';
+        console.log(`✅ Encontrada conta do mesmo banco: ${bankMatch.name} (${bankMatch.bankName})`);
+      }
+    }
+
+    // Estratégia 3: Usar primeira conta existente se nenhuma correspondência
+    if (!defaultAccount && allAccounts.length > 0) {
+      defaultAccount = allAccounts[0];
+      accountMatchType = 'primeira disponível';
+      console.log(`⚠️ Usando primeira conta disponível: ${defaultAccount.name} (${defaultAccount.bankName})`);
+    }
+
+    // Estratégia 4: Criar nova conta se não existir nenhuma
+    if (!defaultAccount) {
+      console.log('🏦 Nenhuma conta encontrada. Criando automaticamente...');
+
+      const [newAccount] = await db.insert(accounts).values({
+        companyId: defaultCompany.id,
+        name: parseResult.bankInfo?.accountId
+          ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
+          : 'Conta Extraída do OFX',
+        bankName: parseResult.bankInfo?.bankName || 'Banco Não Identificado',
+        bankCode: parseResult.bankInfo?.bankId || '000',
+        agencyNumber: parseResult.bankInfo?.branchId || '0000',
+        accountNumber: parseResult.bankInfo?.accountId || '00000-0',
+        accountType: parseResult.bankInfo?.accountType || 'checking',
+        openingBalance: 0,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+
+      defaultAccount = newAccount;
+      accountMatchType = 'criada automaticamente';
+      console.log(`✅ Conta criada automaticamente: ${newAccount.name} (${newAccount.bankName})`);
+    }
+
+    console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id}) - ${accountMatchType}`);
+
+    // Criar registro de upload (agora com a conta correta)
     console.log('📝 Criando registro de upload...');
     const [newUpload] = await db.insert(uploads).values({
       companyId: defaultCompany.id,

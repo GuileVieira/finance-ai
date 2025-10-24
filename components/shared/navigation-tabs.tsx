@@ -12,7 +12,6 @@ const navigationItems = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Transações', href: '/transactions' },
   { name: 'Upload', href: '/upload' },
-  { name: 'Uploads', href: '/uploads' },
   { name: 'Categorias', href: '/categories' },
   { name: 'Relatórios', href: '/reports' }
 ];

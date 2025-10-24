@@ -192,7 +192,7 @@ const TestReactAgent: React.FC = () => {
     return testCase ? {
       category: testCase.expectedOutput,
       confidence: 0.9,
-      reasoning: `Classificado como "${testCase.expectedOutput}" baseado no teste`,
+      reasoning: "Classificado como " + testCase.expectedOutput + " baseado no teste",
       source: 'ai'
     } : {
       category: categories.outras_despesas,
@@ -219,7 +219,7 @@ const TestReactAgent: React.FC = () => {
 
   // Enviar mensagens do sistema
   const addSystemMessage = (content: string, toolCall?: ToolCall) => {
-    const message: {
+    const message = {
       role: 'system',
       content: toolCall ? generateSystemMessage(toolCall) : content
     };
@@ -267,7 +267,7 @@ const TestReactAgent: React.FC = () => {
       ...(agentState.isStreaming ? { metadata: { type: 'stream_chunk' } } : {})
     };
 
-    setConversationState(prev => {
+    setConversationState(prev => ({
       ...prev,
       messages: [...prev.messages, message]
     }));
@@ -277,7 +277,7 @@ const TestReactAgent: React.FC = () => {
   const executeTool = async (toolName: string, args: Record<string, any>) => {
     const tool = agentState.availableTools.find(t => t.id === toolName);
     if (!tool) {
-      return { error: `Ferramenta "${toolName}" não encontrada` };
+      return { error: "Ferramenta "${toolName}" +  não encontrada };
     }
 
     addSystemMessage(`Executando ferramenta: ${toolName} com args: ${JSON.stringify(args)}`);
@@ -287,7 +287,7 @@ const TestReactAgent: React.FC = () => {
     const executeToolReal = async (toolName: string, args: Record<string, any>) => {
     if (toolName === 'search_company') {
       return {
-        result: `Empresa "${args.description}" encontrada (simulação)`,
+        result: "Empresa "${args.description}" +  encontrada (simulação),
         confidence: 1.0,
         reasoning: 'Busca simulada concluída com sucesso'
       };
@@ -314,7 +314,7 @@ const TestReactAgent: React.FC = () => {
   const buildDynamicPrompt = (context: AgentState, availableTools: Array<string>) => {
     const toolList = availableTools.map(t => `- **${t.name}**: ${t.description}`).join('\n');
 
-    return `Você é um assistente financeiro especializado com acesso às seguintes ferramentas:\n${toolList}\n\nHistórico da conversa:\n${context.messages.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}\n\nUse as ferramentas quando necessário para responder às perguntas do usuário.\n\n\nTransação atual: "${context.input}" no valor R$ ${agentState.input ? parseFloat(agentState.input).toFixed(2) : '0.00'}\n\n\nCategoria baseada em regras (se aplicável): ${categorizeByRules(context.input || '', parseFloat(context.input || 0))}\n\n\nInstruções:\n1. Tente categorizar primeiro usando regras conhecidas\n2. Se a categorização não tiver confiança alta (confiança < 0.7), use a IA\n3. Para transações complexas ou ambíguas, use "analisar_contexto"\n4. Sempre forneçaça honesta sobre as limitações do sistema\n\n\nClassifique sempre a categoria antes de confirmar com o usuário.`;
+    return `Você é um assistente financeiro especializado com acesso às seguintes ferramentas:\n${toolList}\n\nHistórico da conversa:\n${context.messages.slice(-3).map(m => `${m.role}: ${m.content}").join('\n')}\n\nUse as ferramentas quando necessário para responder às perguntas do usuário.\n\n\nTransação atual: "${context.input}" no valor R$ ${agentState.input ? parseFloat(agentState.input).toFixed(2) : '0.00'}\n\n\nCategoria baseada em regras (se aplicável): ${categorizeByRules(context.input || '', parseFloat(context.input || 0))}\n\n\nInstruções:\n1. Tente categorizar primeiro usando regras conhecidas\n2. Se a categorização não tiver confiança alta (confiança < 0.7), use a IA\n3. Para transações complexas ou ambíguas, use "analisar_contexto" + \n4. Sempre forneçaça honesta sobre as limitações do sistema\n\n\nClassifique sempre a categoria antes de confirmar com o usuário.;
   }`;
   };
 
@@ -367,7 +367,7 @@ const TestReactAgent: React.FC = () => {
 
       // Salvar no histórico se for categoriação
       if (result.category !== result.source) {
-        addSystemMessage(`Transação categorizada como "${result.category}" (confiança: ${Math.round(result.confidence * 100)}%)`);
+        addSystemMessage('Transação categorizada como "' + result.category + '" (confiança: ' + Math.round(result.confidence * 100) + '%)');
       }
 
       return {
@@ -386,7 +386,7 @@ const TestReactAgent: React.FC = () => {
         reasoning: `Erro no processamento: ${error.message}`,
         source: 'ai',
         processingTime: Date.now() - startTime,
-        conversationHistory: [...conversationState.messages.slice(-6), { role: 'assistant', content: `Erro ao processar: ${error.message}` }]
+        conversationHistory: [...conversationState.messages.slice(-6), { role: 'assistant', content: 'Erro ao processar: ' + error.message }]
       };
     }
   };
@@ -432,7 +432,7 @@ const TestReactAgent: React.FC = () => {
 
       if (tool_name === 'categorize_transaction') {
         const result = categorizeByRules(args.description, parseFloat(args.amount));
-        addSystemMessage(`Regra aplicada: "${result.category}" (confiança: ${result.confidence})`);
+        addSystemMessage("Regra aplicada: "${result.category}" +  (confiança: ${result.confidence}));
       }
 
       return executeToolReal(tool_name, args);

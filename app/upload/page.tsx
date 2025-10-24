@@ -746,7 +746,7 @@ export default function UploadPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Funcionalidades Disponíveis</CardTitle>
-              <Button variant="outline" onClick={() => window.location.href = '/uploads'}>
+              <Button variant="outline" onClick={() => window.location.href = '/settings/uploads'}>
                 <FileText className="w-4 h-4 mr-2" />
                 Ver Uploads Anteriores
               </Button>
@@ -769,12 +769,15 @@ export default function UploadPage() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-blue-600">🚀 Em Breve</h4>
+                <h4 className="font-medium text-green-600">✅ Implementado</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Listagem de uploads anteriores</li>
+                  <li>• Listagem de uploads anteriores (<a href="/settings/uploads" className="text-blue-600 hover:underline">Ver aqui</a>)</li>
                   <li>• Download dos arquivos OFX originais</li>
-                  <li>• Suporte para Excel (XLS/XLSX)</li>
                   <li>• Validação de arquivos duplicados</li>
+                </ul>
+                <h4 className="font-medium text-blue-600 mt-4">🚀 Em Breve</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Suporte para Excel (XLS/XLSX)</li>
                   <li>• Integração com Supabase Storage</li>
                   <li>• Edição manual de categorias</li>
                 </ul>

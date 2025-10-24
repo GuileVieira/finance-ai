@@ -13,7 +13,7 @@ import { AccountForm } from '@/components/accounts/account-form';
 import { mockAccounts, accountTypes, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
 import { BankAccount, BankAccountFormData } from '@/lib/types/accounts';
 import { supportedBanks } from '@/lib/types/accounts';
-import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, CreditCard, Sync, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, CreditCard, RefreshCw, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -231,7 +231,7 @@ export default function SettingsAccountsPage() {
                   </p>
                   <p className="text-sm text-muted-foreground">Última Sincronização</p>
                 </div>
-                <Sync className="h-8 w-8 text-orange-500" />
+                <RefreshCw className="h-8 w-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
@@ -414,7 +414,7 @@ export default function SettingsAccountsPage() {
                               onClick={() => handleSyncAccount(account.id)}
                               disabled={!account.active}
                             >
-                              <Sync className="h-4 w-4" />
+                              <RefreshCw className="h-4 w-4" />
                             </Button>
 
                             <Link href={`/settings/accounts/${account.id}`}>

@@ -37,7 +37,7 @@ export default class CategoriesService {
   }
 
   /**
-   * Buscar categorias com filtros e estatísticas
+   * Buscar categorias com filtros e estatísticas (otimizado)
    */
   static async getCategories(filters: CategoryFilters = {}): Promise<CategoryWithStats[]> {
     try {
@@ -69,46 +69,93 @@ export default class CategoriesService {
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      // Buscar categorias com estatísticas
-      const categoryStats = await db
-        .select({
-          id: categories.id,
-          companyId: categories.companyId,
-          name: categories.name,
-          description: categories.description,
-          type: categories.type,
-          parentType: categories.parentType,
-          parentCategoryId: categories.parentCategoryId,
-          colorHex: categories.colorHex,
-          icon: categories.icon,
-          examples: categories.examples,
-          isSystem: categories.isSystem,
-          active: categories.active,
-          createdAt: categories.createdAt,
-          updatedAt: categories.updatedAt,
-          transactionCount: count(transactions.id).mapWith(Number),
-          totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
-          averageAmount: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
-        })
+      // Buscar categorias básicas primeiro (sem JOIN para performance)
+      const basicCategories = await db
+        .select()
         .from(categories)
-        .leftJoin(transactions, eq(categories.id, transactions.categoryId))
-        .where(whereClause)
-        .groupBy(categories.id)
-        .orderBy((category) => {
-          // Ordenação baseada no filtro sortBy
+        .where(whereClause);
+
+      if (basicCategories.length === 0) {
+        return [];
+      }
+
+      // Buscar estatísticas separadamente apenas se necessário
+      let categoryStats: any[] = [];
+
+      if (filters.includeStats) {
+        // Buscar estatísticas em uma consulta separada para melhor performance
+        const statsQuery = await db
+          .select({
+            categoryId: categories.id,
+            transactionCount: count(transactions.id).mapWith(Number),
+            totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
+            averageAmount: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
+          })
+          .from(categories)
+          .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+          .where(whereClause)
+          .groupBy(categories.id);
+
+        // Criar mapa de estatísticas para lookup rápido
+        const statsMap = new Map();
+        statsQuery.forEach(stat => {
+          statsMap.set(stat.categoryId, {
+            transactionCount: stat.transactionCount || 0,
+            totalAmount: stat.totalAmount || 0,
+            averageAmount: stat.averageAmount || 0,
+          });
+        });
+
+        // Combinar categorias com estatísticas
+        categoryStats = basicCategories.map(category => {
+          const stats = statsMap.get(category.id) || {
+            transactionCount: 0,
+            totalAmount: 0,
+            averageAmount: 0,
+          };
+
+          return {
+            ...category,
+            transactionCount: stats.transactionCount,
+            totalAmount: stats.totalAmount,
+            averageAmount: stats.averageAmount,
+          };
+        });
+      } else {
+        // Sem estatísticas, apenas retornar categorias básicas
+        categoryStats = basicCategories.map(category => ({
+          ...category,
+          transactionCount: 0,
+          totalAmount: 0,
+          averageAmount: 0,
+        }));
+      }
+
+      // Aplicar ordenação
+      if (filters.sortBy) {
+        categoryStats.sort((a, b) => {
+          let comparison = 0;
+
           switch (filters.sortBy) {
             case 'name':
-              return filters.sortOrder === 'desc' ? desc(category.name) : asc(category.name);
+              comparison = a.name.localeCompare(b.name);
+              break;
             case 'createdAt':
-              return filters.sortOrder === 'desc' ? desc(category.createdAt) : asc(category.createdAt);
+              comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+              break;
             case 'transactionCount':
-              return filters.sortOrder === 'desc' ? desc(count(transactions.id)) : asc(count(transactions.id));
+              comparison = (a.transactionCount || 0) - (b.transactionCount || 0);
+              break;
             case 'totalAmount':
-              return filters.sortOrder === 'desc' ? desc(sum(sql`ABS(${transactions.amount})`)) : asc(sum(sql`ABS(${transactions.amount})`));
+              comparison = (a.totalAmount || 0) - (b.totalAmount || 0);
+              break;
             default:
-              return desc(sql`ABS(${transactions.amount})`); // Default: ordenar por valor total
+              comparison = (a.totalAmount || 0) - (b.totalAmount || 0);
           }
+
+          return filters.sortOrder === 'desc' ? -comparison : comparison;
         });
+      }
 
       // Calcular totais para percentuais
       const totalAmount = categoryStats.reduce((sum, cat) => sum + (cat.totalAmount || 0), 0);
@@ -346,13 +393,56 @@ export default class CategoriesService {
         .where(whereClause)
         .groupBy(categories.type);
 
-      // Categorias mais usadas
-      const mostUsedCategories = await this.getCategories({
-        ...filters,
-        sortBy: 'transactionCount',
-        sortOrder: 'desc',
-        includeStats: true
-      });
+      // Categorias mais usadas (consulta otimizada sem JOIN complexo)
+      const mostUsedCategoriesQuery = await db
+        .select({
+          id: categories.id,
+          companyId: categories.companyId,
+          name: categories.name,
+          description: categories.description,
+          type: categories.type,
+          parentType: categories.parentType,
+          parentCategoryId: categories.parentCategoryId,
+          colorHex: categories.colorHex,
+          icon: categories.icon,
+          examples: categories.examples,
+          isSystem: categories.isSystem,
+          active: categories.active,
+          createdAt: categories.createdAt,
+          updatedAt: categories.updatedAt,
+          transactionCount: count(transactions.id).mapWith(Number),
+          totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
+          averageAmount: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
+        })
+        .from(categories)
+        .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+        .where(whereClause)
+        .groupBy(categories.id)
+        .orderBy(desc(count(transactions.id)))
+        .limit(10);
+
+      const totalAmount = mostUsedCategoriesQuery.reduce((sum, cat) => sum + (cat.totalAmount || 0), 0);
+
+      const mostUsedCategories = mostUsedCategoriesQuery.map(cat => ({
+        id: cat.id,
+        companyId: cat.companyId,
+        name: cat.name,
+        description: cat.description,
+        type: cat.type as CategoryType,
+        parentType: cat.parentType,
+        parentCategoryId: cat.parentCategoryId,
+        colorHex: cat.colorHex,
+        icon: cat.icon,
+        examples: cat.examples as string[] | undefined,
+        isSystem: cat.isSystem,
+        active: cat.active,
+        createdAt: cat.createdAt,
+        updatedAt: cat.updatedAt,
+        transactionCount: cat.transactionCount || 0,
+        totalAmount: cat.totalAmount || 0,
+        percentage: totalAmount > 0 ? ((cat.totalAmount || 0) / totalAmount) * 100 : 0,
+        averageAmount: cat.averageAmount || 0,
+      }));
 
       // Categorias recentes
       const recentCategories = await db

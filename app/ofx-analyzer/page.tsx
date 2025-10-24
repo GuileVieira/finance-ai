@@ -8,10 +8,10 @@ export const metadata: Metadata = {
 
 export default function OFXAnalyzerPage() {
   return (
-    <div className=\"min-h-screen bg-gray-50\">
-      <div className=\"container mx-auto py-8\">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8">
         <OFXUploadAnalyzer />
       </div>
     </div>
   );
-}"
+}

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AccountForm } from '@/components/accounts/account-form';
 import { mockAccounts, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
 import { BankAccount, BankAccountFormData, supportedBanks } from '@/lib/types/accounts';
-import { ArrowLeft, Edit, Sync, Download, Calendar, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Download, Calendar, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, FileText, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
