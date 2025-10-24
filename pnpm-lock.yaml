@@ -89,6 +89,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      ofx-data-extractor:
+        specifier: ^1.4.8
+        version: 1.4.8
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -2406,6 +2409,9 @@ packages:
   object.values@1.2.1:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
+
+  ofx-data-extractor@1.4.8:
+    resolution: {integrity: sha512-YouH8YOoB9IU/8w7LHpv9fr9zU9qEDdc6DCUb/+iO0KX7+E4IPOgq1gKBf1lLpvOsLaF5lETRqS+ut3uu9RrlQ==}
 
   onetime@5.1.2:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
@@ -5339,6 +5345,8 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       es-object-atoms: 1.1.1
+
+  ofx-data-extractor@1.4.8: {}
 
   onetime@5.1.2:
     dependencies:
