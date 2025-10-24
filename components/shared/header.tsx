@@ -17,11 +17,11 @@ import { Bell, User, LogOut, Settings } from 'lucide-react';
 import { NavigationTabs } from './navigation-tabs';
 import { useAuth } from '@/hooks/useAuth';
 
-interface AppHeaderProps {
+interface HeaderProps {
   userName?: string;
 }
 
-export function AppHeader({ userName }: AppHeaderProps) {
+export function Header({ userName }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState(userName || 'João Silva');
   const { isLoggedIn, logout } = useAuth();
 
@@ -45,6 +45,9 @@ export function AppHeader({ userName }: AppHeaderProps) {
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="font-bold text-xl text-emerald-700">FINANCEAI</div>
           </Link>
+
+          {/* Navigation Tabs */}
+          <NavigationTabs />
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
@@ -99,9 +102,6 @@ export function AppHeader({ userName }: AppHeaderProps) {
             </DropdownMenu>
           </div>
         </div>
-
-        {/* Navigation Tabs */}
-        <NavigationTabs />
       </div>
     </header>
   );

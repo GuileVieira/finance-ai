@@ -1,4 +1,4 @@
-// Dados baseados na análise real dos arquivos XMIND e extratos bancários
+// Dados baseados na análise real de extratos bancários e dados financeiros
 export interface Transaction {
   id: string;
   date: string;
@@ -158,13 +158,13 @@ export const mockMetrics: MetricCard[] = [
     value: '30.4%',
     change: 5.1,
     changeType: 'increase',
-    color: '#DC2626'
+    color: '#059669'
   }
 ];
 
 export const mockInsights = [
   'Salários representam 51.8% dos custos fixos',
-  'Categorias XMIND importadas: 47/53 mapeadas',
+  'Categorias financeiras mapeadas: 47/53 ativas',
   '94% de acurácia na categorização automática'
 ];
 

@@ -82,24 +82,7 @@ export default function TransactionsPage() {
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
-            <p className="text-gray-600">Gerencie todas as suas transações financeiras</p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleAddTransaction}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar
-            </Button>
-          </div>
-        </div>
-
+    
         {/* Cards Métricos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
@@ -331,7 +314,7 @@ export default function TransactionsPage() {
             <div className="flex items-center space-x-2">
               <span className="text-emerald-600">💡</span>
               <p className="text-sm text-emerald-800">
-                <strong>Insights:</strong> 94% de acurácia na categorização automática • Salários representam 51.8% dos custos fixos • 47/53 categorias XMIND mapeadas
+                <strong>Insights:</strong> 94% de acurácia na categorização automática • Salários representam 51.8% dos custos fixos • 47 categorias financeiras mapeadas
               </p>
             </div>
           </CardContent>

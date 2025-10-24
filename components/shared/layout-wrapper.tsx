@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { AppHeader } from './app-header';
+import { Header } from './header';
 import { useAuth } from '@/hooks/useAuth';
 
 interface LayoutWrapperProps {
@@ -40,7 +40,6 @@ export function LayoutWrapper({ children, requireAuth = true }: LayoutWrapperPro
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppHeader />
       <main className="container mx-auto px-4 py-6">
         {children}
       </main>

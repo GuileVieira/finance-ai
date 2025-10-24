@@ -7,7 +7,7 @@ export function TopExpenses() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Despesas (Base XMIND)</CardTitle>
+        <CardTitle>Top Despesas Financeiras</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

@@ -1,16 +1,11 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 
 export default function UploadPage() {
   return (
+    <LayoutWrapper>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Upload de Extratos</h1>
-          <p className="text-muted-foreground">
-            Importe seus extratos bancários para análise automática
-          </p>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>Upload Inteligente de Extratos</CardTitle>
@@ -31,7 +26,7 @@ export default function UploadPage() {
                   🚀 Processamento com IA para categorização
                 </p>
                 <p className="text-sm font-medium text-blue-600">
-                  📊 Baseado em 53 rúbricas reais XMIND
+                  📊 Baseado em 53 categorias financeiras reais
                 </p>
               </div>
             </div>
@@ -51,10 +46,11 @@ export default function UploadPage() {
               <li>Visualizar progresso de processamento em tempo real</li>
               <li>Revisar e corrigir categorizações automáticas</li>
               <li>Configurar regras personalizadas</li>
-              <li>Importar dados diretamente do XMIND</li>
+              <li>Importar dados de planilhas financeiras</li>
             </ul>
           </CardContent>
         </Card>
       </div>
+    </LayoutWrapper>
   );
 }

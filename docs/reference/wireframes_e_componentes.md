@@ -313,7 +313,7 @@ Componentes shadcn/ui:
 │ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐     │ │
 │ │ │  Vendas     │ │  Consultoria│ │  Serviços   │     │ │
 │ │ │  #10B981    │ │  #3B82F6    │ │  #8B5CF6    │     │ │
-│ │ │  156 trans  │ │   89 trans  │ │   45 trans  │     │ │
+│ │ │  156 transações │ │   89 transações │ │   45 transações │     │ │
 │ │ │ R$ 125.400  │ │  R$ 67.300  │ │  R$ 23.100  │     │
 │ │ │ [Editar]    │ │ [Editar]    │ │ [Editar]    │     │ │
 │ │ └─────────────┘ └─────────────┘ └─────────────┘     │ │
@@ -321,7 +321,7 @@ Componentes shadcn/ui:
 │ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐     │ │
 │ │ │  Comissões  │ │  Juros      │ │  Outras     │     │ │
 │ │ │  #F59E0B    │ │  #EF4444    │ │  #6B7280    │     │ │
-│ │ │   23 trans  │ │   12 trans  │ │    8 trans  │     │ │
+│ │ │   23 transações │ │   12 transações │ │    8 transações │     │ │
 │ │ │  R$ 8.900   │ │  R$ 2.100   │ │  R$ 1.200   │     │ │
 │ │ │ [Editar]    │ │ [Editar]    │ │ [Editar]    │     │ │
 │ │ └─────────────┘ └─────────────┘ └─────────────┘     │ │

@@ -1,31 +1,34 @@
-import { Header } from '@/components/layout/header';
+import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-28" />
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-9 w-32" />
-              <Skeleton className="h-9 w-32" />
-            </div>
+    <LayoutWrapper>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <Skeleton className="h-8 w-32 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-32" />
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-6">
+        {/* Tabs Skeleton */}
+        <div className="border-b">
+          <div className="flex space-x-8">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Skeleton className="h-6 w-64" />
@@ -84,6 +87,6 @@ export default function Loading() {
           </div>
         </div>
       </div>
-    </div>
+    </LayoutWrapper>
   );
 }

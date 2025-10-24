@@ -21,41 +21,29 @@ export default function DashboardPage() {
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-      {/* Header com filtros */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Visão estratégica das suas finanças
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Select defaultValue="setembro-2025">
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Selecione o período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="setembro-2025">Setembro/2025</SelectItem>
-              <SelectItem value="agosto-2025">Agosto/2025</SelectItem>
-              <SelectItem value="julho-2025">Julho/2025</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select defaultValue="todas">
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas</SelectItem>
-              <SelectItem value="bb">Banco do Brasil</SelectItem>
-              <SelectItem value="itau">Itaú</SelectItem>
-              <SelectItem value="santander">Santander</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
-        </div>
+      {/* Filtros do Dashboard */}
+      <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+        <Select defaultValue="setembro-2025">
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Selecione o período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="setembro-2025">Setembro/2025</SelectItem>
+            <SelectItem value="agosto-2025">Agosto/2025</SelectItem>
+            <SelectItem value="julho-2025">Julho/2025</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select defaultValue="todas">
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="Conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas</SelectItem>
+            <SelectItem value="bb">Banco do Brasil</SelectItem>
+            <SelectItem value="itau">Itaú</SelectItem>
+            <SelectItem value="santander">Santander</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Alertas Estratégicos */}

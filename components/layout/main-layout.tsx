@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Header } from './header';
+import { Header } from '../shared/header';
 import { useAuth } from '@/hooks/useAuth';
 
 interface MainLayoutProps {

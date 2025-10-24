@@ -48,12 +48,12 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? 'Editar Categoria' : 'Nova Categoria (Base XMIND)'}
+            {initialData ? 'Editar Categoria' : 'Nova Categoria Financeira'}
           </DialogTitle>
           <DialogDescription>
             {initialData
               ? 'Edite as informações da categoria existente.'
-              : 'Crie uma nova categoria baseada nas rúbricas reais do XMIND.'
+              : 'Crie uma nova categoria baseada em dados financeiros reais.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -167,9 +167,9 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
             </div>
           </div>
 
-          {/* Exemplos Reais (XMIND) */}
+          {/* Exemplos Reais */}
           <div className="space-y-2">
-            <Label>Exemplos Reais (XMIND)</Label>
+            <Label>Exemplos Reais</Label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 'Venda Mercadorias',

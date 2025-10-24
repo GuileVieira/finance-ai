@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
-import { CategoryTabs } from '@/components/categories/category-tabs';
 import { CategoryCard } from '@/components/categories/category-card';
 import { AutoRulesTable } from '@/components/categories/auto-rules-table';
 import { CategoryDialog } from '@/components/categories/category-dialog';
 import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
 import { mockCategories, mockAutoRules, categoryTypes } from '@/lib/mock-categories';
-import { Plus, Settings, Download } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CategoriesPage() {
@@ -26,48 +25,27 @@ export default function CategoriesPage() {
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
-            <p className="text-gray-600">
-              Gerencie suas categorias de transações
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+      
+        {/* Filtro por Tipo de Categoria */}
+        <div className="flex items-center gap-2">
+          {categoryTypes.map((type) => (
             <Button
-              variant="outline"
+              key={type.value}
+              variant={activeTab === type.value ? 'default' : 'outline'}
               size="sm"
-              onClick={() => {
-                toast({
-                  title: 'Importar XMIND',
-                  description: 'Buscando arquivo XMIND para importação...',
-                });
-              }}
+              onClick={() => setActiveTab(type.value)}
             >
-              <Download className="h-4 w-4 mr-2" />
-              Importar XMIND
+              {type.label}
             </Button>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Categoria
-            </Button>
-          </div>
+          ))}
         </div>
-
-        {/* Navegação por Tabs */}
-        <CategoryTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          categoryTypes={categoryTypes}
-        />
 
         {/* Conteúdo Principal */}
         {/* Cards de Categorias */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              Baseado em {categories.length} categorias reais do XMIND
+              Baseado em {categories.length} categorias financeiras reais
             </h2>
           </div>
 
@@ -102,7 +80,7 @@ export default function CategoriesPage() {
         {/* Tabela de Regras Automáticas */}
         <div className="bg-card rounded-lg border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Regras Automáticas (Base XMIND)</h3>
+            <h3 className="text-lg font-semibold">Regras Automáticas Inteligentes</h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -141,7 +119,7 @@ export default function CategoriesPage() {
           <h4 className="font-medium mb-2">💡 Insights Baseados nos Dados Reais:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• Salários representam 51.8% dos custos fixos</li>
-            <li>• Categorias XMIND importadas: 47/53 mapeadas</li>
+            <li>• Categorias financeiras mapeadas: 47 ativas</li>
             <li>• 94% de acurácia na categorização automática</li>
           </ul>
         </div>

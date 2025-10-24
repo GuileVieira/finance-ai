@@ -58,7 +58,7 @@ export default function HomePage() {
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-emerald-600 mb-2">53</div>
-                <div className="text-sm text-gray-600">Rúbricas Reais XMIND</div>
+                <div className="text-sm text-gray-600">Categorias Financeiras</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-emerald-600 mb-2">8</div>
@@ -115,7 +115,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  53 rúbricas reais extraídas do XMIND com regras automáticas configuráveis para seu negócio.
+                  53 categorias financeiras reais com regras automáticas inteligentes configuráveis para seu negócio.
                 </p>
               </CardContent>
             </Card>

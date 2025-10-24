@@ -1,7 +1,7 @@
-// Dados mock completos baseados no wireframe atualizado com dados reais XMIND
+// Dados mock completos baseados no wireframe atualizado com dados financeiros reais
 import { Category, AutoRule } from '@/lib/types';
 
-// Dados baseados no wireframe atualizado - 53 rúbricas reais XMIND
+// Dados baseados no wireframe atualizado - 53 categorias financeiras reais
 export const mockCategories: Category[] = [
   // Receitas (#10B981)
   {
@@ -156,7 +156,7 @@ export const mockCategories: Category[] = [
   }
 ];
 
-// Regras automáticas baseadas no XMIND com 94% de acurácia
+// Regras automáticas inteligentes com 94% de acurácia
 export const mockAutoRules: AutoRule[] = [
   // 100% acurácia
   { id: '1', category: 'Salários e Encargos', pattern: 'SALARIOS', type: 'exact', accuracy: 100, status: 'active' },
@@ -185,28 +185,32 @@ export const mockAutoRules: AutoRule[] = [
 ];
 
 // Configuração dos tipos de categoria
-export const categoryTypes = {
-  revenue: {
-    name: 'Receitas',
+export const categoryTypes = [
+  {
+    value: 'revenue',
+    label: 'Receitas',
     color: '#10B981',
     description: 'Todas as entradas de dinheiro'
   },
-  variable_cost: {
-    name: 'Custos Variáveis',
+  {
+    value: 'variable_cost',
+    label: 'Custos Variáveis',
     color: '#F59E0B',
     description: 'Custos que variam com o volume de vendas'
   },
-  fixed_cost: {
-    name: 'Custos Fixos',
+  {
+    value: 'fixed_cost',
+    label: 'Custos Fixos',
     color: '#EF4444',
     description: 'Custos fixos mensais'
   },
-  non_operating: {
-    name: 'Não Operacionais',
+  {
+    value: 'non_operating',
+    label: 'Não Operacionais',
     color: '#6B7280',
     description: 'Despesas não relacionadas à operação principal'
   }
-};
+];
 
 // Sugestões para nova categoria
 export const categorySuggestions = {
