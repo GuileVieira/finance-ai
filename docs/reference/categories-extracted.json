@@ -1,0 +1,284 @@
+{
+  "extracted": {
+    "rubricas": [
+      "13º SALARIO",
+      "199259.40999999997",
+      "403063.6400000002",
+      "602323.0500000002",
+      "ALUGUEL",
+      "ALUGUEL DE MÁQUINAS E EQUIPAMENTOS",
+      "ASSISTÊNCIA MÉDICA",
+      "ASSISTÊNCIA ODONTOLÓGICA",
+      "CARTÓRIO",
+      "COFINS",
+      "COMISSÕES",
+      "CONSERVAÇÃO E LIMPEZA",
+      "CONSULTORIA",
+      "CONTRIBUICAO SINDICAL",
+      "CORREIOS",
+      "CUSTAS JUDICIAIS",
+      "DEFINIR",
+      "DESP. LOCOMOÇÃO",
+      "DESPESAS COM VIAGENS",
+      "ENERGIA ELETRICA",
+      "EXAME ADMISSIONAL/PERIODICO",
+      "FGTS",
+      "FOLHA PJ",
+      "FÉRIAS",
+      "INSS",
+      "INTERNET",
+      "LEASING / FINAME",
+      "LICENÇAS DIVERSAS",
+      "MANUTENÇÃO DE EQUIPAMENTOS",
+      "MANUTENÇÃO DE HARDWARE",
+      "MANUTENÇÃO PREDIAL",
+      "MARKETING E PUBLICIDADE",
+      "MATERIAL DE EMBALAGEM",
+      "MATERIAL DE ESCRITÓRIO",
+      "MATERIAL DE LIMPEZA",
+      "OPERADORES LOGÍSTICOS",
+      "OUTRAS DESPESAS NOP",
+      "OUTROS TRIBUTOS",
+      "PRO LABORE",
+      "RUBRICA",
+      "SALARIOS",
+      "SEGUROS DE VIDA",
+      "SEGUROS GERAIS",
+      "SERVIÇOS DE ADVOCACIA",
+      "SERVIÇOS DE CONTABILIDADE",
+      "SERVIÇOS PRESTADOS PF",
+      "SOFTWARES",
+      "TARIFAS BANCÁRIAS",
+      "TELEFONES FIXOS",
+      "TELEFONES MÓVEIS",
+      "VALE ALIMENTAÇÃO",
+      "VALE REFEIÇÃO",
+      "VALE TRANSPORTE"
+    ],
+    "expenses": [
+      "Tecnologia e Software"
+    ],
+    "revenues": [],
+    "categories": [
+      "13º SALARIO",
+      "199259.40999999997",
+      "403063.6400000002",
+      "602323.0500000002",
+      "ALUGUEL",
+      "ALUGUEL DE MÁQUINAS E EQUIPAMENTOS",
+      "ASSISTÊNCIA MÉDICA",
+      "ASSISTÊNCIA ODONTOLÓGICA",
+      "CARTÓRIO",
+      "COFINS",
+      "COMISSÕES",
+      "CONSERVAÇÃO E LIMPEZA",
+      "CONSULTORIA",
+      "CONTRIBUICAO SINDICAL",
+      "CORREIOS",
+      "CUSTAS JUDICIAIS",
+      "DEFINIR",
+      "DESP. LOCOMOÇÃO",
+      "DESPESAS COM VIAGENS",
+      "ENERGIA ELETRICA",
+      "EXAME ADMISSIONAL/PERIODICO",
+      "FGTS",
+      "FOLHA PJ",
+      "FÉRIAS",
+      "INSS",
+      "INTERNET",
+      "LEASING / FINAME",
+      "LICENÇAS DIVERSAS",
+      "MANUTENÇÃO DE EQUIPAMENTOS",
+      "MANUTENÇÃO DE HARDWARE",
+      "MANUTENÇÃO PREDIAL",
+      "MARKETING E PUBLICIDADE",
+      "MATERIAL DE EMBALAGEM",
+      "MATERIAL DE ESCRITÓRIO",
+      "MATERIAL DE LIMPEZA",
+      "OPERADORES LOGÍSTICOS",
+      "OUTRAS DESPESAS NOP",
+      "OUTROS TRIBUTOS",
+      "PRO LABORE",
+      "RUBRICA",
+      "SALARIOS",
+      "SEGUROS DE VIDA",
+      "SEGUROS GERAIS",
+      "SERVIÇOS DE ADVOCACIA",
+      "SERVIÇOS DE CONTABILIDADE",
+      "SERVIÇOS PRESTADOS PF",
+      "SOFTWARES",
+      "TARIFAS BANCÁRIAS",
+      "TELEFONES FIXOS",
+      "TELEFONES MÓVEIS",
+      "VALE ALIMENTAÇÃO",
+      "VALE REFEIÇÃO",
+      "VALE TRANSPORTE"
+    ],
+    "subcategories": [
+      "Sistemas",
+      "Software"
+    ]
+  },
+  "hierarchy": {
+    "mainCategories": [
+      {
+        "id": "revenue",
+        "name": "Receitas",
+        "type": "revenue",
+        "color": "#10B981",
+        "description": "Todas as entradas de dinheiro"
+      },
+      {
+        "id": "variable_cost",
+        "name": "Custos Variáveis",
+        "type": "variable_cost",
+        "color": "#F59E0B",
+        "description": "Custos que variam com o volume de vendas"
+      },
+      {
+        "id": "fixed_cost",
+        "name": "Custos Fixos",
+        "type": "fixed_cost",
+        "color": "#EF4444",
+        "description": "Custos fixos mensais da empresa"
+      },
+      {
+        "id": "non_operational",
+        "name": "Não Operacional",
+        "type": "non_operational",
+        "color": "#6B7280",
+        "description": "Receitas e despesas não operacionais"
+      }
+    ],
+    "subcategories": {
+      "revenue": {
+        "Vendas de Produtos/Serviços": {
+          "color": "#10B981",
+          "examples": [
+            "Receitas de Clientes",
+            "Faturamento Mensal",
+            "Vendas Diretas"
+          ]
+        },
+        "Receitas Financeiras": {
+          "color": "#059669",
+          "examples": [
+            "Juros Ativos",
+            "Rendimentos de Aplicações",
+            "Descontos Obtidos"
+          ]
+        },
+        "Receitas de Aluguéis": {
+          "color": "#047857",
+          "examples": [
+            "Aluguel Recebido",
+            "Sublocação"
+          ]
+        }
+      },
+      "variable_cost": {
+        "Custos de Produtos/Serviços": {
+          "color": "#F59E0B",
+          "examples": [
+            "Matéria Prima",
+            "Insumos",
+            "Embargalagens",
+            "Fornecedores Diretos"
+          ]
+        },
+        "Marketing e Vendas": {
+          "color": "#D97706",
+          "examples": [
+            "Publicidade",
+            "Marketing Digital",
+            "Comissões de Vendas",
+            "Eventos"
+          ]
+        },
+        "Impostos sobre Vendas": {
+          "color": "#B45309",
+          "examples": [
+            "ICMS",
+            "PIS",
+            "COFINS sobre Faturamento"
+          ]
+        }
+      },
+      "fixed_cost": {
+        "Salários e Encargos": {
+          "color": "#EF4444",
+          "examples": [
+            "Salários",
+            "Pró-labore",
+            "INSS",
+            "FGTS",
+            "Vale Transporte",
+            "Vale Refeição"
+          ]
+        },
+        "Aluguel e Ocupação": {
+          "color": "#DC2626",
+          "examples": [
+            "Aluguel Imóvel",
+            "Condomínio",
+            "IPTU"
+          ]
+        },
+        "Tecnologia e Software": {
+          "color": "#B91C1C",
+          "examples": [
+            "Software",
+            "Sistemas",
+            "Hospedagem",
+            "Licenças"
+          ]
+        },
+        "Utilidades e Serviços": {
+          "color": "#991B1B",
+          "examples": [
+            "Energia Elétrica",
+            "Água e Saneamento",
+            "Telecomunicações",
+            "Internet"
+          ]
+        },
+        "Impostos e Taxas": {
+          "color": "#7F1D1D",
+          "examples": [
+            "Impostos Federais",
+            "Taxas Municipais",
+            "Contribuições"
+          ]
+        },
+        "Seguros e Segurança": {
+          "color": "#450A0A",
+          "examples": [
+            "Seguros",
+            "Segurança Patrimonial"
+          ]
+        }
+      },
+      "non_operational": {
+        "Despesas Financeiras": {
+          "color": "#6B7280",
+          "examples": [
+            "Juros Passivos",
+            "Taxas Bancárias",
+            "Multas",
+            "Descontos Concedidos"
+          ]
+        },
+        "Outras Receitas/Despesas": {
+          "color": "#4B5563",
+          "examples": [
+            "Receitas Eventuais",
+            "Despesas Eventuais",
+            "Doações",
+            "Perdas"
+          ]
+        }
+      }
+    },
+    "examples": {}
+  }
+}
