@@ -154,6 +154,7 @@ export const categoryRules = pgTable('financeai_category_rules', {
   confidenceScore: decimal('confidence_score', { precision: 3, scale: 2 }).default('0.80'),
   active: boolean('active').default(true),
   usageCount: integer('usage_count').default(0),
+  examples: json('examples'), // Array de exemplos de transações
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({

@@ -298,42 +298,85 @@ export async function POST(request: NextRequest) {
       });
 
       try {
-        // Chamar API de classificação
-        const classifyResponse = await fetch('http://localhost:3000/api/ai/work-categorize', {
+        // Primeiro, verificar se há regras existentes
+        let categoryData: any = null;
+        let categoryName = 'Não classificado';
+        let confidence = 0;
+        let reasoning = '';
+        let source = 'ai';
+
+        // Buscar sugestões baseadas em regras existentes
+        console.log(`🔍 Verificando regras existentes para: "${transaction.description}"`);
+        const suggestResponse = await fetch('http://localhost:3000/api/categories/suggest', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            companyId: defaultCompany.id,
             description: transaction.description,
             amount: transaction.amount,
-            memo: transaction.memo,
-            fileName: file.name,
-            bankName: parseResult.bankInfo?.bankName,
-            date: transaction.date,
-            balance: transaction.balance
+            transactionType: transaction.amount >= 0 ? 'credit' : 'debit'
           })
         });
 
-        let categoryData: any = null;
-        let categoryName = 'Não classificado';
-        let confidence = 0;
-        let reasoning = '';
+        if (suggestResponse.ok) {
+          const suggestResult = await suggestResponse.json();
+          if (suggestResult.success && suggestResult.data.suggestions.length > 0) {
+            const bestSuggestion = suggestResult.data.suggestions[0]; // Pegar a sugestão com maior confiança
 
-        if (!classifyResponse.ok) {
-          console.error(`❌ Erro ao classificar transação ${i + 1}:`, classifyResponse.statusText);
-          reasoning = `Erro na classificação: ${classifyResponse.statusText}`;
-        } else {
-          const classifyResult = await classifyResponse.json();
-          if (classifyResult.success) {
-            categoryData = classifyResult.data;
-            categoryName = classifyResult.data.category;
-            confidence = classifyResult.data.confidence || 0;
-            reasoning = classifyResult.data.reasoning || '';
-            console.log(`✅ Transação ${i + 1} classificada: ${categoryName} (${confidence})`);
+            // Usar sugestão se confiança for alta (> 0.7)
+            if (bestSuggestion.confidence > 0.7) {
+              categoryName = bestSuggestion.categoryName;
+              confidence = bestSuggestion.confidence;
+              reasoning = `Regra aplicada: ${bestSuggestion.reasoning}`;
+              source = 'rule';
+              categoryData = {
+                categoryId: bestSuggestion.categoryId,
+                category: bestSuggestion.categoryName,
+                confidence: bestSuggestion.confidence,
+                reasoning: bestSuggestion.reasoning
+              };
+              console.log(`✅ Regra aplicada para transação ${i + 1}: ${categoryName} (${confidence})`);
+            }
+          }
+        }
+
+        // Se não encontrou regra com alta confiança, usar IA
+        if (!categoryData) {
+          console.log(`🤖 Usando IA para classificar transação ${i + 1}`);
+          const classifyResponse = await fetch('http://localhost:3000/api/ai/work-categorize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              description: transaction.description,
+              amount: transaction.amount,
+              memo: transaction.memo,
+              fileName: file.name,
+              bankName: parseResult.bankInfo?.bankName,
+              date: transaction.date,
+              balance: transaction.balance
+            })
+          });
+
+          if (!classifyResponse.ok) {
+            console.error(`❌ Erro ao classificar transação ${i + 1}:`, classifyResponse.statusText);
+            reasoning = `Erro na classificação: ${classifyResponse.statusText}`;
           } else {
-            console.error(`❌ Erro na resposta da classificação ${i + 1}:`, classifyResult.error);
-            reasoning = `Erro na resposta: ${classifyResult.error}`;
+            const classifyResult = await classifyResponse.json();
+            if (classifyResult.success) {
+              categoryData = classifyResult.data;
+              categoryName = classifyResult.data.category;
+              confidence = classifyResult.data.confidence || 0;
+              reasoning = classifyResult.data.reasoning || '';
+              source = 'ai';
+              console.log(`✅ Transação ${i + 1} classificada por IA: ${categoryName} (${confidence})`);
+            } else {
+              console.error(`❌ Erro na resposta da classificação ${i + 1}:`, classifyResult.error);
+              reasoning = `Erro na resposta: ${classifyResult.error}`;
+            }
           }
         }
 
@@ -385,7 +428,7 @@ export async function POST(request: NextRequest) {
           confidence,
           reasoning,
           categoryId,
-          source: 'ai'
+          source
         });
 
         // Pequeno delay para não sobrecarregar a API

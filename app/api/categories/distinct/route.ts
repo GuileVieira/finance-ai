@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { db } from '@/lib/db/connection';
 import { categories, transactions } from '@/lib/db/schema';
-import { eq, isNotNull, desc } from 'drizzle-orm';
+import { eq, isNull, desc, sql } from 'drizzle-orm';
 
 export interface CategoryResponse {
   id: string;

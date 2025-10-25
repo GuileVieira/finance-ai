@@ -91,11 +91,12 @@ export function useCategoriesForSelect() {
 
     // Opções individuais formatadas com contagem
     const categoryOptions = categoriesData.categories.map(category => ({
-      value: category.name,
+      value: category.id, // Usar ID em vez do nome
       label: `${category.name} (${category.transactionCount} transações)`,
       type: category.type,
       color: category.colorHex,
-      transactionCount: category.transactionCount
+      transactionCount: category.transactionCount,
+      name: category.name // Manter o nome para referência
     }));
 
     return [allOption, ...categoryOptions];

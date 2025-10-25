@@ -119,9 +119,9 @@ export class TransactionsAPI {
       apiFilters.endDate = endDate;
     }
 
-    // Mapear tipo da UI para tipo da API
+    // Mapear tipo da UI para tipo da API (income/expense → credit/debit)
     if (uiFilters.type && uiFilters.type !== 'all') {
-      apiFilters.type = uiFilters.type;
+      apiFilters.type = uiFilters.type === 'income' ? 'credit' : 'debit';
     }
 
     // Busca textual
@@ -129,16 +129,9 @@ export class TransactionsAPI {
       apiFilters.search = uiFilters.search;
     }
 
-    // Filtros de banco e categoria (se implementados no futuro)
-    if (uiFilters.bank && uiFilters.bank !== 'all') {
-      // TODO: Implementar filtro de banco quando tiver o mapeamento
-      // apiFilters.accountId = uiFilters.bank;
-    }
-
-    if (uiFilters.category && uiFilters.category !== 'all') {
-      // TODO: Implementar filtro de categoria quando tiver o mapeamento
-      // apiFilters.categoryId = uiFilters.category;
-    }
+    // Por enquanto, não implementamos filtros de banco e categoria
+    // Os selects estão funcionando mas a API ainda não suporta filtragem por estes campos
+    // TODO: Implementar filtragem por accountId e categoryId quando os hooks enviarem IDs
 
     // Valores padrão de paginação
     apiFilters.page = 1;

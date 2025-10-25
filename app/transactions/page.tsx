@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useTransactions } from '@/hooks/use-transactions';
-import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle } from 'lucide-react';
+import { useTransactionGroups } from '@/hooks/use-transaction-groups';
+import { useAccountsForSelect } from '@/hooks/use-accounts';
+import { useAllCategories } from '@/hooks/use-all-categories';
+import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,8 +31,37 @@ export default function TransactionsPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
+  // ID da empresa padrão (poderia vir de contexto ou API)
+  const [companyId] = useState('f5733d9a-85ec-48da-aff0-4d6add7ea89b');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
 
   const { toast } = useToast();
+
+  // Hooks para buscar dados dos filtros
+  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect();
+  const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(companyId);
+
+  // Hook para gerenciar grupos de transações
+  const {
+    selectedTransactions,
+    isGroupMode,
+    selectionStats,
+    isMergingCategories,
+    isCreatingRule,
+    toggleTransactionSelection,
+    selectAllVisible,
+    clearSelection,
+    mergeCategories,
+    createCategorizationRule,
+    isTransactionSelected,
+  } = useTransactionGroups({ companyId });
+
+  // Limpar seleção de categoria quando não há transações selecionadas
+  useEffect(() => {
+    if (!isGroupMode) {
+      setSelectedCategoryId('');
+    }
+  }, [isGroupMode]);
 
   // Filtros com paginação
   const filtersWithPagination = useMemo(() => ({
@@ -100,11 +133,63 @@ export default function TransactionsPage() {
     });
   };
 
+  const handleSelectAll = () => {
+    const visibleTransactionIds = transactions.map(t => t.id);
+    selectAllVisible(visibleTransactionIds);
+  };
+
+  const handleCreateRule = () => {
+    const selectedTransactionsData = transactions.filter(t => selectedTransactions.has(t.id));
+    createCategorizationRule(selectedTransactionsData);
+  };
+
+  const handleMergeCategories = () => {
+    if (!selectedCategoryId) {
+      toast({
+        title: 'Nenhuma Categoria Selecionada',
+        description: 'Selecione uma categoria de destino para mesclar',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    mergeCategories(selectedCategoryId);
+    // Limpar seleção de categoria após mesclar
+    setSelectedCategoryId('');
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(amount);
+  };
+
+  const getCategoryAnalysis = () => {
+    const selectedTransactionsData = transactions.filter(t => selectedTransactions.has(t.id));
+
+    if (selectedTransactionsData.length === 0) return 'Nenhuma transação selecionada';
+
+    const categoryMap = new Map<string, number>();
+    let totalAmount = 0;
+
+    selectedTransactionsData.forEach(transaction => {
+      const categoryName = transaction.categoryName || 'Sem categoria';
+      categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + 1);
+      totalAmount += Math.abs(parseFloat(transaction.amount));
+    });
+
+    const categories = Array.from(categoryMap.entries());
+
+    if (categories.length === 1) {
+      const [name, count] = categories[0];
+      return `Todas as ${count} transações já são "${name}" (Total: R$ ${totalAmount.toFixed(2)})`;
+    }
+
+    const sortedCategories = categories.sort((a, b) => b[1] - a[1]);
+    const mostCommon = sortedCategories[0];
+
+    return `${categories.length} categorias diferentes. Mais comum: "${mostCommon[0]}" (${mostCommon[1]} transações). Total: R$ ${totalAmount.toFixed(2)}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -266,37 +351,37 @@ export default function TransactionsPage() {
                   </Select>
                 </div>
 
-                {/* Banco - placeholder até buscar da API */}
+                {/* Banco - dados reais da API */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Banco/Conta</label>
-                  <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)}>
+                  <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)} disabled={isLoadingAccounts}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o banco" />
+                      <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione o banco"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os bancos</SelectItem>
-                      <SelectItem value="BB">Banco do Brasil</SelectItem>
-                      <SelectItem value="Itaú">Itaú</SelectItem>
-                      <SelectItem value="Santander">Santander</SelectItem>
-                      <SelectItem value="CEF">Caixa Econômica</SelectItem>
+                      {accountOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Categoria - placeholder até buscar da API */}
+                {/* Categoria - dados reais da API */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Categoria</label>
-                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a categoria" />
+                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Selecione a categoria"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas as categorias</SelectItem>
-                      <SelectItem value="Vendas de Produtos">Vendas de Produtos</SelectItem>
-                      <SelectItem value="Salários e Encargos">Salários e Encargos</SelectItem>
-                      <SelectItem value="Aluguel e Ocupação">Aluguel e Ocupação</SelectItem>
-                      <SelectItem value="Tecnologia e Software">Tecnologia e Software</SelectItem>
-                      <SelectItem value="Custos de Produtos">Custos de Produtos</SelectItem>
+                      {categoryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -319,6 +404,93 @@ export default function TransactionsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Barra de Ações Flutuante (quando há seleção) */}
+        {isGroupMode && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Layers className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-900">
+                      {selectionStats.total} transação{selectionStats.total !== 1 ? 'ões' : ''} selecionada{selectionStats.total !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearSelection}
+                      disabled={isMergingCategories || isCreatingRule}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCreateRule}
+                    disabled={!selectionStats.canCreateRule || isMergingCategories || isCreatingRule}
+                  >
+                    <Ruler className="h-4 w-4 mr-2" />
+                    {isCreatingRule ? 'Criando...' : 'Criar Regra'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Seletor de Categoria para Mesclar */}
+              <div className="border-t border-blue-200 pt-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-blue-900 mb-2 block">
+                      Mesmar para a categoria:
+                    </label>
+                    <Select
+                      value={selectedCategoryId}
+                      onValueChange={setSelectedCategoryId}
+                      disabled={isMergingCategories || isCreatingRule}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleMergeCategories}
+                      disabled={!selectedCategoryId || !selectionStats.canMerge || isMergingCategories || isCreatingRule}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      {isMergingCategories ? 'Mesclando...' : 'Aplicar a Todas'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Análise das categorias selecionadas */}
+                <div className="mt-3 p-2 bg-blue-100/50 rounded text-xs text-blue-800">
+                  <span className="font-medium">Análise:</span> {getCategoryAnalysis()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabela de Transações */}
         <Card>
@@ -363,6 +535,19 @@ export default function TransactionsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={transactions.length > 0 && transactions.every(t => isTransactionSelected(t.id))}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleSelectAll();
+                          } else {
+                            clearSelection();
+                          }
+                        }}
+                        aria-label="Selecionar todas"
+                      />
+                    </TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
@@ -372,7 +557,17 @@ export default function TransactionsPage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedTransactions.map((transaction) => (
-                    <TableRow key={transaction.id} className="hover:bg-muted/50">
+                    <TableRow
+                      key={transaction.id}
+                      className={`hover:bg-muted/50 ${isTransactionSelected(transaction.id) ? 'bg-blue-50/50' : ''}`}
+                    >
+                      <TableCell className="w-12">
+                        <Checkbox
+                          checked={isTransactionSelected(transaction.id)}
+                          onCheckedChange={() => toggleTransactionSelection(transaction.id)}
+                          aria-label={`Selecionar transação ${transaction.description}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {formatDate(transaction.transactionDate)}
                       </TableCell>

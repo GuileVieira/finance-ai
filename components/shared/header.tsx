@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, User, LogOut, Settings } from 'lucide-react';
 import { NavigationTabs } from './navigation-tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { Sun, Moon } from 'lucide-react';
 
 interface HeaderProps {
   userName?: string;
@@ -23,6 +24,7 @@ interface HeaderProps {
 
 export function Header({ userName }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState(userName || 'João Silva');
+  const [isDark, setIsDark] = useState(false);
   const { isLoggedIn, logout } = useAuth();
 
   useEffect(() => {
@@ -51,6 +53,24 @@ export function Header({ userName }: HeaderProps) {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const newTheme = !isDark;
+                setIsDark(newTheme);
+                if (newTheme) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              }}
+              className="p-2"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+
             {/* Notifications */}
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="h-4 w-4" />
