@@ -23,7 +23,7 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Top Despesas Financeiras</CardTitle>
+          <CardTitle>Top 5 Despesas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -43,7 +43,7 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Top Despesas Financeiras</CardTitle>
+          <CardTitle>Top 5 Despesas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
@@ -58,13 +58,16 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Despesas Financeiras</CardTitle>
+        <CardTitle>Top 5 Despesas</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {expenses.map((expense, index) => (
+          {expenses.slice(0, 5).map((expense, index) => (
             <div key={expense.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                  {index + 1}°
+                </div>
                 <div>
                   <div className="font-medium text-sm">
                     {expense.description}
