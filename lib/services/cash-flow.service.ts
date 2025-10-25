@@ -1,7 +1,7 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, accounts } from '@/lib/db/schema';
 import { CashFlowReport, CashFlowDay } from '@/lib/types';
-import { eq, and, gte, lte, sum, count } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, count, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
 export interface CashFlowFilters {
@@ -63,43 +63,100 @@ export default class CashFlowService {
         lte(transactions.transactionDate, endDate)
       ];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
       const whereClause = and(...whereConditions);
 
-      // Buscar fluxo de caixa diário
-      const dailyData = await db
+      // Buscar transações individuais para calcular saldos corretamente
+      const allTransactions = await db
         .select({
           date: transactions.transactionDate,
-          openingBalance: sql<number>`LAG(${transactions.balanceAfter}) OVER (ORDER BY ${transactions.transactionDate})`,
-          income: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          expenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactions: count(transactions.id).mapWith(Number),
-          closingBalance: sql<number>`MAX(${transactions.balanceAfter})`.mapWith(Number),
+          type: transactions.type,
+          amount: transactions.amount,
+          balanceAfter: transactions.balanceAfter,
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
-        .groupBy(transactions.transactionDate)
         .orderBy(transactions.transactionDate);
+
+      // Agrupar transações por dia e calcular totais
+      const dailyMap = new Map<string, {
+        income: number;
+        expenses: number;
+        transactions: number;
+        closingBalance: number;
+        balanceAfter: number;
+      }>();
+
+      for (const transaction of allTransactions) {
+        const date = transaction.date;
+        const isIncome = transaction.type === 'credit';
+        const amount = Number(transaction.amount) || 0;
+
+        if (!dailyMap.has(date)) {
+          dailyMap.set(date, {
+            income: 0,
+            expenses: 0,
+            transactions: 0,
+            closingBalance: Number(transaction.balanceAfter) || 0,
+            balanceAfter: Number(transaction.balanceAfter) || 0,
+          });
+        }
+
+        const dayData = dailyMap.get(date)!;
+        dayData.transactions++;
+
+        if (isIncome) {
+          dayData.income += amount;
+        } else {
+          dayData.expenses += amount;
+        }
+
+        // Atualiza o saldo final do dia
+        dayData.closingBalance = Number(transaction.balanceAfter) || 0;
+        dayData.balanceAfter = Number(transaction.balanceAfter) || 0;
+      }
+
+      // Converter para array e ordenar por data
+      const dailyData = Array.from(dailyMap.entries())
+        .map(([date, data]) => ({
+          date,
+          income: data.income,
+          expenses: data.expenses,
+          transactions: data.transactions,
+          closingBalance: data.closingBalance,
+          openingBalance: 0, // Será calculado abaixo
+          balanceAfter: data.balanceAfter,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
       // Processar dados diários
       let runningBalance = 0;
       const cashFlowDays: CashFlowDay[] = [];
 
-      for (const day of dailyData) {
+      for (let i = 0; i < dailyData.length; i++) {
+        const day = dailyData[i];
         const income = day.income || 0;
         const expenses = day.expenses || 0;
         const netCashFlow = income - expenses;
 
-        // Se não houver saldo de abertura, usa o saldo acumulado
-        const openingBalance = day.openingBalance !== null ? day.openingBalance : runningBalance;
+        // Calcular saldo de abertura
+        let openingBalance: number;
+        if (i === 0) {
+          // Primeiro dia: usar o saldo do dia anterior se existir, ou 0
+          openingBalance = runningBalance;
+        } else {
+          // Dias seguintes: usar o saldo final do dia anterior
+          openingBalance = cashFlowDays[i - 1].closingBalance;
+        }
+
         runningBalance = openingBalance + netCashFlow;
 
         cashFlowDays.push({
@@ -212,11 +269,11 @@ export default class CashFlowService {
         lte(transactions.transactionDate, endDate)
       ];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
@@ -281,11 +338,11 @@ export default class CashFlowService {
     try {
       const whereConditions = [];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 

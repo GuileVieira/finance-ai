@@ -216,7 +216,7 @@ export default function DREStatementComponent({
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Receita Bruta</div>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(data.grossRevenue)}
+                {formatCurrency(data.grossRevenue || 0)}
               </div>
             </CardContent>
           </Card>
@@ -225,7 +225,7 @@ export default function DREStatementComponent({
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Margem Contribuição</div>
               <div className="text-2xl font-bold text-green-600">
-                {formatPercentage(data.contributionMargin.percentage)}
+                {data.contributionMargin?.percentage ? formatPercentage(data.contributionMargin.percentage) : '0%'}
               </div>
             </CardContent>
           </Card>
@@ -234,7 +234,7 @@ export default function DREStatementComponent({
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Resultado Operacional</div>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(data.operationalResult)}
+                {formatCurrency(data.operationalResult || 0)}
               </div>
             </CardContent>
           </Card>
@@ -243,9 +243,9 @@ export default function DREStatementComponent({
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Resultado Líquido</div>
               <div className={`text-2xl font-bold ${
-                data.netResult >= 0 ? 'text-green-600' : 'text-red-600'
+                (data.netResult || 0) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {formatCurrency(data.netResult)}
+                {formatCurrency(data.netResult || 0)}
               </div>
             </CardContent>
           </Card>

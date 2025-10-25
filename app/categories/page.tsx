@@ -236,18 +236,13 @@ export default function CategoriesPage() {
                 <CategoryCard
                   key={category.id}
                   category={category}
-                  showViewButton={true}
+                  showViewButton={false}
+                  showEditButton={true}
                   loading={categoryOps.isToggling || categoryOps.isDeleting}
-                  onEdit={() => {
+                    onRules={() => {
                     toast({
-                      title: 'Editar Categoria',
-                      description: `Abrindo editor para ${category.name}...`,
-                    });
-                  }}
-                  onRules={() => {
-                    toast({
-                      title: 'Regras Automáticas',
-                      description: `Verificando regras para ${category.name}...`,
+                      title: 'Regras Temporariamente Indisponível',
+                      description: 'Funcionalidade de regras está em manutenção',
                     });
                   }}
                   onToggle={(active) => {

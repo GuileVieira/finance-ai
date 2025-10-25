@@ -72,11 +72,11 @@ export default class DREService {
         whereConditions.push(lte(transactions.transactionDate, endDate));
       }
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
@@ -100,7 +100,7 @@ export default class DREService {
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
         .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
-        .orderBy(sql`ABS(${transactions.amount})`); // Ordenar por valor total
+        .orderBy(sql`SUM(ABS(${transactions.amount})) DESC`); // Ordenar por valor total
 
       // Processar categorias
       const dreCategories: DRECategory[] = categoryData
@@ -117,6 +117,7 @@ export default class DREService {
           icon: cat.icon || '📊',
           subcategories: [], // TODO: Implementar subcategorias
           growthRate: 0, // TODO: Calcular taxa de crescimento
+          transactions: cat.transactionCount || 0, // Adicionar número de transações
         }));
 
       // Calcular totais gerais
@@ -149,11 +150,121 @@ export default class DREService {
         }
       });
 
+      // Calcular margem de contribuição
+      const contributionMargin = totalRevenue - totalVariableCosts;
+      const contributionMarginPercentage = totalRevenue > 0
+        ? (contributionMargin / totalRevenue) * 100
+        : 0;
+
       // Obter período formatado
       const periodLabel = this.formatPeriodLabel(filters.period || 'current');
 
+      // Mapear categorias para o formato esperado pelo componente
+      const mappedCategories = dreCategories.map(cat => ({
+        name: cat.name,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: [] // TODO: Implementar drilldown com transações
+      }));
+
+      // Separar categorias por tipo para detalhamento
+      const revenueCategories = dreCategories.filter(cat => cat.type === 'revenue').map(cat => ({
+        name: cat.name,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: []
+      }));
+      const variableCostCategories = dreCategories.filter(cat => cat.type === 'variable_cost').map(cat => ({
+        name: cat.name,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: []
+      }));
+      const fixedCostCategories = dreCategories.filter(cat => cat.type === 'fixed_cost').map(cat => ({
+        name: cat.name,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: []
+      }));
+      const nonOperationalCategories = dreCategories.filter(cat => cat.type === 'non_operational').map(cat => ({
+        name: cat.name,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: []
+      }));
+
       return {
         period: periodLabel,
+
+        // Estrutura esperada pelo componente
+        grossRevenue: totalRevenue,
+        netRevenue: totalRevenue, // Simplificado - não há deduções no momento
+        taxes: 0, // TODO: Implementar cálculo de impostos
+        financialCosts: 0, // TODO: Implementar cálculo de custos financeiros
+        variableCosts: totalVariableCosts,
+        fixedCosts: totalFixedCosts,
+        contributionMargin: {
+          value: contributionMargin,
+          percentage: contributionMarginPercentage
+        },
+        operationalResult: operatingIncome,
+        nonOperational: {
+          revenue: 0, // TODO: Separar receitas não operacionais
+          expenses: totalNonOperational,
+          netResult: -totalNonOperational
+        },
+        netResult: netIncome,
+
+        // Categorias mapeadas
+        categories: mappedCategories,
+
+        // Detalhamento por linha (opcional, para drilldown)
+        lineDetails: {
+          grossRevenue: revenueCategories.map(cat => ({
+            label: cat.name,
+            value: cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
+          taxes: [],
+          financialCosts: [],
+          variableCosts: variableCostCategories.map(cat => ({
+            label: cat.name,
+            value: cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
+          fixedCosts: fixedCostCategories.map(cat => ({
+            label: cat.name,
+            value: cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
+          nonOperationalRevenue: [],
+          nonOperationalExpenses: nonOperationalCategories.map(cat => ({
+            label: cat.name,
+            value: cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          }))
+        },
+
+        // Manter compatibilidade com estrutura anterior
         totalRevenue,
         totalVariableCosts,
         totalFixedCosts,
@@ -161,7 +272,6 @@ export default class DREService {
         totalExpenses,
         operatingIncome,
         netIncome,
-        categories: dreCategories,
         generatedAt: new Date().toISOString(),
       };
 

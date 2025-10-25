@@ -14,6 +14,7 @@ import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
 import { mockCategories, mockTransactions, categoryTypes } from '@/lib/mock-categories';
 import { Category, Transaction } from '@/lib/types';
+import { useCategory } from '@/hooks/use-categories';
 import { ArrowLeft, Edit, Settings, Search, Filter, Download, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -43,8 +44,6 @@ export default function CategoryDetailPage() {
   const router = useRouter();
   const categoryId = params.id as string;
 
-  const [category, setCategory] = useState<Category | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('90');
@@ -52,21 +51,40 @@ export default function CategoryDetailPage() {
   const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const foundCategory = mockCategories.find(cat => cat.id === categoryId);
-    if (foundCategory) {
-      setCategory(foundCategory);
-      setTransactions(generateMockTransactions(categoryId));
-    } else {
-      router.push('/categories');
-    }
-  }, [categoryId, router]);
+  // Buscar categoria real usando o hook
+  const { data: category, isLoading, error } = useCategory(categoryId);
 
-  if (!category) {
+  // Gerar transações mockadas apenas se a categoria existir (fallback)
+  const transactions = category ? generateMockTransactions(categoryId) : [];
+
+  // Tratamentos de loading e erro
+  if (isLoading) {
     return (
       <LayoutWrapper>
         <div className="flex items-center justify-center h-96">
-          <p>Carregando...</p>
+          <p>Carregando categoria...</p>
+        </div>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error || !category) {
+    return (
+      <LayoutWrapper>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-destructive mb-2">
+              Categoria não encontrada
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {error?.message || 'A categoria que você está procurando não existe ou foi removida.'}
+            </p>
+            <Link href="/categories">
+              <Button variant="outline">
+                Voltar para Categorias
+              </Button>
+            </Link>
+          </div>
         </div>
       </LayoutWrapper>
     );

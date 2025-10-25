@@ -127,7 +127,12 @@ export const transactions = pgTable('financeai_transactions', {
   uploadIdIdx: index('idx_transactions_upload_id').on(table.uploadId),
   dateIdx: index('idx_transactions_date').on(table.transactionDate),
   typeIdx: index('idx_transactions_type').on(table.type),
-  verifiedIdx: index('idx_transactions_verified').on(table.verified)
+  verifiedIdx: index('idx_transactions_verified').on(table.verified),
+  // Índices compostos para performance de consultas analíticas
+  dateTypeIdx: index('idx_transactions_date_type').on(table.transactionDate, table.type),
+  dateAmountIdx: index('idx_transactions_date_amount').on(table.transactionDate.desc()),
+  accountDateIdx: index('idx_transactions_account_date').on(table.accountId, table.transactionDate.desc()),
+  categoryDateIdx: index('idx_transactions_category_date').on(table.categoryId, table.transactionDate.desc())
 }));
 
 // Usuários (simplificado para MVP)

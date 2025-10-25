@@ -55,11 +55,11 @@ export default class InsightsService {
         lte(transactions.transactionDate, endDate)
       ];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
@@ -133,7 +133,7 @@ export default class InsightsService {
       .leftJoin(accounts, eq(transactions.accountId, accounts.id))
       .where(whereClause)
       .groupBy(categories.name, categories.type)
-      .orderBy(desc(sql`ABS(${transactions.amount})`))
+      .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`))
       .limit(10);
 
     // Maiores despesas

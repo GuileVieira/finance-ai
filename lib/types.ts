@@ -63,43 +63,29 @@ export interface UserData {
 // Tipos para Relatórios Financeiros
 export interface DREStatement {
   period: string;
-  grossRevenue: number;
-  taxes: number;
-  financialCosts: number;
-  netRevenue: number;
-  variableCosts: number;
-  contributionMargin: {
-    value: number;
-    percentage: number;
-  };
-  fixedCosts: number;
-  operationalResult: number;
-  nonOperational: {
-    revenue: number;
-    expenses: number;
-    netResult: number;
-  };
-  netResult: number;
+  totalRevenue: number;
+  totalVariableCosts: number;
+  totalFixedCosts: number;
+  totalNonOperational: number;
+  totalExpenses: number;
+  operatingIncome: number;
+  netIncome: number;
   categories: DRECategory[];
-  lineDetails?: {
-    grossRevenue?: DRELineItem[];
-    taxes?: DRELineItem[];
-    financialCosts?: DRELineItem[];
-    variableCosts?: DRELineItem[];
-    fixedCosts?: DRELineItem[];
-    nonOperationalRevenue?: DRELineItem[];
-    nonOperationalExpenses?: DRELineItem[];
-  };
+  generatedAt: string;
 }
 
 export interface DRECategory {
+  id: string;
   name: string;
-  value: number;
+  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational';
+  budget: number;
+  actual: number;
+  variance: number;
   percentage: number;
-  type: 'variable' | 'fixed' | 'non_operating';
   color: string;
-  transactions: number;
-  drilldown?: Transaction[];
+  icon: string;
+  subcategories: string[];
+  growthRate: number;
 }
 
 export interface DRELineItem {
@@ -120,13 +106,35 @@ export interface CashFlowItem {
   balance: number;
 }
 
+export interface CashFlowDay {
+  date: string;
+  openingBalance: number;
+  income: number;
+  expenses: number;
+  netCashFlow: number;
+  closingBalance: number;
+  transactions: number;
+}
+
 export interface CashFlowReport {
   period: string;
   openingBalance: number;
   closingBalance: number;
   totalIncome: number;
-  totalExpense: number;
-  dailyFlows: CashFlowItem[];
+  totalExpenses: number;
+  netCashFlow: number;
+  averageDailyIncome: number;
+  averageDailyExpenses: number;
+  cashFlowDays: CashFlowDay[];
+  bestDay: {
+    date: string;
+    amount: number;
+  };
+  worstDay: {
+    date: string;
+    amount: number;
+  };
+  generatedAt: string;
 }
 
 export interface ReportPeriod {
@@ -146,6 +154,9 @@ export interface Insight {
   category?: string;
   value?: number;
   comparison?: string;
+  actionable: boolean;
+  suggestions: string[];
+  createdAt: string;
 }
 
 export interface CategoryRule {
