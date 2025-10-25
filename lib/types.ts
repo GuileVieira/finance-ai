@@ -38,10 +38,11 @@ export interface NavigationItem {
 
 export interface MetricCard {
   title: string;
-  value: string;
+  value: string | number;
   change: number;
   changeType: 'increase' | 'decrease';
   color: string;
+  icon?: string;
 }
 
 export interface Transaction {

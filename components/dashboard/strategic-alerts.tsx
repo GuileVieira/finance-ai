@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { mockAlerts } from '@/lib/mock-data';
+import { memo } from 'react';
 
-export function StrategicAlerts() {
+export const StrategicAlerts = memo(function StrategicAlerts() {
   const getBadgeVariant = (type: string) => {
     switch (type) {
       case 'critical':
@@ -58,4 +59,4 @@ export function StrategicAlerts() {
       </CardContent>
     </Card>
   );
-}
+});

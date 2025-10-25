@@ -3,13 +3,14 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { MetricCard as MetricCardType } from '@/lib/mock-data';
+import { MetricCard as MetricCardType } from '@/lib/types';
+import { memo } from 'react';
 
 interface MetricCardProps {
   metric: MetricCardType;
 }
 
-export function MetricCard({ metric }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) {
   const isPositive = metric.changeType === 'increase';
 
   return (
@@ -20,8 +21,25 @@ export function MetricCard({ metric }: MetricCardProps) {
             <p className="text-sm font-medium text-muted-foreground">
               {metric.title}
             </p>
-            <p className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {metric.value}
+            <p className={`text-2xl font-bold ${metric.color || 'text-gray-600'}`}>
+              {(() => {
+                const value = typeof metric.value === 'number' ? metric.value : parseFloat(metric.value.toString());
+                if (isNaN(value)) return metric.value;
+
+                // Se for o card de transações, mostrar como número inteiro
+                if (metric.title === 'Transações') {
+                  return value.toLocaleString('pt-BR');
+                }
+
+                // Para valores monetários, formatar como moeda
+                const formattedValue = new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                }).format(Math.abs(value));
+
+                // Adicionar espaço antes do sinal negativo se necessário
+                return value < 0 ? `- ${formattedValue}` : formattedValue;
+              })()}
             </p>
           </div>
           <Badge
@@ -43,4 +61,4 @@ export function MetricCard({ metric }: MetricCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

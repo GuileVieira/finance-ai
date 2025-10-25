@@ -1,99 +1,100 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
-import { CategoryChart } from '@/components/dashboard/category-chart';
-import { TopExpenses } from '@/components/dashboard/top-expenses';
-import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { Insights } from '@/components/dashboard/insights';
-import { TrendChart } from '@/components/dashboard/trend-chart';
-import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
-import { BudgetComparison } from '@/components/dashboard/budget-comparison';
-import { StrategicAlerts } from '@/components/dashboard/strategic-alerts';
-import { Benchmarks } from '@/components/dashboard/benchmarks';
-import { Scenarios } from '@/components/dashboard/scenarios';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Upload, AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
-import { useDashboard, useDashboardMetrics } from '@/hooks/use-dashboard';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { MetricCardSkeleton } from '@/components/transactions/metric-card-skeleton';
+import { useDashboard } from '@/hooks/use-dashboard';
 
 export default function DashboardPage() {
+  console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
+
   const [filters, setFilters] = useState({
     period: '2025-10',
     accountId: 'all',
     companyId: 'all'
   });
 
-  // Usar hooks do TanStack Query para buscar dados do dashboard
+  // Estabilizar funções com useCallback
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    console.log('📝 Mudando filtro:', key, '=', value);
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    console.log('🔄 Refresh solicitado');
+    // refetch será adicionado depois
+  }, []);
+
+  // Usar hook do TanStack Query para buscar dados do dashboard
   const {
-    dashboardData,
     metrics,
-    categorySummary,
-    trendData,
-    topExpenses,
-    recentTransactions,
     isLoading,
     isRefetching,
     error,
     refetch,
-    isEmpty,
-    hasError
   } = useDashboard(filters, {
     enabled: true,
-    refetchInterval: 1000 * 60 * 10, // Atualizar a cada 10 minutos
+    refetchInterval: false, // Manter desativado
   });
 
   // Converter métricas para formato esperado pelos componentes
   const dashboardMetrics = useMemo(() => {
-    if (!metrics) return [];
+    console.log('📊 Calculando métricas do dashboard');
 
-    return [
+    if (!metrics) {
+      console.log('❌ Sem métricas disponíveis');
+      return [];
+    }
+
+    const result = [
       {
         title: 'Receitas',
         value: metrics.totalIncome,
         change: metrics.growthRate,
         changeType: metrics.growthRate >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '📈',
-        color: 'text-green-600'
+        color: 'text-chart-2'
       },
       {
         title: 'Despesas',
-        value: metrics.totalExpenses,
-        change: -5.2, // TODO: Calcular variação real
+        value: -Math.abs(metrics.totalExpenses), // Valor negativo
+        change: -5.2,
         changeType: 'decrease' as const,
         icon: '📉',
-        color: 'text-red-600'
+        color: 'text-destructive'
       },
       {
         title: 'Saldo',
         value: metrics.netBalance,
-        change: 12.8, // TODO: Calcular variação real
+        change: 12.8,
         changeType: 'increase' as const,
         icon: '💰',
-        color: metrics.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'
+        color: metrics.netBalance >= 0 ? 'text-emerald-600' : 'text-destructive'
       },
       {
         title: 'Transações',
         value: metrics.transactionCount,
-        change: 8.4, // TODO: Calcular variação real
+        change: 8.4,
         changeType: 'increase' as const,
         icon: '🔄',
-        color: 'text-blue-600'
+        color: 'text-primary'
       }
     ];
-  }, [metrics]);
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
+    console.log('✅ Métricas calculadas:', result.length, 'cards');
+    return result;
+  }, [
+    metrics?.totalIncome,
+    metrics?.totalExpenses,
+    metrics?.netBalance,
+    metrics?.transactionCount,
+    metrics?.growthRate
+  ]);
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics);
 
   return (
     <LayoutWrapper>
@@ -134,83 +135,32 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        {/* Mensagem de Erro */}
-        {hasError && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              <strong>Erro ao carregar dashboard:</strong> {error?.message || 'Erro desconhecido'}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Alertas Estratégicos */}
-        <StrategicAlerts />
-
-        {/* Cards de métricas */}
+        {/* Cards de métricas APENAS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {isLoading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <MetricCardSkeleton key={index} />
-            ))
+            <div className="col-span-4 text-center p-8">
+              <div className="text-lg">Carregando métricas...</div>
+            </div>
+          ) : error ? (
+            <div className="col-span-4 text-center p-8">
+              <div className="text-lg text-red-600">Erro: {error.message}</div>
+            </div>
           ) : (
-            dashboardMetrics.map((metric, index) => (
-              <MetricCard key={index} metric={metric} />
-            ))
+            dashboardMetrics.map((metric, index) => {
+              console.log(`🎴 Renderizando card ${index}: ${metric.title}`);
+              return <MetricCard key={`${metric.title}-${index}`} metric={metric} />;
+            })
           )}
         </div>
 
-        {/* Análises Temporais */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TrendChart data={trendData} isLoading={isLoading} />
-          <CashFlowChart data={trendData} isLoading={isLoading} />
-        </div>
-
-        {/* Comparações e Benchmarks */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BudgetComparison isLoading={isLoading} />
-          <Benchmarks isLoading={isLoading} />
-        </div>
-
-        {/* Grid principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Gráfico de categorias */}
-          <div className="lg:col-span-2">
-            <CategoryChart
-              categories={categorySummary}
-              isLoading={isLoading}
-              isEmpty={!isLoading && categorySummary.length === 0}
-            />
-          </div>
-
-          {/* Top Despesas */}
-          <div>
-            <TopExpenses
-              expenses={topExpenses}
-              isLoading={isLoading}
-              isEmpty={!isLoading && topExpenses.length === 0}
-            />
-          </div>
-        </div>
-
-        {/* Cenários e Projeções */}
-        <Scenarios isLoading={isLoading} />
-
-        {/* Transações e Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Transações Recentes */}
-          <div className="lg:col-span-2">
-            <RecentTransactions
-              transactions={recentTransactions}
-              isLoading={isLoading}
-              isEmpty={!isLoading && recentTransactions.length === 0}
-            />
-          </div>
-
-          {/* Insights */}
-          <div>
-            <Insights isLoading={isLoading} />
-          </div>
+        {/* Log de debug */}
+        <div className="bg-gray-100 p-4 rounded text-xs">
+          <div><strong>Debug Info:</strong></div>
+          <div>Loading: {isLoading.toString()}</div>
+          <div>Error: {error?.message || 'none'}</div>
+          <div>Metrics: {metrics ? 'available' : 'none'}</div>
+          <div>Cards count: {dashboardMetrics.length}</div>
+          <div>Period: {filters.period}</div>
         </div>
       </div>
     </LayoutWrapper>

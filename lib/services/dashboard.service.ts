@@ -70,14 +70,24 @@ export default class DashboardService {
       // Buscar dados do período anterior para calcular crescimento
       const growthRate = await this.calculateGrowthRate(filters);
 
+      // Converter valores de centavos para reais se necessário
+      const convertFromCents = (value: number | null | undefined): number => {
+        if (!value) return 0;
+        // Se o valor for maior que 1000 e não tiver casas decimais, provavelmente está em centavos
+        if (value > 1000 && Number.isInteger(value)) {
+          return value / 100;
+        }
+        return value;
+      };
+
       return {
-        totalIncome: metrics.totalIncome || 0,
-        totalExpenses: metrics.totalExpenses || 0,
-        netBalance,
+        totalIncome: convertFromCents(metrics.totalIncome),
+        totalExpenses: convertFromCents(metrics.totalExpenses),
+        netBalance: convertFromCents(netBalance),
         transactionCount: metrics.transactionCount || 0,
         incomeCount: metrics.incomeCount || 0,
         expenseCount: metrics.expenseCount || 0,
-        averageTicket: metrics.averageTicket || 0,
+        averageTicket: convertFromCents(metrics.averageTicket),
         growthRate
       };
 
