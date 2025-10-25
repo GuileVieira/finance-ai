@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const category = await CategoriesAPI.createCategory(body);
+    const category = await CategoriesService.createCategory(body);
 
     return NextResponse.json({
       success: true,
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    const category = await CategoriesAPI.updateCategory({ id, ...body });
+    const category = await CategoriesService.updateCategory({ id, ...body });
 
     return NextResponse.json({
       success: true,
@@ -126,7 +126,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await CategoriesAPI.deleteCategory(id);
+    await CategoriesService.deleteCategory(id);
 
     return NextResponse.json({
       success: true,

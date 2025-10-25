@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { CategoryFilters, CategoryWithStats } from '@/lib/api/categories';
+import { db } from '@/lib/db/drizzle';
+import { categories, transactions } from '@/lib/db/schema';
+import { eq, desc, isNull, count, sum, sql } from 'drizzle-orm';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    // Parse filters from query params
+    const filters = {
+      type: searchParams.get('type') as any,
+      companyId: searchParams.get('companyId') || undefined,
+      isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
+      includeStats: searchParams.get('includeStats') === 'true',
+      search: searchParams.get('search') || undefined,
+      sortBy: searchParams.get('sortBy') as any || 'totalAmount',
+      sortOrder: searchParams.get('sortOrder') as any || 'desc'
+    };
+
+    // Buscar categorias com transações associadas usando query direta
+    const whereConditions = [];
+
+    if (filters.type && filters.type !== 'all') {
+      whereConditions.push(eq(categories.type, filters.type));
+    }
+
+    if (filters.isActive !== undefined) {
+      whereConditions.push(eq(categories.active, filters.isActive));
+    }
+
+    // Buscar categorias ativas com estatísticas
+    const categoriesWithStats = await db
+      .select({
+        id: categories.id,
+        companyId: categories.companyId,
+        name: categories.name,
+        description: categories.description,
+        type: categories.type,
+        parentType: categories.parentType,
+        parentCategoryId: categories.parentCategoryId,
+        colorHex: categories.colorHex,
+        icon: categories.icon,
+        examples: categories.examples,
+        isSystem: categories.isSystem,
+        active: categories.active,
+        createdAt: categories.createdAt,
+        updatedAt: categories.updatedAt,
+        transactionCount: count(transactions.id).mapWith(Number),
+        totalAmount: sum(transactions.amount).mapWith(Number),
+      })
+      .from(categories)
+      .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .groupBy(categories.id)
+      .orderBy(desc(sum(transactions.amount)));
+
+    // Filtrar apenas categorias com transações
+    const categoriesWithTransactions = categoriesWithStats.filter(cat =>
+      cat.transactionCount && cat.transactionCount > 0
+    );
+
+    // Formatar resultado para o formato esperado
+    const formattedCategories: CategoryWithStats[] = categoriesWithTransactions.map(cat => {
+      const transactionCount = cat.transactionCount || 0;
+      const totalAmount = Math.abs(cat.totalAmount || 0);
+      const averageAmount = transactionCount > 0 ? totalAmount / transactionCount : 0;
+
+      return {
+        id: cat.id,
+        companyId: cat.companyId,
+        name: cat.name,
+        description: cat.description,
+        type: cat.type,
+        parentType: cat.parentType,
+        parentCategoryId: cat.parentCategoryId,
+        colorHex: cat.colorHex,
+        icon: cat.icon,
+        examples: cat.examples as string[] | undefined,
+        isSystem: cat.isSystem,
+        active: cat.active,
+        createdAt: cat.createdAt,
+        updatedAt: cat.updatedAt,
+        transactionCount,
+        totalAmount,
+        percentage: 0, // Será calculado no frontend se necessário
+        averageAmount,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: formattedCategories,
+      count: formattedCategories.length
+    });
+
+  } catch (error) {
+    console.error('[CATEGORIES-WITH-TRANSACTIONS-API] Error fetching categories with transactions:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch categories with transactions',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -8,6 +8,8 @@ export const categoryKeys = {
   all: ['categories'] as const,
   lists: () => [...categoryKeys.all, 'list'] as const,
   list: (filters: CategoryFilters) => [...categoryKeys.lists(), filters] as const,
+  withTransactions: () => [...categoryKeys.all, 'with-transactions'] as const,
+  withTransactionsList: (filters: CategoryFilters) => [...categoryKeys.withTransactions(), filters] as const,
   details: () => [...categoryKeys.all, 'detail'] as const,
   detail: (id: string) => [...categoryKeys.details(), id] as const,
   summary: (filters: CategoryFilters) => [...categoryKeys.all, 'summary', filters] as const,
@@ -20,6 +22,17 @@ export function useCategories(filters: CategoryFilters = {}, options?: Omit<UseQ
   return useQuery({
     queryKey: categoryKeys.list(filters),
     queryFn: () => CategoriesAPI.getCategories(filters),
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    gcTime: 1000 * 60 * 10, // 10 minutos
+    ...options,
+  });
+}
+
+// Hook para buscar categorias com transações associadas
+export function useCategoriesWithTransactions(filters: CategoryFilters = {}, options?: Omit<UseQueryOptions<CategoryWithStats[], Error>, 'queryKey' | 'queryFn'>) {
+  return useQuery({
+    queryKey: categoryKeys.withTransactionsList(filters),
+    queryFn: () => CategoriesAPI.getCategoriesWithTransactions(filters),
     staleTime: 1000 * 60 * 5, // 5 minutos
     gcTime: 1000 * 60 * 10, // 10 minutos
     ...options,

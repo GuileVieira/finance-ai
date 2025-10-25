@@ -293,4 +293,34 @@ export class CategoriesAPI {
   static async toggleCategoryRuleActive(id: string, isActive: boolean): Promise<CategoryRule> {
     return this.updateCategoryRule(id, { isActive });
   }
+
+  /**
+   * Buscar categorias com transações associadas (nova implementação)
+   */
+  static async getCategoriesWithTransactions(filters: CategoryFilters = {}): Promise<CategoryWithStats[]> {
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, String(value));
+      }
+    });
+
+    // Garantir que incluímos estatísticas
+    if (!params.has('includeStats')) {
+      params.append('includeStats', 'true');
+    }
+
+    const url = `${API_BASE}/categories/with-transactions${params.toString() ? `?${params.toString()}` : ''}`;
+
+    const response = await fetch(getApiUrl(url));
+    if (!response.ok) {
+      throw new Error('Failed to fetch categories with transactions');
+    }
+
+    const data = await response.json();
+    return data.data;
+  }
 }
+
+export default CategoriesAPI;

@@ -19,7 +19,8 @@
     "reset-data:dry": "node scripts/reset-data-simple.js --dry-run",
     "reset-data:recent": "node scripts/reset-data-simple.js --recent",
     "reset-db": "node scripts/reset-data-db.js",
-    "reset-db:dry": "node scripts/reset-data-db.js --dry-run"
+    "reset-db:dry": "node scripts/reset-data-db.js --dry-run",
+    "clear-categories-cache": "node scripts/clear-categories-cache.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
