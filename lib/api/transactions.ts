@@ -4,7 +4,7 @@ export interface TransactionFilters {
   accountId?: string;
   companyId?: string;
   categoryId?: string;
-  type?: 'credit' | 'debit';
+  type?: 'income' | 'expense';
   verified?: boolean;
   startDate?: string;
   endDate?: string;
@@ -121,7 +121,7 @@ export class TransactionsAPI {
 
     // Mapear tipo da UI para tipo da API
     if (uiFilters.type && uiFilters.type !== 'all') {
-      apiFilters.type = uiFilters.type === 'income' ? 'credit' : 'debit';
+      apiFilters.type = uiFilters.type;
     }
 
     // Busca textual

@@ -67,11 +67,19 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Encontradas ${allAccounts.length} contas`);
 
+    // Formatar número da conta para mostrar apenas últimos dígitos
+    const formattedAccounts = allAccounts.map(account => ({
+      ...account,
+      maskedAccountNumber: account.accountNumber
+        ? `****${account.accountNumber.slice(-4)}`
+        : '****'
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
-        accounts: allAccounts,
-        total: allAccounts.length
+        accounts: formattedAccounts,
+        total: formattedAccounts.length
       }
     });
 

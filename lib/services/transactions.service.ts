@@ -9,7 +9,7 @@ export interface TransactionFilters {
   categoryId?: string;
   startDate?: string;
   endDate?: string;
-  type?: 'credit' | 'debit';
+  type?: 'income' | 'expense';
   category?: string;
   search?: string;
   verified?: boolean;
@@ -108,7 +108,13 @@ export class TransactionsService {
       }
 
       if (filters.type) {
-        conditions.push(eq(transactions.type, filters.type));
+        conditions.push(
+          sql`CASE
+            WHEN ${filters.type} = 'income' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) > 0`}
+            WHEN ${filters.type} = 'expense' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) < 0`}
+            ELSE TRUE
+          END`
+        );
       }
 
       if (filters.verified !== undefined) {
@@ -215,7 +221,13 @@ export class TransactionsService {
       }
 
       if (filters.type) {
-        conditions.push(eq(transactions.type, filters.type));
+        conditions.push(
+          sql`CASE
+            WHEN ${filters.type} = 'income' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) > 0`}
+            WHEN ${filters.type} = 'expense' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) < 0`}
+            ELSE TRUE
+          END`
+        );
       }
 
       if (filters.startDate && filters.endDate) {
@@ -321,7 +333,13 @@ export class TransactionsService {
       }
 
       if (filters.type) {
-        conditions.push(eq(transactions.type, filters.type));
+        conditions.push(
+          sql`CASE
+            WHEN ${filters.type} = 'income' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) > 0`}
+            WHEN ${filters.type} = 'expense' THEN ${sql`CAST(${transactions.amount} AS NUMERIC) < 0`}
+            ELSE TRUE
+          END`
+        );
       }
 
       if (conditions.length > 0) {

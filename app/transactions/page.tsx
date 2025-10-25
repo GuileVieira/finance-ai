@@ -233,72 +233,89 @@ export default function TransactionsPage() {
             <CardTitle className="text-lg">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {/* Busca */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar transação..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="pl-10"
-                />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Busca */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Buscar transação</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Digite descrição..."
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Período */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Período</label>
+                  <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2025-10">Outubro/2025</SelectItem>
+                      <SelectItem value="2025-09">Setembro/2025</SelectItem>
+                      <SelectItem value="2025-08">Agosto/2025</SelectItem>
+                      <SelectItem value="2025-07">Julho/2025</SelectItem>
+                      <SelectItem value="all">Todos os períodos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Banco - placeholder até buscar da API */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Banco/Conta</label>
+                  <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os bancos</SelectItem>
+                      <SelectItem value="BB">Banco do Brasil</SelectItem>
+                      <SelectItem value="Itaú">Itaú</SelectItem>
+                      <SelectItem value="Santander">Santander</SelectItem>
+                      <SelectItem value="CEF">Caixa Econômica</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Categoria - placeholder até buscar da API */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Categoria</label>
+                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as categorias</SelectItem>
+                      <SelectItem value="Vendas de Produtos">Vendas de Produtos</SelectItem>
+                      <SelectItem value="Salários e Encargos">Salários e Encargos</SelectItem>
+                      <SelectItem value="Aluguel e Ocupação">Aluguel e Ocupação</SelectItem>
+                      <SelectItem value="Tecnologia e Software">Tecnologia e Software</SelectItem>
+                      <SelectItem value="Custos de Produtos">Custos de Produtos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tipo */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Tipo de Transação</label>
+                  <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
+                      <SelectItem value="income">Apenas Receitas</SelectItem>
+                      <SelectItem value="expense">Apenas Despesas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-
-              {/* Período */}
-              <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2025-10">Outubro/2025</SelectItem>
-                  <SelectItem value="2025-09">Setembro/2025</SelectItem>
-                  <SelectItem value="2025-08">Agosto/2025</SelectItem>
-                  <SelectItem value="2025-07">Julho/2025</SelectItem>
-                  <SelectItem value="all">Todos os períodos</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Banco - placeholder até buscar da API */}
-              <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Banco" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="BB">Banco do Brasil</SelectItem>
-                  <SelectItem value="Itaú">Itaú</SelectItem>
-                  <SelectItem value="Santander">Santander</SelectItem>
-                  <SelectItem value="CEF">Caixa Econômica</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Categoria - placeholder até buscar da API */}
-              <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="Vendas de Produtos">Vendas de Produtos</SelectItem>
-                  <SelectItem value="Salários e Encargos">Salários e Encargos</SelectItem>
-                  <SelectItem value="Aluguel e Ocupação">Aluguel e Ocupação</SelectItem>
-                  <SelectItem value="Tecnologia e Software">Tecnologia e Software</SelectItem>
-                  <SelectItem value="Custos de Produtos">Custos de Produtos</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Tipo */}
-              <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="income">Receitas</SelectItem>
-                  <SelectItem value="expense">Despesas</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
         </Card>
