@@ -19,6 +19,7 @@ interface ComboboxOption {
   type: string
   color: string
   name: string
+  icon?: string
 }
 
 interface ComboboxProps {
@@ -63,9 +64,10 @@ const VirtualizedListItem = React.memo<{
       >
         <div className="flex items-center gap-2">
           <div
-            className="w-3 h-3 rounded-full border-2 border-background"
+            className="w-3 h-3 rounded-full border-2 border-background flex-shrink-0"
             style={{ backgroundColor: option.color }}
           />
+          {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
           <span className="flex-1">{highlightText(option.label)}</span>
         </div>
       </CommandItem>
@@ -133,6 +135,7 @@ export function Combobox({
           className="w-3 h-3 rounded-full border-2 border-background flex-shrink-0"
           style={{ backgroundColor: selectedOption.color }}
         />
+        {selectedOption.icon && <span className="flex-shrink-0">{selectedOption.icon}</span>}
         <span className="flex-1 truncate">{selectedOption.label}</span>
       </div>
     )
@@ -172,6 +175,7 @@ export function Combobox({
                         className="w-3 h-3 rounded-full border-2 border-background flex-shrink-0"
                         style={{ backgroundColor: option.color }}
                       />
+                      {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
                       <span className="flex-1">{option.label}</span>
                     </div>
                   ))}

@@ -13,52 +13,54 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Combobox } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { useCategories } from '@/hooks/use-categories';
 
-// Interface baseada no schema real da tabela
-interface CategoryRule {
-  id: string;
-  rulePattern: string;
-  ruleType: string;
-  categoryId: string;
-  categoryName: string;
-  companyId?: string;
-  confidenceScore: string;
-  active: boolean;
-  usageCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
+// Usando a interface correta da API
+import { CategoryRule } from '@/lib/api/categories';
 
 interface CategoryRuleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (rule: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt' | 'categoryName' | 'usageCount'>) => void;
+  onSave: (rule: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => void;
   initialData?: Partial<CategoryRule>;
 }
 
 export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: CategoryRuleDialogProps) {
   const [formData, setFormData] = useState({
-    rulePattern: initialData?.rulePattern || '',
-    ruleType: initialData?.ruleType || 'contains',
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    pattern: initialData?.pattern || '',
     categoryId: initialData?.categoryId || '',
-    confidenceScore: initialData?.confidenceScore || '0.80',
-    active: initialData?.active ?? true,
+    priority: initialData?.priority || 5,
+    isActive: initialData?.isActive ?? true,
   });
 
   const [testPattern, setTestPattern] = useState('');
   const [testResult, setTestResult] = useState<boolean | null>(null);
 
-  // Carregar categorias para o select
-  const { categories = [] } = useCategories({ includeStats: false });
+  // Carregar categorias ativas para o select
+  const { data: categories = [], isLoading: isLoadingCategories } = useCategories({
+    isActive: true,
+    includeStats: false
+  });
+
+  // Transformar categorias para o formato do Combobox
+  const categoryOptions = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+    type: category.type,
+    color: category.colorHex,
+    name: category.name,
+    icon: category.icon
+  }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.rulePattern.trim() || !formData.ruleType || !formData.categoryId) {
+    if (!formData.name.trim() || !formData.pattern.trim() || !formData.categoryId) {
       return;
     }
 
@@ -155,35 +157,28 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
           {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="categoryId">Categoria de Destino</Label>
-            <Select
+            <Combobox
+              options={categoryOptions}
               value={formData.categoryId}
               onValueChange={(value) => handleInputChange('categoryId', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories
-                  .filter(cat => cat.active)
-                  .map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: category.colorHex }}
-                        />
-                        <span>{category.icon}</span>
-                        {category.name}
-                        <Badge variant="outline" className="text-xs ml-2">
-                          {category.type === 'revenue' ? 'Receita' :
-                           category.type === 'variable_cost' ? 'Custo Variável' :
-                           category.type === 'fixed_cost' ? 'Custo Fixo' : 'Não Operacional'}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+              placeholder="Selecione a categoria"
+              searchPlaceholder="Buscar categoria..."
+              emptyMessage={isLoadingCategories ? "Carregando categorias..." : "Nenhuma categoria encontrada"}
+              disabled={isLoadingCategories}
+            />
+            {formData.categoryId && (
+              <div className="text-xs text-muted-foreground">
+                {(() => {
+                  const selected = categories.find(cat => cat.id === formData.categoryId);
+                  if (!selected) return '';
+                  return `${selected.icon} ${
+                    selected.type === 'revenue' ? 'Receita' :
+                    selected.type === 'variable_cost' ? 'Custo Variável' :
+                    selected.type === 'fixed_cost' ? 'Custo Fixo' : 'Não Operacional'
+                  }`;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Padrão */}
@@ -279,7 +274,7 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={!formData.rulePattern.trim() || !formData.ruleType || !formData.categoryId}>
+            <Button type="submit" disabled={!formData.name.trim() || !formData.pattern.trim() || !formData.categoryId || isLoadingCategories}>
               {initialData ? 'Salvar Alterações' : 'Criar Regra'}
             </Button>
           </DialogFooter>
