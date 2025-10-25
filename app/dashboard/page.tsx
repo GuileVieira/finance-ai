@@ -4,6 +4,9 @@ import { useState, useCallback, useMemo } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { TrendChart } from '@/components/dashboard/trend-chart';
 import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
+import { CategoryChart } from '@/components/dashboard/category-chart';
+import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { TopExpenses } from '@/components/dashboard/top-expenses';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
@@ -35,6 +38,9 @@ export default function DashboardPage() {
   const {
     metrics,
     trendData,
+    categorySummary,
+    topExpenses,
+    recentTransactions,
     isLoading,
     isRefetching,
     error,
@@ -168,7 +174,31 @@ export default function DashboardPage() {
         {/* Análises Temporais */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TrendChart data={trendData} isLoading={isLoading} />
-          <CashFlowChart data={trendData} isLoading={isLoading} />
+          <CashFlowChart data={trendData} isLoading={isLoading} period={filters.period} />
+        </div>
+
+        {/* Análises Detalhadas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CategoryChart
+            categories={categorySummary}
+            isLoading={isLoading}
+            isEmpty={!categorySummary || categorySummary.length === 0}
+          />
+          <RecentTransactions
+            transactions={recentTransactions}
+            isLoading={isLoading}
+            isEmpty={!recentTransactions || recentTransactions.length === 0}
+          />
+        </div>
+
+        {/* Análises Adicionais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopExpenses
+            expenses={topExpenses}
+            isLoading={isLoading}
+            isEmpty={!topExpenses || topExpenses.length === 0}
+          />
+          {/* Espaço para Insights */}
         </div>
       </div>
     </LayoutWrapper>

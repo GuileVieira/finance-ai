@@ -79,18 +79,27 @@ export function useDashboard(
   // Extrair dados do dashboardData
   const metrics = dashboardData?.metrics;
   const trendData = dashboardData?.trendData || [];
+  const categorySummary = dashboardData?.categorySummary || [];
+  const topExpenses = dashboardData?.topExpenses || [];
+  const recentTransactions = dashboardData?.recentTransactions || [];
 
   console.log('📊 Estado da query:', {
     isLoading,
     hasError: !!error,
     hasData: !!metrics,
-    isRefetching
+    isRefetching,
+    categoriesCount: categorySummary.length,
+    expensesCount: topExpenses.length,
+    transactionsCount: recentTransactions.length
   });
 
   return {
     // Dados do dashboard
     metrics,
     trendData,
+    categorySummary,
+    topExpenses,
+    recentTransactions,
 
     // Estados
     isLoading,

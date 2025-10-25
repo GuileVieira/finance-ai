@@ -70,10 +70,13 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
             <div>Categoria</div>
             <div className="text-right">Valor</div>
           </div>
-          {transactions.map((transaction) => (
+          {transactions.filter(transaction => transaction != null).map((transaction) => (
             <div key={transaction.id} className="grid grid-cols-4 items-center text-sm">
               <div className="font-medium">
-                {new Date(transaction.transactionDate).toLocaleDateString('pt-BR')}
+                {transaction.transactionDate
+                  ? new Date(transaction.transactionDate).toLocaleDateString('pt-BR')
+                  : 'Sem data'
+                }
               </div>
               <div className="truncate">{transaction.description}</div>
               <div>
