@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useDashboard } from '@/hooks/use-dashboard';
+import { useAccountsForSelect } from '@/hooks/use-accounts';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
@@ -39,6 +40,9 @@ export default function DashboardPage() {
     enabled: true,
     refetchInterval: false, // Manter desativado
   });
+
+  // Buscar contas bancárias para o filtro
+  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect();
 
   // Converter métricas para formato esperado pelos componentes
   const dashboardMetrics = useMemo(() => {
@@ -114,14 +118,19 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
           <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Conta" />
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="bb">Banco do Brasil</SelectItem>
-              <SelectItem value="itau">Itaú</SelectItem>
-              <SelectItem value="santander">Santander</SelectItem>
+              {isLoadingAccounts ? (
+                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+              ) : (
+                accountOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <Button
