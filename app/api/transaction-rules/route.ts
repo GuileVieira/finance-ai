@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
         id: categoryRules.id,
         pattern: categoryRules.rulePattern,
         confidence: categoryRules.confidenceScore,
-        examples: categoryRules.examples,
         active: categoryRules.active,
         createdAt: categoryRules.createdAt,
         applicationCount: categoryRules.usageCount,

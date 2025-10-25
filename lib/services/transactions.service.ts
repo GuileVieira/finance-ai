@@ -133,8 +133,7 @@ export class TransactionsService {
         query = query.where(
           conditions.length === 1
             ? conditions[0]
-            : // @ts-ignore
-              conditions.reduce((acc, condition) => acc && condition)
+            : and(...conditions)
         );
       }
 
@@ -230,8 +229,7 @@ export class TransactionsService {
         query = query.where(
           conditions.length === 1
             ? conditions[0]
-            : // @ts-ignore
-              conditions.reduce((acc, condition) => acc && condition)
+            : and(...conditions)
         );
       }
 
@@ -328,8 +326,7 @@ export class TransactionsService {
         query = query.where(
           conditions.length === 1
             ? conditions[0]
-            : // @ts-ignore
-              conditions.reduce((acc, condition) => acc && condition)
+            : and(...conditions)
         );
       }
 

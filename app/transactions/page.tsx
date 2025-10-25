@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox } from '@/components/ui/combobox';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useTransactionGroups } from '@/hooks/use-transaction-groups';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAllCategories } from '@/hooks/use-all-categories';
-import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X } from 'lucide-react';
+import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +39,7 @@ export default function TransactionsPage() {
   const { toast } = useToast();
 
   // Hooks para buscar dados dos filtros
-  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect();
+  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(companyId);
   const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(companyId);
 
   // Hook para gerenciar grupos de transações
@@ -63,6 +64,14 @@ export default function TransactionsPage() {
     }
   }, [isGroupMode]);
 
+  // Estado para edição de transação individual
+  const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
+  const [singleTransactionCategory, setSingleTransactionCategory] = useState<string>('');
+
+  // Estado para edição inline da categoria
+  const [inlineEditingTransaction, setInlineEditingTransaction] = useState<string | null>(null);
+  const [inlineEditingCategory, setInlineEditingCategory] = useState<string>('');
+
   // Filtros com paginação
   const filtersWithPagination = useMemo(() => ({
     ...filters,
@@ -84,6 +93,7 @@ export default function TransactionsPage() {
     isEmpty,
     hasError,
     prefetchNextPage,
+    updateTransactionCategory,
   } = useTransactions(filtersWithPagination, {
     enabled: true,
     refetchInterval: 1000 * 60 * 5, // Atualizar a cada 5 minutos
@@ -107,6 +117,7 @@ export default function TransactionsPage() {
   const totalPages = pagination.totalPages;
 
   const handleFilterChange = (key: string, value: string) => {
+    console.log('🔄 [UI-FILTERS] Mudando filtro:', key, '=', value);
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1); // Reset para primeira página quando filtros mudam
   };
@@ -163,6 +174,144 @@ export default function TransactionsPage() {
       style: 'currency',
       currency: 'BRL'
     }).format(amount);
+  };
+
+  // Função para atualizar transação individual
+  const handleUpdateSingleTransaction = async (transactionId: string, categoryId: string) => {
+    try {
+      // Encontrar a transação para criar regra
+      const transaction = transactions.find(t => t.id === transactionId);
+      if (!transaction) {
+        toast({
+          title: 'Erro',
+          description: 'Transação não encontrada',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Atualizar transação
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao atualizar transação');
+      }
+
+      // Criar regra automaticamente
+      await fetch('/api/transaction-rules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyId,
+          categoryId,
+          rulePattern: transaction.description,
+          ruleType: 'contains',
+          confidenceScore: 0.9,
+        }),
+      });
+
+      toast({
+        title: 'Transação Atualizada',
+        description: `Categoria alterada e regra criada para "${transaction.description}"`,
+      });
+
+      // Fechar card de edição
+      setEditingTransaction(null);
+      setSingleTransactionCategory('');
+
+      // Apenas invalidar queries específicas em vez de recarregar tudo
+      if ('refetch' in window) {
+        window.location.reload();
+      } else {
+        // Fallback para reload
+        window.location.reload();
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao atualizar transação:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Falha ao atualizar transação',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para atualizar categoria inline
+  const handleInlineUpdateCategory = async (transactionId: string, categoryId: string) => {
+    try {
+      // Encontrar a transação para criar regra
+      const transaction = transactions.find(t => t.id === transactionId);
+      if (!transaction) {
+        toast({
+          title: 'Erro',
+          description: 'Transação não encontrada',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Atualizar transação
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao atualizar transação');
+      }
+
+      // Criar regra automaticamente
+      await fetch('/api/transaction-rules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyId,
+          categoryId,
+          rulePattern: transaction.description,
+          ruleType: 'contains',
+          confidenceScore: 0.9,
+        }),
+      });
+
+      toast({
+        title: 'Categoria Atualizada',
+        description: `Categoria alterada e regra criada para "${transaction.description}"`,
+      });
+
+      // Fechar edição inline
+      setInlineEditingTransaction(null);
+      setInlineEditingCategory('');
+
+      // Atualizar dados sem reload
+      refetch();
+      console.log('✅ Categoria atualizada inline - dados atualizados');
+
+    } catch (error) {
+      console.error('❌ Erro ao atualizar categoria:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Falha ao atualizar categoria',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getCategoryAnalysis = () => {
@@ -407,13 +556,13 @@ export default function TransactionsPage() {
 
         {/* Barra de Ações Flutuante (quando há seleção) */}
         {isGroupMode && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-border bg-card shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
-                    <Layers className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium text-blue-900">
+                    <Layers className="h-5 w-5 text-primary" />
+                    <span className="font-medium text-foreground">
                       {selectionStats.total} transação{selectionStats.total !== 1 ? 'ões' : ''} selecionada{selectionStats.total !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -445,37 +594,29 @@ export default function TransactionsPage() {
               </div>
 
               {/* Seletor de Categoria para Mesclar */}
-              <div className="border-t border-blue-200 pt-4">
+              <div className="border-t border-border pt-4">
                 <div className="flex items-center space-x-4">
                   <div className="flex-1">
-                    <label className="text-sm font-medium text-blue-900 mb-2 block">
-                      Mesmar para a categoria:
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Mover para a categoria:
                     </label>
-                    <Select
+                    <Combobox
+                      options={categoryOptions}
                       value={selectedCategoryId}
                       onValueChange={setSelectedCategoryId}
                       disabled={isMergingCategories || isCreatingRule}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoryOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Buscar categoria..."
+                      searchPlaceholder="Digite o nome da categoria..."
+                      emptyMessage="Nenhuma categoria encontrada"
+                    />
                   </div>
 
-                  <div className="flex items-end">
+                  <div className="flex items-center" style={{ paddingTop: '24px' }}>
                     <Button
                       variant="default"
                       size="sm"
                       onClick={handleMergeCategories}
                       disabled={!selectedCategoryId || !selectionStats.canMerge || isMergingCategories || isCreatingRule}
-                      className="bg-blue-600 hover:bg-blue-700"
                     >
                       <CheckSquare className="h-4 w-4 mr-2" />
                       {isMergingCategories ? 'Mesclando...' : 'Aplicar a Todas'}
@@ -484,8 +625,65 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Análise das categorias selecionadas */}
-                <div className="mt-3 p-2 bg-blue-100/50 rounded text-xs text-blue-800">
+                <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
                   <span className="font-medium">Análise:</span> {getCategoryAnalysis()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card de Edição Individual */}
+        {editingTransaction && !isGroupMode && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <Edit className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-foreground">
+                    Editando Transação Individual
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setSingleTransactionCategory('');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Alterar categoria:
+                  </label>
+                  <Combobox
+                    options={categoryOptions}
+                    value={singleTransactionCategory}
+                    onValueChange={setSingleTransactionCategory}
+                    placeholder="Buscar categoria..."
+                    searchPlaceholder="Digite o nome da categoria..."
+                    emptyMessage="Nenhuma categoria encontrada"
+                  />
+                </div>
+                <div className="flex items-center" style={{ paddingTop: '24px' }}>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      if (singleTransactionCategory && editingTransaction) {
+                        handleUpdateSingleTransaction(editingTransaction, singleTransactionCategory);
+                      }
+                    }}
+                    disabled={!singleTransactionCategory}
+                  >
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Aplicar
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -559,9 +757,15 @@ export default function TransactionsPage() {
                   {paginatedTransactions.map((transaction) => (
                     <TableRow
                       key={transaction.id}
-                      className={`hover:bg-muted/50 ${isTransactionSelected(transaction.id) ? 'bg-blue-50/50' : ''}`}
+                      className={`hover:bg-muted/50 cursor-pointer ${isTransactionSelected(transaction.id) ? 'bg-blue-50/50' : ''} ${editingTransaction === transaction.id ? 'ring-2 ring-primary' : ''}`}
+                      onClick={() => {
+                        if (!isGroupMode && inlineEditingTransaction !== transaction.id) {
+                          setEditingTransaction(editingTransaction === transaction.id ? null : transaction.id);
+                          setSingleTransactionCategory(transaction.categoryId || '');
+                        }
+                      }}
                     >
-                      <TableCell className="w-12">
+                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={isTransactionSelected(transaction.id)}
                           onCheckedChange={() => toggleTransactionSelection(transaction.id)}
@@ -576,10 +780,57 @@ export default function TransactionsPage() {
                           <p className="font-medium">{transaction.description}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {transaction.categoryName || 'Sem categoria'}
-                        </Badge>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {inlineEditingTransaction === transaction.id ? (
+                          <div className="flex items-center gap-2">
+                            <Combobox
+                              options={categoryOptions}
+                              value={inlineEditingCategory}
+                              onValueChange={setInlineEditingCategory}
+                              placeholder="Selecione..."
+                              searchPlaceholder="Buscar categoria..."
+                              emptyMessage="Nenhuma categoria"
+                              className="min-w-0"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (inlineEditingCategory) {
+                                  handleInlineUpdateCategory(transaction.id, inlineEditingCategory);
+                                }
+                              }}
+                              disabled={!inlineEditingCategory}
+                              className="h-6 px-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setInlineEditingTransaction(null);
+                                setInlineEditingCategory('');
+                              }}
+                              className="h-6 px-2 text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground"
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs cursor-pointer hover:bg-secondary/80"
+                            onClick={() => {
+                              if (!isGroupMode) {
+                                setInlineEditingTransaction(transaction.id);
+                                setInlineEditingCategory(transaction.categoryId || '');
+                              }
+                            }}
+                          >
+                            {transaction.categoryName || 'Sem categoria'}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">

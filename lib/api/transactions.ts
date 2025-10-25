@@ -122,6 +122,7 @@ export class TransactionsAPI {
     // Mapear tipo da UI para tipo da API (income/expense → credit/debit)
     if (uiFilters.type && uiFilters.type !== 'all') {
       apiFilters.type = uiFilters.type === 'income' ? 'credit' : 'debit';
+      console.log('🔄 [API-FILTERS] Convertendo tipo:', uiFilters.type, '→', apiFilters.type);
     }
 
     // Busca textual

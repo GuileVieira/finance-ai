@@ -24,8 +24,9 @@ export class AccountsAPI {
   /**
    * Buscar todas as contas disponíveis
    */
-  static async getAccounts(): Promise<AccountResponse[]> {
-    const response = await fetch(API_BASE);
+  static async getAccounts(companyId?: string): Promise<AccountResponse[]> {
+    const url = companyId ? `${API_BASE}?companyId=${companyId}` : API_BASE;
+    const response = await fetch(url);
 
     if (!response.ok) {
       throw new Error(`Erro ao buscar contas: ${response.statusText}`);
@@ -37,19 +38,19 @@ export class AccountsAPI {
       throw new Error(data.error || 'Erro desconhecido ao buscar contas');
     }
 
-    return data.data;
+    return data.data.accounts;
   }
 }
 
 /**
  * Hook principal para buscar contas
  */
-export function useAccounts(options?: {
+export function useAccounts(companyId?: string, options?: {
   enabled?: boolean;
 }) {
   return useQuery({
-    queryKey: ['accounts'],
-    queryFn: AccountsAPI.getAccounts,
+    queryKey: ['accounts', companyId],
+    queryFn: () => AccountsAPI.getAccounts(companyId),
     staleTime: 1000 * 60 * 5, // 5 minutos
     gcTime: 1000 * 60 * 15, // 15 minutos
     enabled: options?.enabled !== false,
@@ -77,8 +78,8 @@ export function useAccounts(options?: {
 /**
  * Hook para buscar contas formatadas para select
  */
-export function useAccountsForSelect() {
-  const { data: accountsData, isLoading } = useAccounts();
+export function useAccountsForSelect(companyId?: string) {
+  const { data: accountsData, isLoading } = useAccounts(companyId);
 
   const accountOptions = useMemo(() => {
     if (!accountsData) return [];

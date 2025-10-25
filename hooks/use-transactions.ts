@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useMemo, useCallback } from 'react';
 import { TransactionsAPI, TransactionFilters, TransactionResponse, TransactionStats } from '@/lib/api/transactions';
 
@@ -107,6 +107,61 @@ export function useTransactions(
     }
   }, [queryClient, pagination.hasNextPage, pagination.page, apiFilters]);
 
+  // Mutação para atualizar categoria de uma transação
+  const updateTransactionCategory = useMutation({
+    mutationFn: async ({ transactionId, categoryId }: { transactionId: string; categoryId: string }) => {
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar transação');
+      }
+
+      const result = await response.json();
+      return result.data;
+    },
+    onSuccess: (updatedTransaction, { transactionId, categoryId }) => {
+      // Atualizar o cache local com a transação atualizada
+      queryClient.setQueriesData(
+        { queryKey: ['transactions'] },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+
+          if (Array.isArray(oldData)) {
+            // Para paginação múltipla
+            return oldData.map(page => ({
+              ...page,
+              transactions: page.transactions.map((t: any) =>
+                t.id === transactionId
+                  ? { ...t, categoryId, categoryName: updatedTransaction.category?.name || 'Categoria atualizada' }
+                  : t
+              )
+            }));
+          } else {
+            // Para página única
+            return {
+              ...oldData,
+              transactions: oldData.transactions.map((t: any) =>
+                t.id === transactionId
+                  ? { ...t, categoryId, categoryName: updatedTransaction.category?.name || 'Categoria atualizada' }
+                  : t
+              )
+            };
+          }
+        }
+      );
+
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['transactions-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+
   return {
     // Dados
     transactions,
@@ -197,6 +252,7 @@ export function useInfiniteTransactions(
     hasNextPage,
     isFetchingNextPage,
     refetch,
+    updateTransactionCategory,
     isEmpty: !isLoading && transactions.length === 0,
     hasError: !!error,
   };
