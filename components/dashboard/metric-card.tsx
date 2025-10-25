@@ -47,8 +47,8 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
               variant={isPositive ? 'default' : 'secondary'}
               className={`flex items-center gap-1 ${
                 isPositive
-                  ? 'bg-success/20 text-success border-success/30'
-                  : 'bg-primary/20 text-primary border-primary/30'
+                  ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20'
+                  : 'bg-red-500/15 text-red-600 border-red-500/20'
               }`}
             >
               {isPositive ? (
