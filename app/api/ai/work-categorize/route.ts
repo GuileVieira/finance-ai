@@ -2,28 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
 import { searchCompanyInfo, searchByCNPJ, ProcessedSearchResult } from '@/lib/tools/duckduckgo-search.tool';
 
-// Categorias financeiras brasileiras
-const categories = {
-  alimentacao: 'Alimentação',
-  transporte: 'Transporte',
-  moradia: 'Moradia',
-  saude: 'Saúde',
-  educacao: 'Educação',
-  lazer: 'Lazer',
-  vestuario: 'Vestuário',
-  impostos: 'Impostos',
-  outras_despesas: 'Outras Despesas',
-  salario: 'Salário',
-  vendas: 'Vendas',
-  investimentos: 'Investimentos',
-  outras_receitas: 'Outras Receitas'
+// Categorias financeiras empresariais brasileiras
+const BUSINESS_CATEGORIES = {
+  // Receitas
+  revenue: {
+    'Vendas de Produtos': 'Receitas principais de vendas de mercadorias e produtos',
+    'Vendas de Serviços': 'Receitas de prestação de serviços profissionais',
+    'Receitas Financeiras': 'Rendimentos de aplicações, juros, etc.',
+    'Outras Receitas': 'Receitas não operacionais ou eventuais'
+  },
+  // Custos Variáveis
+  variable_cost: {
+    'Custos de Produtos': 'Matéria-prima, insumos diretos e embalagens',
+    'Comissões e Variáveis': 'Comissões sobre vendas, bônus variáveis',
+    'Logística e Distribuição': 'Transportes, fretes, logística',
+    'Utilidades e Insumos': 'Materiais de consumo, insumos gerais'
+  },
+  // Custos Fixos
+  fixed_cost: {
+    'Salários e Encargos': 'Folha de pagamento, pró-labore, encargos sociais',
+    'Aluguel e Ocupação': 'Aluguéis, condomínios, taxas imobiliárias',
+    'Tecnologia e Software': 'Softwares, sistemas, internet, hospedagem',
+    'Serviços Profissionais': 'Contabilidade, advocacia, consultoria',
+    'Tributos e Contribuições': 'Impostos, taxas, contribuições',
+    'Financeiros e Bancários': 'Tarifas bancárias, juros, multas',
+    'Manutenção e Serviços': 'Manutenção, limpeza, conservação',
+    'Outras Despesas Fixas': 'Outros custos fixos operacionais'
+  },
+  // Não Operacionais
+  non_operational: {
+    'Despesas Não Operacionais': 'Despesas eventuais ou não relacionadas à operação',
+    'Investimentos': 'Aquisição de ativos, investimentos de capital'
+  }
 };
 
-// Função de categorização baseada em regras
+// Lista completa de categorias para o prompt
+const CATEGORIES_LIST = Object.values(BUSINESS_CATEGORIES)
+  .flatMap(group => Object.keys(group))
+  .join('\n• ');
+
+// Função de categorização baseada em regras empresariais
 function categorizeByRules(description: string, amount: number) {
   const desc = description.toLowerCase();
 
-  // Regras de palavras-chave - usando categorias do sistema
+  // Regras de palavras-chave - usando categorias empresariais
   if (desc.includes('salário') || desc.includes('folha') ||
       desc.includes('contracheque') || desc.includes('holerite') ||
       desc.includes('inss') || desc.includes('fgts') || desc.includes('pro labore')) {
@@ -36,11 +58,22 @@ function categorizeByRules(description: string, amount: number) {
   }
 
   if (desc.includes('venda') || desc.includes('receita') ||
-      desc.includes('faturamento') || desc.includes('cliente')) {
+      desc.includes('faturamento') || desc.includes('cliente') ||
+      desc.includes('pedido') || desc.includes('nota fiscal')) {
     return {
       category: 'Vendas de Produtos',
       confidence: 0.9,
       reasoning: 'Classificado por regra de palavras-chave como Vendas de Produtos',
+      source: 'rules'
+    };
+  }
+
+  if (desc.includes('serviço') && desc.includes('prestado') ||
+      desc.includes('honorários') || desc.includes('consultoria')) {
+    return {
+      category: 'Vendas de Serviços',
+      confidence: 0.9,
+      reasoning: 'Classificado por regra de palavras-chave como Vendas de Serviços',
       source: 'rules'
     };
   }
@@ -64,7 +97,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('matéria') && desc.includes('prima') || desc.includes('insumos') || desc.includes('embalagem')) {
+  if (desc.includes('matéria') && desc.includes('prima') || desc.includes('insumos') ||
+      desc.includes('embalagem') || desc.includes('estoque')) {
     return {
       category: 'Custos de Produtos',
       confidence: 0.85,
@@ -73,7 +107,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('correios') || desc.includes('viagens') || desc.includes('transportes') || desc.includes('fretes')) {
+  if (desc.includes('correios') || desc.includes('viagens') || desc.includes('transportes') ||
+      desc.includes('fretes') || desc.includes('logística')) {
     return {
       category: 'Logística e Distribuição',
       confidence: 0.9,
@@ -82,7 +117,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('softwares') || desc.includes('internet') || desc.includes('sistemas') || desc.includes('hospedagem')) {
+  if (desc.includes('softwares') || desc.includes('internet') || desc.includes('sistemas') ||
+      desc.includes('hospedagem') || desc.includes('tecnologia')) {
     return {
       category: 'Tecnologia e Software',
       confidence: 0.95,
@@ -91,7 +127,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('contabilidade') || desc.includes('advocacia') || desc.includes('consultoria') || desc.includes('assessoria')) {
+  if (desc.includes('contabilidade') || desc.includes('advocacia') || desc.includes('consultoria') ||
+      desc.includes('assessoria') || desc.includes('serviços profissionais')) {
     return {
       category: 'Serviços Profissionais',
       confidence: 0.95,
@@ -100,7 +137,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('cofins') || desc.includes('pis') || desc.includes('irpj') || desc.includes('iss') || desc.includes('icms')) {
+  if (desc.includes('cofins') || desc.includes('pis') || desc.includes('irpj') || desc.includes('iss') ||
+      desc.includes('icms') || desc.includes('imposto') || desc.includes('tributo')) {
     return {
       category: 'Tributos e Contribuições',
       confidence: 0.95,
@@ -109,7 +147,8 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('energia') || desc.includes('elétrica') || desc.includes('telefones') || desc.includes('água')) {
+  if (desc.includes('energia') || desc.includes('elétrica') || desc.includes('telefones') ||
+      desc.includes('água') || desc.includes('luz') || desc.includes('telefone')) {
     return {
       category: 'Utilidades e Insumos',
       confidence: 0.9,
@@ -127,13 +166,27 @@ function categorizeByRules(description: string, amount: number) {
     };
   }
 
-  if (desc.includes('tarifas') && desc.includes('bancárias') || desc.includes('juros') || desc.includes('multas')) {
+  if (desc.includes('tarifas') && (desc.includes('bancárias') || desc.includes('banco')) ||
+      desc.includes('juros') || desc.includes('multas') || desc.includes('cheque')) {
     return {
       category: 'Financeiros e Bancários',
       confidence: 0.9,
       reasoning: 'Classificado por regra de palavras-chave como Financeiros e Bancários',
       source: 'rules'
     };
+  }
+
+  // Verificar se é receita ou despesa pelo valor e contexto
+  if (amount > 0) {
+    // Valores positivos geralmente são receitas
+    if (desc.includes('juros') || desc.includes('rendimento') || desc.includes('aplicação')) {
+      return {
+        category: 'Receitas Financeiras',
+        confidence: 0.9,
+        reasoning: 'Classificado como Receitas Financeiras (valor positivo + contexto financeiro)',
+        source: 'rules'
+      };
+    }
   }
 
   // Regra padrão para transações sem classificação específica
@@ -292,10 +345,33 @@ async function categorizeByAI(description: string, amount: number, context?: {
   console.log('🔄 Modelos para tentar (em ordem):', modelsToTry);
   console.log('📋 Contexto OFX disponível:', context);
 
-  // Importar categorias dinâmicas
-  const categoriesService = CategoriesService.getInstance();
-  const availableCategories = categoriesService.getAllCategories();
-  const categoriesList = categoriesService.getCategoriesForPrompt();
+  // Buscar categorias dinâmicas do banco de dados
+  let categoriesList: string;
+  try {
+    const dbCategories = await CategoriesService.getCategories({
+      companyId: 'default', // Usar primeira empresa disponível
+      isActive: true,
+      includeStats: false
+    });
+
+    if (dbCategories.length > 0) {
+      categoriesList = dbCategories
+        .map(cat => `${cat.name} (${cat.type})`)
+        .join('\n• ');
+      console.log('✅ Categorias carregadas do banco:', categoriesList.length, 'categorias');
+    } else {
+      // Fallback para categorias pré-definidas se não houver no banco
+      categoriesList = CATEGORIES_LIST;
+      console.log('⚠️ Nenhuma categoria no banco, usando fallback pré-definido');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao carregar categorias do banco:', error);
+    // Fallback para categorias pré-definidas
+    categoriesList = CATEGORIES_LIST;
+  }
+
+  const formattedCategoriesList = `• ${categoriesList}`;
+  console.log('📋 Categorias disponíveis para IA:', formattedCategoriesList);
 
   // Tentar pesquisar informações da empresa antes de chamar a IA
   console.log('🔍 Tentando extrair informações de empresa da descrição...');
@@ -365,7 +441,7 @@ INFORMAÇÕES DA PESQUISA DE EMPRESA:
 ` : ''}
 
 CATEGORIAS FINANCEIRAS DISPONÍVEIS NO SISTEMA:
-${categoriesList}
+${formattedCategoriesList}
 
 METODOLOGIA DE ANÁLISE FINANCEIRA EMPRESARIAL:
 1. ANÁLISE PRELIMINAR: Identificar natureza da operação (receita vs despesa vs investimento)
@@ -420,7 +496,7 @@ DADOS DA TRANSAÇÃO:
 `}
 
 CATEGORIAS DISPONÍVEIS:
-${categoriesList}
+${formattedCategoriesList}
 
 ANÁLISE SOLICITADA:
 Como especialista em finanças empresariais críticas, analise esta transação considerando:
@@ -606,44 +682,70 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  return NextResponse.json({
-    message: 'API de Categorização Funcional - Versão Simplificada',
-    endpoint: '/api/ai/work-categorize',
-    method: 'POST',
-    body: {
-      description: 'string (obrigatório) - Descrição da transação',
-      amount: 'number (obrigatório) - Valor da transação',
-      memo: 'string (opcional) - Memo do arquivo OFX',
-      fileName: 'string (opcional) - Nome do arquivo OFX',
-      bankName: 'string (opcional) - Nome do banco',
-      date: 'string (opcional) - Data da transação',
-      balance: 'number (opcional) - Saldo da conta'
-    },
-    example: {
-      description: 'DEBITO IFOOD RESTAURANTES LTDA 45.90',
-      amount: 45.90,
-      memo: 'Pagamento de fornecedor',
-      fileName: 'extrato-janeiro.ofx',
-      bankName: 'Banco do Brasil',
-      date: '2024-01-15',
-      balance: 12500.00
-    },
-    categories: Object.values(categories),
-    workflow: [
-      '1️⃣ Extrai informações de empresa da descrição (CNPJ, nome, etc.)',
-      '2️⃣ Pesquisa empresa no DuckDuckGo para obter CNPJ/CNAE se disponível',
-      '3️⃣ Se empresa encontrada com boa confiança, categoriza baseado no setor/CNAE',
-      '4️⃣ Senão, tenta categorização por regras baseadas em palavras-chave',
-      '5️⃣ Se confiança alta (>70%), retorna resultado',
-      '6️⃣ Senão, usa IA com contexto completo (memo OFX, pesquisa empresa, etc.)',
-      '7️⃣ Retorna categoria com contexto empresarial completo'
-    ],
-    features: [
-      '🔍 Pesquisa automática de empresas (CNPJ/CNAE)',
-      '📋 Análise com contexto OFX completo (memo, nome do arquivo)',
-      '🏭 Especialista em finanças empresariais críticas',
-      '🎯 Categorias baseadas em setor econômico',
-      '💼 Classificação conforme CNAE brasileiro'
-    ]
-  });
+  try {
+    // Buscar categorias dinâmicas do banco
+    let dbCategories = [];
+    try {
+      dbCategories = await CategoriesService.getCategories({
+        isActive: true,
+        includeStats: false
+      });
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+    }
+
+    const categoriesList = dbCategories.length > 0
+      ? dbCategories.map(cat => cat.name)
+      : Object.values(BUSINESS_CATEGORIES).flatMap(group => Object.keys(group));
+
+    return NextResponse.json({
+      message: 'API de Categorização Funcional - Versão com Categorias Dinâmicas',
+      endpoint: '/api/ai/work-categorize',
+      method: 'POST',
+      body: {
+        description: 'string (obrigatório) - Descrição da transação',
+        amount: 'number (obrigatório) - Valor da transação',
+        memo: 'string (opcional) - Memo do arquivo OFX',
+        fileName: 'string (opcional) - Nome do arquivo OFX',
+        bankName: 'string (opcional) - Nome do banco',
+        date: 'string (opcional) - Data da transação',
+        balance: 'number (opcional) - Saldo da conta'
+      },
+      example: {
+        description: 'CANTINHO DAS ESSENCIAS LTDA',
+        amount: 2100.00,
+        memo: 'Pix recebido: "Cp :60701190-CANTINHO DAS ESSENCIAS LTDA"',
+        fileName: 'Extrato-01-01-2025-a-24-10-2025-OFX.ofx',
+        bankName: 'Banco Intermedium S/A',
+        date: '2025-03-20',
+        balance: 15000.00
+      },
+      categories: categoriesList,
+      categoriesCount: dbCategories.length,
+      categoriesSource: dbCategories.length > 0 ? 'database' : 'fallback',
+      workflow: [
+        '1️⃣ Extrai informações de empresa da descrição (CNPJ, nome, etc.)',
+        '2️⃣ Pesquisa empresa no DuckDuckGo para obter CNPJ/CNAE se disponível',
+        '3️⃣ Se empresa encontrada com boa confiança, categoriza baseado no setor/CNAE',
+        '4️⃣ Senão, tenta categorização por regras baseadas em palavras-chave',
+        '5️⃣ Se confiança alta (>70%), retorna resultado',
+        '6️⃣ Senão, usa IA com contexto completo (memo OFX, pesquisa empresa, etc.)',
+        '7️⃣ Retorna categoria com contexto empresarial completo'
+      ],
+      features: [
+        '🔍 Pesquisa automática de empresas (CNPJ/CNAE)',
+        '📋 Análise com contexto OFX completo (memo, nome do arquivo)',
+        '🏭 Especialista em finanças empresariais críticas',
+        '🎯 Categorias baseadas em setor econômico',
+        '💼 Classificação conforme CNAE brasileiro',
+        '🗃️ Categorias dinâmicas do banco de dados'
+      ]
+    });
+  } catch (error) {
+    console.error('Erro no GET /api/ai/work-categorize:', error);
+    return NextResponse.json({
+      error: 'Erro interno do servidor',
+      message: error instanceof Error ? error.message : 'Erro desconhecido'
+    }, { status: 500 });
+  }
 }

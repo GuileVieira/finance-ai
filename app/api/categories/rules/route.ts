@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CategoriesAPI } from '@/lib/api/categories';
+import CategoryRulesService from '@/lib/services/category-rules.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
     // Parse filters from query params
     const filters = {
       categoryId: searchParams.get('categoryId') || undefined,
-      isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined
+      active: searchParams.get('active') === 'true' ? true : searchParams.get('active') === 'false' ? false : undefined
     };
 
-    const rules = await CategoriesAPI.getCategoryRules(filters);
+    const rules = await CategoryRulesService.getRules(filters);
 
     return NextResponse.json({
       success: true,
@@ -37,17 +37,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    if (!body.name || !body.pattern || !body.categoryId) {
+    if (!body.rulePattern || !body.ruleType || !body.categoryId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: name, pattern, categoryId'
+          error: 'Missing required fields: rulePattern, ruleType, categoryId'
         },
         { status: 400 }
       );
     }
 
-    const rule = await CategoriesAPI.createCategoryRule(body);
+    const rule = await CategoryRulesService.createRule({
+      rulePattern: body.rulePattern,
+      ruleType: body.ruleType,
+      categoryId: body.categoryId,
+      companyId: body.companyId,
+      confidenceScore: body.confidenceScore,
+      active: body.active
+    });
 
     return NextResponse.json({
       success: true,
@@ -85,7 +92,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    const rule = await CategoriesAPI.updateCategoryRule(id, body);
+    const rule = await CategoryRulesService.updateRule(id, body);
 
     return NextResponse.json({
       success: true,
@@ -121,7 +128,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await CategoriesAPI.deleteCategoryRule(id);
+    await CategoryRulesService.deleteRule(id);
 
     return NextResponse.json({
       success: true,

@@ -17,23 +17,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useCategories } from '@/hooks/use-categories';
-import { CategoryRule, CategoryType } from '@/lib/api/categories';
+
+// Interface baseada no schema real da tabela
+interface CategoryRule {
+  id: string;
+  rulePattern: string;
+  ruleType: string;
+  categoryId: string;
+  categoryName: string;
+  companyId?: string;
+  confidenceScore: string;
+  active: boolean;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface CategoryRuleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (rule: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (rule: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt' | 'categoryName' | 'usageCount'>) => void;
   initialData?: Partial<CategoryRule>;
 }
 
 export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: CategoryRuleDialogProps) {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    pattern: initialData?.pattern || '',
+    rulePattern: initialData?.rulePattern || '',
+    ruleType: initialData?.ruleType || 'contains',
     categoryId: initialData?.categoryId || '',
-    priority: initialData?.priority || 5,
-    isActive: initialData?.isActive ?? true,
+    confidenceScore: initialData?.confidenceScore || '0.80',
+    active: initialData?.active ?? true,
   });
 
   const [testPattern, setTestPattern] = useState('');
@@ -45,7 +58,7 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.pattern.trim() || !formData.categoryId) {
+    if (!formData.rulePattern.trim() || !formData.ruleType || !formData.categoryId) {
       return;
     }
 
@@ -266,7 +279,7 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={!formData.name.trim() || !formData.pattern.trim() || !formData.categoryId}>
+            <Button type="submit" disabled={!formData.rulePattern.trim() || !formData.ruleType || !formData.categoryId}>
               {initialData ? 'Salvar Alterações' : 'Criar Regra'}
             </Button>
           </DialogFooter>

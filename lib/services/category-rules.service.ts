@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, transactions, categories } from '@/lib/db/schema';
-import { ilike, or, and, eq, desc } from 'drizzle-orm';
+import { ilike, or, and, eq, desc, isNull } from 'drizzle-orm';
 
 export interface RuleMatch {
   ruleId: string;
@@ -27,33 +27,37 @@ export class CategoryRulesService {
     try {
       this.checkDatabaseConnection();
 
-      // Buscar regras ativas ordenadas por prioridade (maior primeiro)
+      // Buscar regras ativas ordenadas por confidenceScore (maior primeiro)
       const activeRules = await db
         .select({
           id: categoryRules.id,
-          name: categoryRules.name,
-          pattern: categoryRules.pattern,
+          rulePattern: categoryRules.rulePattern,
+          ruleType: categoryRules.ruleType,
           categoryId: categoryRules.categoryId,
-          priority: categoryRules.priority,
+          confidenceScore: categoryRules.confidenceScore,
           categoryName: categories.name,
         })
         .from(categoryRules)
         .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
-        .where(eq(categoryRules.isActive, true))
-        .orderBy(desc(categoryRules.priority));
+        .where(eq(categoryRules.active, true))
+        .orderBy(desc(categoryRules.confidenceScore));
 
       // Converter descrição para minúsculas para comparação
       const normalizedDescription = transactionDescription.toLowerCase().trim();
 
-      // Testar cada regra em ordem de prioridade
+      // Testar cada regra em ordem de confiança
       for (const rule of activeRules) {
-        if (this.testRule(rule.pattern, normalizedDescription)) {
+        if (this.testRule(rule.rulePattern, rule.ruleType, normalizedDescription)) {
           return {
             ruleId: rule.id,
-            ruleName: rule.name,
+            ruleName: `Regra ${rule.id}`, // Como não existe campo name, usamos ID
             categoryId: rule.categoryId,
             categoryName: rule.categoryName,
-            confidence: this.calculateConfidence(rule.pattern, normalizedDescription)
+            confidence: this.calculateConfidence(
+              parseFloat(rule.confidenceScore),
+              rule.rulePattern,
+              normalizedDescription
+            )
           };
         }
       }
@@ -94,11 +98,11 @@ export class CategoryRulesService {
   /**
    * Categorizar automaticamente transações sem categoria
    */
-  static async categorizeUncategorizedTransactions(companyId?: string): Promise<number> {
+  static async categorizeUncategorizedTransactions(): Promise<number> {
     try {
       this.checkDatabaseConnection();
 
-      // Buscar transações sem categoria
+      // Buscar transações sem categoria (categoryId é null)
       const uncategorizedTransactions = await db
         .select({
           id: transactions.id,
@@ -106,13 +110,10 @@ export class CategoryRulesService {
         })
         .from(transactions)
         .where(
-          and(
-            companyId ? eq(transactions.companyId, companyId) : undefined,
-            or(
-              eq(transactions.categoryId, ''),
-              // Verificar se categoryId é null ou string vazia
-              // Note: Ajustar conforme a estrutura real do banco
-            )
+          or(
+            isNull(transactions.categoryId),
+            // Se categoryId for string vazia, também considera sem categoria
+            eq(transactions.categoryId, '')
           )
         );
 
@@ -143,46 +144,47 @@ export class CategoryRulesService {
   /**
    * Testar se um padrão corresponde a um texto
    */
-  private static testRule(pattern: string, text: string): boolean {
+  private static testRule(pattern: string, ruleType: string, text: string): boolean {
     try {
-      // Converter padrão para expressão regular
-      // Suporte a curingas: * e ?
-      let regexPattern = pattern
-        .replace(/\*/g, '.*') // * corresponde a qualquer sequência
-        .replace(/\?/g, '.'); // ? corresponde a qualquer caractere
+      switch (ruleType) {
+        case 'exact':
+          return text.toLowerCase() === pattern.toLowerCase();
 
-      // Adicionar âncoras se não tiver curingas no início/fim
-      if (!pattern.startsWith('*')) {
-        regexPattern = '^' + regexPattern;
+        case 'contains':
+          return text.toLowerCase().includes(pattern.toLowerCase());
+
+        case 'regex':
+          const regex = new RegExp(pattern, 'i'); // case insensitive
+          return regex.test(text);
+
+        default:
+          // Fallback para 'contains' se tipo não for reconhecido
+          return text.toLowerCase().includes(pattern.toLowerCase());
       }
-      if (!pattern.endsWith('*')) {
-        regexPattern = regexPattern + '$';
-      }
-
-      const regex = new RegExp(regexPattern, 'i'); // case insensitive
-      return regex.test(text);
-
     } catch {
-      // Se falhar a regex, usa contain simples
-      return text.includes(pattern.toLowerCase());
+      // Se falhar, usa contain simples como fallback
+      return text.toLowerCase().includes(pattern.toLowerCase());
     }
   }
 
   /**
    * Calcular confiança da correspondência (0-100)
+   * Agora usa o confidenceScore da regra como base
    */
-  private static calculateConfidence(pattern: string, text: string): number {
+  private static calculateConfidence(confidenceScore: number, pattern: string, text: string): number {
     try {
-      // Lógica simples de confiança baseada no padrão
-      if (pattern.includes('*')) {
-        // Padrões com curinga têm confiança menor
-        return 70 + Math.random() * 20; // 70-90%
-      } else {
-        // Padrões exatos têm confiança maior
-        return 85 + Math.random() * 15; // 85-100%
+      // Converter confidenceScore do banco (0.80) para percentual (80)
+      let baseConfidence = confidenceScore * 100;
+
+      // Ajuste fino baseado no tipo de correspondência
+      if (text.toLowerCase() === pattern.toLowerCase()) {
+        // Correspondência exata ganha um bônus
+        baseConfidence = Math.min(100, baseConfidence + 10);
       }
+
+      return Math.round(baseConfidence);
     } catch {
-      return 50; // Confiança padrão se não for possível calcular
+      return 80; // Confiança padrão se não for possível calcular
     }
   }
 
@@ -197,7 +199,7 @@ export class CategoryRulesService {
       const allRules = await db
         .select()
         .from(categoryRules)
-        .where(eq(categoryRules.isActive, true));
+        .where(eq(categoryRules.active, true));
 
       const conflicts = [];
 
@@ -208,7 +210,7 @@ export class CategoryRulesService {
           const rule2 = allRules[j];
 
           // Calcular similaridade simples
-          const similarity = this.calculatePatternSimilarity(rule1.pattern, rule2.pattern);
+          const similarity = this.calculatePatternSimilarity(rule1.rulePattern, rule2.rulePattern);
 
           if (similarity > 0.8) { // 80% de similaridade considera conflito
             conflicts.push({
@@ -274,35 +276,173 @@ export class CategoryRulesService {
   }
 
   /**
+   * Buscar regras de categorização
+   */
+  static async getRules(filters: { categoryId?: string; active?: boolean } = {}): Promise<any[]> {
+    try {
+      this.checkDatabaseConnection();
+
+      let query = db
+        .select({
+          id: categoryRules.id,
+          rulePattern: categoryRules.rulePattern,
+          ruleType: categoryRules.ruleType,
+          confidenceScore: categoryRules.confidenceScore,
+          categoryId: categoryRules.categoryId,
+          companyId: categoryRules.companyId,
+          active: categoryRules.active,
+          usageCount: categoryRules.usageCount,
+          createdAt: categoryRules.createdAt,
+          updatedAt: categoryRules.updatedAt,
+          categoryName: categories.name,
+        })
+        .from(categoryRules)
+        .innerJoin(categories, eq(categoryRules.categoryId, categories.id));
+
+      // Aplicar filtros
+      const conditions = [];
+      if (filters.categoryId) {
+        conditions.push(eq(categoryRules.categoryId, filters.categoryId));
+      }
+      if (filters.active !== undefined) {
+        conditions.push(eq(categoryRules.active, filters.active));
+      }
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      return await query.orderBy(desc(categoryRules.confidenceScore));
+
+    } catch (error) {
+      console.error('Error fetching category rules:', error);
+      throw new Error('Failed to fetch category rules');
+    }
+  }
+
+  /**
+   * Criar nova regra de categorização
+   */
+  static async createRule(ruleData: {
+    rulePattern: string;
+    ruleType: string;
+    categoryId: string;
+    companyId?: string;
+    confidenceScore?: number;
+    active?: boolean;
+  }): Promise<any> {
+    try {
+      this.checkDatabaseConnection();
+
+      const [newRule] = await db
+        .insert(categoryRules)
+        .values({
+          rulePattern: ruleData.rulePattern,
+          ruleType: ruleData.ruleType,
+          categoryId: ruleData.categoryId,
+          companyId: ruleData.companyId || null,
+          confidenceScore: ruleData.confidenceScore || 0.80,
+          active: ruleData.active !== undefined ? ruleData.active : true,
+          usageCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return newRule;
+
+    } catch (error) {
+      console.error('Error creating category rule:', error);
+      throw new Error('Failed to create category rule');
+    }
+  }
+
+  /**
+   * Atualizar regra de categorização
+   */
+  static async updateRule(id: string, updateData: Partial<{
+    rulePattern: string;
+    ruleType: string;
+    categoryId: string;
+    confidenceScore: number;
+    active: boolean;
+  }>): Promise<any> {
+    try {
+      this.checkDatabaseConnection();
+
+      const [updatedRule] = await db
+        .update(categoryRules)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(categoryRules.id, id))
+        .returning();
+
+      if (!updatedRule) {
+        throw new Error('Rule not found');
+      }
+
+      return updatedRule;
+
+    } catch (error) {
+      console.error('Error updating category rule:', error);
+      throw new Error('Failed to update category rule');
+    }
+  }
+
+  /**
+   * Deletar regra de categorização
+   */
+  static async deleteRule(id: string): Promise<void> {
+    try {
+      this.checkDatabaseConnection();
+
+      await db
+        .delete(categoryRules)
+        .where(eq(categoryRules.id, id));
+
+    } catch (error) {
+      console.error('Error deleting category rule:', error);
+      throw new Error('Failed to delete category rule');
+    }
+  }
+
+  /**
    * Estatísticas das regras
    */
   static async getRulesStatistics(): Promise<{
     totalRules: number;
     activeRules: number;
-    rulesByPriority: Record<string, number>;
+    rulesByType: Record<string, number>;
     averageConfidence: number;
   }> {
     try {
       this.checkDatabaseConnection();
 
-      const [totalRules, activeRules, priorityStats] = await Promise.all([
+      const [totalRules, activeRules, activeRulesData] = await Promise.all([
         db.select().from(categoryRules).then(r => r.length),
-        db.select().from(categoryRules).where(eq(categoryRules.isActive, true)).then(r => r.length),
-        db.select().from(categoryRules).where(eq(categoryRules.isActive, true))
+        db.select().from(categoryRules).where(eq(categoryRules.active, true)).then(r => r.length),
+        db.select().from(categoryRules).where(eq(categoryRules.active, true))
       ]);
 
-      // Agrupar por prioridade
-      const rulesByPriority = priorityStats.reduce((acc, rule) => {
-        const priority = `Prioridade ${rule.priority}`;
-        acc[priority] = (acc[priority] || 0) + 1;
+      // Agrupar por tipo de regra
+      const rulesByType = activeRulesData.reduce((acc, rule) => {
+        const type = rule.ruleType || 'unknown';
+        acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
+
+      // Calcular confiança média
+      const averageConfidence = activeRulesData.length > 0
+        ? activeRulesData.reduce((sum, rule) => sum + parseFloat(rule.confidenceScore), 0) / activeRulesData.length * 100
+        : 0;
 
       return {
         totalRules,
         activeRules,
-        rulesByPriority,
-        averageConfidence: 85 // Valor fixo por enquanto
+        rulesByType,
+        averageConfidence: Math.round(averageConfidence)
       };
 
     } catch (error) {
@@ -311,3 +451,5 @@ export class CategoryRulesService {
     }
   }
 }
+
+export default CategoryRulesService;
