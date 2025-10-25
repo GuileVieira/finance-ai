@@ -77,7 +77,15 @@ export function CashFlowChart({ data, isLoading }: CashFlowChartProps) {
                 name === 'inflow' ? 'Entradas' :
                 name === 'outflow' ? 'Saídas' : 'Saldo'
               ]}
-              contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+              contentStyle={{
+                backgroundColor: 'oklch(var(--popover))',
+                border: '1px solid oklch(var(--border))',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                zIndex: 50
+              }}
+              wrapperStyle={{ zIndex: 50 }}
             />
             <Bar dataKey="inflow" fill="#10b981" name="inflow" />
             <Bar dataKey="outflow" fill="#ef4444" name="outflow" />

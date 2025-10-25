@@ -70,7 +70,15 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
             <YAxis />
             <Tooltip
               formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
-              contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+              contentStyle={{
+                backgroundColor: 'oklch(var(--popover))',
+                border: '1px solid oklch(var(--border))',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                zIndex: 50
+              }}
+              wrapperStyle={{ zIndex: 50 }}
             />
             <Legend />
             <Line

@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
+import { TrendChart } from '@/components/dashboard/trend-chart';
+import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
@@ -32,6 +34,7 @@ export default function DashboardPage() {
   // Usar hook do TanStack Query para buscar dados do dashboard
   const {
     metrics,
+    trendData,
     isLoading,
     isRefetching,
     error,
@@ -162,14 +165,10 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Log de debug */}
-        <div className="bg-gray-100 p-4 rounded text-xs">
-          <div><strong>Debug Info:</strong></div>
-          <div>Loading: {isLoading.toString()}</div>
-          <div>Error: {error?.message || 'none'}</div>
-          <div>Metrics: {metrics ? 'available' : 'none'}</div>
-          <div>Cards count: {dashboardMetrics.length}</div>
-          <div>Period: {filters.period}</div>
+        {/* Análises Temporais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TrendChart data={trendData} isLoading={isLoading} />
+          <CashFlowChart data={trendData} isLoading={isLoading} />
         </div>
       </div>
     </LayoutWrapper>

@@ -54,9 +54,9 @@ export function useDashboard(
     return ['dashboard-minimal', apiFilters.period, apiFilters.accountId, apiFilters.companyId, apiFilters.startDate, apiFilters.endDate];
   }, [apiFilters.period, apiFilters.accountId, apiFilters.companyId, apiFilters.startDate, apiFilters.endDate]);
 
-  // Buscar métricas com filtros aplicados
+  // Buscar dados completos do dashboard (para gráficos)
   const {
-    data: metrics,
+    data: dashboardData,
     isLoading,
     error,
     refetch,
@@ -64,9 +64,9 @@ export function useDashboard(
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🚀 Buscando métricas com filtros:', apiFilters);
-      const result = await DashboardAPI.getMetrics(apiFilters);
-      console.log('✅ Métricas recebidas:', result);
+      console.log('🚀 Buscando dados completos com filtros:', apiFilters);
+      const result = await DashboardAPI.getDashboardData(apiFilters);
+      console.log('✅ Dados completos recebidos:', result);
       return result;
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
@@ -76,6 +76,10 @@ export function useDashboard(
     retry: 2,
   });
 
+  // Extrair dados do dashboardData
+  const metrics = dashboardData?.metrics;
+  const trendData = dashboardData?.trendData || [];
+
   console.log('📊 Estado da query:', {
     isLoading,
     hasError: !!error,
@@ -84,8 +88,9 @@ export function useDashboard(
   });
 
   return {
-    // Apenas métricas para teste
+    // Dados do dashboard
     metrics,
+    trendData,
 
     // Estados
     isLoading,
