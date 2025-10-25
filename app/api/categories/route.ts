@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CategoriesAPI } from '@/lib/api/categories';
+import CategoriesService from '@/lib/services/categories.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       sortOrder: searchParams.get('sortOrder') as any || 'desc'
     };
 
-    const categories = await CategoriesAPI.getCategories(filters);
+    const categories = await CategoriesService.getCategories(filters);
 
     return NextResponse.json({
       success: true,

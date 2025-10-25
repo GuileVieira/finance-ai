@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CategoriesAPI } from '@/lib/api/categories';
+import CategoriesService from '@/lib/services/categories.service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined
     };
 
-    const summary = await CategoriesAPI.getCategoriesSummary(filters);
+    const summary = await CategoriesService.getCategoriesSummary(filters);
 
     return NextResponse.json({
       success: true,

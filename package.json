@@ -14,7 +14,12 @@
     "db:migrate:custom": "node scripts/migrate-postgres.js",
     "db:reset": "node scripts/clean-and-migrate",
     "db:seed:categories": "tsx scripts/seed-categories.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "reset-data": "node scripts/reset-data-simple.js",
+    "reset-data:dry": "node scripts/reset-data-simple.js --dry-run",
+    "reset-data:recent": "node scripts/reset-data-simple.js --recent",
+    "reset-db": "node scripts/reset-data-db.js",
+    "reset-db:dry": "node scripts/reset-data-db.js --dry-run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
