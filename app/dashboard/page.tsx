@@ -53,32 +53,32 @@ export default function DashboardPage() {
       {
         title: 'Receitas',
         value: metrics.totalIncome,
-        change: metrics.growthRate,
-        changeType: metrics.growthRate >= 0 ? 'increase' as const : 'decrease' as const,
+        change: metrics.growthRate || 0,
+        changeType: (metrics.growthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '📈',
         color: 'text-chart-2'
       },
       {
         title: 'Despesas',
         value: -Math.abs(metrics.totalExpenses), // Valor negativo
-        change: -5.2,
-        changeType: 'decrease' as const,
+        change: metrics.expensesGrowthRate || 0,
+        changeType: (metrics.expensesGrowthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '📉',
         color: 'text-destructive'
       },
       {
         title: 'Saldo',
         value: metrics.netBalance,
-        change: 12.8,
-        changeType: 'increase' as const,
+        change: metrics.balanceGrowthRate || 0,
+        changeType: (metrics.balanceGrowthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '💰',
         color: metrics.netBalance >= 0 ? 'text-emerald-600' : 'text-destructive'
       },
       {
         title: 'Transações',
         value: metrics.transactionCount,
-        change: 8.4,
-        changeType: 'increase' as const,
+        change: metrics.transactionsGrowthRate || 0,
+        changeType: (metrics.transactionsGrowthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '🔄',
         color: 'text-primary'
       }

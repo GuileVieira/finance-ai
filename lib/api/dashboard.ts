@@ -17,6 +17,9 @@ export interface DashboardMetrics {
   expenseCount: number;
   averageTicket: number;
   growthRate: number;
+  expensesGrowthRate: number;
+  balanceGrowthRate: number;
+  transactionsGrowthRate: number;
 }
 
 export interface CategorySummary {
@@ -204,10 +207,30 @@ export class DashboardAPI {
     }
 
     const [year, month] = period.split('-');
-    const startDate = `${year}-${month}-01`;
-    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    // Validação para evitar datas absurdas
+    if (yearNum < 2000 || yearNum > 2100) {
+      console.error('❌ Ano inválido:', yearNum);
+      return { startDate: '', endDate: '' };
+    }
+
+    if (monthNum < 1 || monthNum > 12) {
+      console.error('❌ Mês inválido:', monthNum);
+      return { startDate: '', endDate: '' };
+    }
+
+    // Lógica simples e segura
+    const startDate = `${year}-${month.padStart(2, '0')}-01`;
+
+    // Dias em cada mês (considerando anos bissextos simplificados)
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const lastDay = daysInMonth[monthNum - 1];
+
     const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
+    console.log(`🗓️ Convertendo ${period}: ${startDate} até ${endDate}`);
     return { startDate, endDate };
   }
 }

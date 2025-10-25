@@ -42,21 +42,23 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
               })()}
             </p>
           </div>
-          <Badge
-            variant={isPositive ? 'default' : 'secondary'}
-            className={`flex items-center gap-1 ${
-              isPositive
-                ? 'bg-success/20 text-success border-success/30'
-                : 'bg-primary/20 text-primary border-primary/30'
-            }`}
-          >
-            {isPositive ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            {isPositive ? '+' : ''}{metric.change}%
-          </Badge>
+          {metric.change !== 0 && (
+            <Badge
+              variant={isPositive ? 'default' : 'secondary'}
+              className={`flex items-center gap-1 ${
+                isPositive
+                  ? 'bg-success/20 text-success border-success/30'
+                  : 'bg-primary/20 text-primary border-primary/30'
+              }`}
+            >
+              {isPositive ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              {isPositive ? '+' : ''}{metric.change}%
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

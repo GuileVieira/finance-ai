@@ -26,27 +26,53 @@ export default class DashboardService {
    */
   static async getMetrics(filters: DashboardFilters = {}): Promise<DashboardMetrics> {
     try {
+      console.log('🎯 DashboardService.getMetrics chamado com filtros:', filters);
+
+      // Proteção contra datas absurdas
+      if (filters.startDate) {
+        const startYear = parseInt(filters.startDate.split('-')[0]);
+        if (startYear < 2000 || startYear > 2100) {
+          console.error('❌ Data inicial inválida:', filters.startDate);
+          throw new Error('Data inicial inválida');
+        }
+      }
+
+      if (filters.endDate) {
+        const endYear = parseInt(filters.endDate.split('-')[0]);
+        if (endYear < 2000 || endYear > 2100) {
+          console.error('❌ Data final inválida:', filters.endDate);
+          throw new Error('Data final inválida');
+        }
+      }
+
       this.checkDatabaseConnection();
+
       // Construir where clause
       const whereConditions = [];
+      console.log('📋 Constru condições where...');
 
       if (filters.startDate) {
+        console.log('📅 Adicionando filtro startDate >=', filters.startDate);
         whereConditions.push(gte(transactions.transactionDate, filters.startDate));
       }
 
       if (filters.endDate) {
+        console.log('📅 Adicionando filtro endDate <=', filters.endDate);
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
       if (filters.accountId && filters.accountId !== 'all') {
+        console.log('🏦 Adicionando filtro accountId =', filters.accountId);
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       }
 
       if (filters.companyId && filters.companyId !== 'all') {
+        console.log('🏢 Adicionando filtro companyId =', filters.companyId);
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+      console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
 
       // Métricas principais
       const metricsResult = await db
@@ -67,8 +93,13 @@ export default class DashboardService {
       // Calcular saldo e taxa de crescimento
       const netBalance = (metrics.totalIncome || 0) - (metrics.totalExpenses || 0);
 
-      // Buscar dados do período anterior para calcular crescimento
-      const growthRate = await this.calculateGrowthRate(filters);
+      // Buscar comparações com o período anterior (desabilitado temporariamente para parar o loop infinito)
+      const comparisons = {
+        growthRate: 0,
+        expensesGrowthRate: 0,
+        balanceGrowthRate: 0,
+        transactionsGrowthRate: 0
+      };
 
       // Converter valores de centavos para reais se necessário
       const convertFromCents = (value: number | null | undefined): number => {
@@ -88,7 +119,10 @@ export default class DashboardService {
         incomeCount: metrics.incomeCount || 0,
         expenseCount: metrics.expenseCount || 0,
         averageTicket: convertFromCents(metrics.averageTicket),
-        growthRate
+        growthRate: comparisons.growthRate,
+        expensesGrowthRate: comparisons.expensesGrowthRate,
+        balanceGrowthRate: comparisons.balanceGrowthRate,
+        transactionsGrowthRate: comparisons.transactionsGrowthRate
       };
 
     } catch (error) {
@@ -355,39 +389,10 @@ export default class DashboardService {
   }
 
   /**
-   * Calcular taxa de crescimento comparando com período anterior
+   * Calcular taxa de crescimento comparando com período anterior (desabilitado para evitar loops)
    */
   private static async calculateGrowthRate(filters: DashboardFilters): Promise<number> {
-    try {
-      // Para simplificar, vamos calcular comparando com o mesmo período do mês anterior
-      // Em uma implementação completa, você faria uma comparação mais sofisticada
-
-      if (!filters.startDate || !filters.endDate) {
-        return 0; // Não há como calcular sem período definido
-      }
-
-      const currentDate = new Date(filters.endDate);
-      const previousMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-      const previousMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
-
-      const previousFilters = {
-        ...filters,
-        startDate: previousMonthStart.toISOString().split('T')[0],
-        endDate: previousMonthEnd.toISOString().split('T')[0],
-      };
-
-      const previousMetrics = await this.getMetrics(previousFilters);
-      const currentMetrics = await this.getMetrics(filters);
-
-      if (previousMetrics.totalIncome === 0) {
-        return 0; // Evitar divisão por zero
-      }
-
-      return ((currentMetrics.totalIncome - previousMetrics.totalIncome) / previousMetrics.totalIncome) * 100;
-
-    } catch (error) {
-      console.error('Error calculating growth rate:', error);
-      return 0;
-    }
+    // TODO: Implementar comparação segura sem loops recursivos
+    return 0;
   }
 }

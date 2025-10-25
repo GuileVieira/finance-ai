@@ -19,14 +19,42 @@ export function useDashboard(
 ) {
   console.log('🔧 useDashboard chamado com filtros:', filters);
 
-  // Chave de cache simples e estável
+  // Converter filtros para formato da API (incluindo período -> datas)
+  const apiFilters = useMemo(() => {
+    const result: any = {};
+
+    // Copiar propriedades existentes
+    if (filters.period) result.period = filters.period;
+    if (filters.companyId) result.companyId = filters.companyId;
+    if (filters.accountId) result.accountId = filters.accountId;
+    if (filters.startDate) result.startDate = filters.startDate;
+    if (filters.endDate) result.endDate = filters.endDate;
+
+    // Converter período para datas se necessário
+    if (filters.period && filters.period !== 'all') {
+      const { startDate, endDate } = DashboardAPI.convertPeriodToDates(filters.period);
+      result.startDate = startDate;
+      result.endDate = endDate;
+      console.log(`📅 Convertendo período ${filters.period} para ${startDate} até ${endDate}`);
+    }
+
+    return result;
+  }, [
+    filters.period,
+    filters.companyId,
+    filters.accountId,
+    filters.startDate,
+    filters.endDate
+  ]);
+
+  console.log('🔑 Filtros da API:', apiFilters);
+
+  // Chave de cache baseada nos filtros convertidos
   const queryKey = useMemo(() => {
-    return ['dashboard-minimal', filters.period, filters.accountId, filters.companyId];
-  }, [filters.period, filters.accountId, filters.companyId]);
+    return ['dashboard-minimal', apiFilters.period, apiFilters.accountId, apiFilters.companyId, apiFilters.startDate, apiFilters.endDate];
+  }, [apiFilters.period, apiFilters.accountId, apiFilters.companyId, apiFilters.startDate, apiFilters.endDate]);
 
-  console.log('🔑 QueryKey:', queryKey);
-
-  // Buscar APENAS métricas para teste
+  // Buscar métricas com filtros aplicados
   const {
     data: metrics,
     isLoading,
@@ -36,8 +64,8 @@ export function useDashboard(
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🚀 Iniciando busca de métricas...');
-      const result = await DashboardAPI.getMetrics(filters);
+      console.log('🚀 Buscando métricas com filtros:', apiFilters);
+      const result = await DashboardAPI.getMetrics(apiFilters);
       console.log('✅ Métricas recebidas:', result);
       return result;
     },
