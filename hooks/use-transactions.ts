@@ -72,13 +72,13 @@ export function useTransactions(
 
   // Informações de paginação
   const pagination = useMemo(() => {
-    return response ? {
-      total: response.total,
-      page: response.page,
-      limit: response.limit,
-      totalPages: response.totalPages,
-      hasNextPage: response.page < response.totalPages,
-      hasPreviousPage: response.page > 1,
+    return response?.pagination ? {
+      total: response.pagination.total,
+      page: response.pagination.page,
+      limit: response.pagination.limit,
+      totalPages: response.pagination.totalPages,
+      hasNextPage: response.pagination.page < response.pagination.totalPages,
+      hasPreviousPage: response.pagination.page > 1,
     } : {
       total: 0,
       page: 1,

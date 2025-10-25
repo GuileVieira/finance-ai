@@ -194,10 +194,10 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gray-900">
-                  {pagination.total}
+                  {isLoading ? '...' : (pagination?.total || 0)}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {totalPages} página(s)
+                  {isLoading ? '...' : `${totalPages} página(s)`}
                 </p>
               </CardContent>
             </Card>
