@@ -194,9 +194,11 @@ export class TransactionsService {
 
       let query = db.select({
         totalTransactions: sql<number>`count(*)`,
-        totalAmount: sql<number>`sum(abs(CAST(${transactions.amount} AS NUMERIC)))`,
-        totalCredits: sql<number>`count(*) FILTER (WHERE ${transactions.type} = 'credit')`,
-        totalDebits: sql<number>`count(*) FILTER (WHERE ${transactions.type} = 'debit')`
+        totalAmount: sql<number>`sum(CAST(${transactions.amount} AS NUMERIC))`,
+        incomeValue: sql<number>`sum(CASE WHEN CAST(${transactions.amount} AS NUMERIC) > 0 THEN CAST(${transactions.amount} AS NUMERIC) ELSE 0 END)`,
+        expensesValue: sql<number>`sum(CASE WHEN CAST(${transactions.amount} AS NUMERIC) < 0 THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`,
+        incomeCount: sql<number>`count(*) FILTER (WHERE CAST(${transactions.amount} AS NUMERIC) > 0)`,
+        expenseCount: sql<number>`count(*) FILTER (WHERE CAST(${transactions.amount} AS NUMERIC) < 0)`
       })
       .from(transactions)
       .leftJoin(accounts, eq(transactions.accountId, accounts.id));
@@ -273,8 +275,10 @@ export class TransactionsService {
       return {
         totalTransactions: stats?.totalTransactions || 0,
         totalAmount: Number(stats?.totalAmount) || 0,
-        totalCredits: stats?.totalCredits || 0,
-        totalDebits: stats?.totalDebits || 0,
+        totalCredits: stats?.incomeCount || 0,
+        totalDebits: stats?.expenseCount || 0,
+        totalCreditsValue: Number(stats?.incomeValue) || 0,
+        totalDebitsValue: Number(stats?.expensesValue) || 0,
         averageTransaction: stats?.totalTransactions ? Number(stats?.totalAmount) / stats.totalTransactions : 0,
         categoryDistribution: distribution,
         monthlyTrend

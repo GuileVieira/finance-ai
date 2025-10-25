@@ -184,27 +184,72 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Estratégia 3: Usar primeira conta existente se nenhuma correspondência
+    // Estratégia 3: Criar nova conta se tiver informações do OFX mas não houver correspondência exata
+    if (!defaultAccount && parseResult.bankInfo) {
+      console.log('🔍 Verificando se já existe conta com as informações do OFX...');
+
+      // Verificar se já existe conta com o mesmo número da conta e banco
+      const similarAccount = allAccounts.find(acc => {
+        const accountMatch = parseResult.bankInfo?.accountId &&
+          (acc.accountNumber === parseResult.bankInfo.accountId ||
+           acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo.accountId.replace(/[^0-9-]/g, ''));
+
+        const bankMatch = parseResult.bankInfo?.bankName &&
+          (acc.bankName?.toLowerCase() === parseResult.bankInfo.bankName.toLowerCase() ||
+           acc.bankName?.toLowerCase().includes(parseResult.bankInfo.bankName.toLowerCase()) ||
+           parseResult.bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || ''));
+
+        return accountMatch || bankMatch;
+      });
+
+      if (similarAccount) {
+        defaultAccount = similarAccount;
+        accountMatchType = 'conta similar existente';
+        console.log(`✅ Encontrada conta similar: ${similarAccount.name} (${similarAccount.bankName})`);
+      } else {
+        console.log('🏦 Criando nova conta baseada nas informações do OFX...');
+
+        const [newAccount] = await db.insert(accounts).values({
+          companyId: defaultCompany.id,
+          name: parseResult.bankInfo?.accountId
+            ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
+            : `Conta ${parseResult.bankInfo.bankName || 'Banco'} - OFX`,
+          bankName: parseResult.bankInfo?.bankName || 'Banco Não Identificado',
+          bankCode: parseResult.bankInfo?.bankId || '000',
+          agencyNumber: parseResult.bankInfo?.branchId || '0000',
+          accountNumber: parseResult.bankInfo?.accountId || '00000-0',
+          accountType: parseResult.bankInfo?.accountType || 'checking',
+          openingBalance: 0,
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
+
+        defaultAccount = newAccount;
+        accountMatchType = 'criada automaticamente do OFX';
+        console.log(`✅ Nova conta criada: ${newAccount.name} (${newAccount.bankName})`);
+      }
+    }
+
+    // Estratégia 4: Usar primeira conta existente apenas se não tiver informações do OFX
     if (!defaultAccount && allAccounts.length > 0) {
       defaultAccount = allAccounts[0];
-      accountMatchType = 'primeira disponível';
+      accountMatchType = 'primeira disponível (sem info OFX)';
       console.log(`⚠️ Usando primeira conta disponível: ${defaultAccount.name} (${defaultAccount.bankName})`);
     }
 
-    // Estratégia 4: Criar nova conta se não existir nenhuma
+    // Estratégia 5: Criar conta genérica se não existir nenhuma
     if (!defaultAccount) {
-      console.log('🏦 Nenhuma conta encontrada. Criando automaticamente...');
+      console.log('🏦 Nenhuma conta encontrada. Criando conta genérica...');
 
       const [newAccount] = await db.insert(accounts).values({
         companyId: defaultCompany.id,
-        name: parseResult.bankInfo?.accountId
-          ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
-          : 'Conta Extraída do OFX',
-        bankName: parseResult.bankInfo?.bankName || 'Banco Não Identificado',
-        bankCode: parseResult.bankInfo?.bankId || '000',
-        agencyNumber: parseResult.bankInfo?.branchId || '0000',
-        accountNumber: parseResult.bankInfo?.accountId || '00000-0',
-        accountType: parseResult.bankInfo?.accountType || 'checking',
+        name: 'Conta Nova - Upload OFX',
+        bankName: 'Banco Não Identificado',
+        bankCode: '000',
+        agencyNumber: '0000',
+        accountNumber: '00000-0',
+        accountType: 'checking',
         openingBalance: 0,
         active: true,
         createdAt: new Date(),
@@ -212,8 +257,8 @@ export async function POST(request: NextRequest) {
       }).returning();
 
       defaultAccount = newAccount;
-      accountMatchType = 'criada automaticamente';
-      console.log(`✅ Conta criada automaticamente: ${newAccount.name} (${newAccount.bankName})`);
+      accountMatchType = 'criada automaticamente (genérica)';
+      console.log(`✅ Conta genérica criada: ${newAccount.name}`);
     }
 
     console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id}) - ${accountMatchType}`);
@@ -394,8 +439,12 @@ export async function POST(request: NextRequest) {
     }, {} as Record<string, number>);
 
     const totalAmount = classifiedTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-    const credits = classifiedTransactions.filter(t => t.amount > 0).length;
-    const debits = classifiedTransactions.filter(t => t.amount < 0).length;
+    const credits = classifiedTransactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const debits = Math.abs(classifiedTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + (t.amount || 0), 0));
 
     const analysisResult = {
       fileInfo: {

@@ -129,6 +129,17 @@ export class TransactionsAPI {
       apiFilters.search = uiFilters.search;
     }
 
+    // Filtros de banco e categoria (se implementados no futuro)
+    if (uiFilters.bank && uiFilters.bank !== 'all') {
+      // TODO: Implementar filtro de banco quando tiver o mapeamento
+      // apiFilters.accountId = uiFilters.bank;
+    }
+
+    if (uiFilters.category && uiFilters.category !== 'all') {
+      // TODO: Implementar filtro de categoria quando tiver o mapeamento
+      // apiFilters.categoryId = uiFilters.category;
+    }
+
     // Valores padrão de paginação
     apiFilters.page = 1;
     apiFilters.limit = 50;

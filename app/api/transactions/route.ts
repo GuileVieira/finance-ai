@@ -59,10 +59,21 @@ export async function GET(request: NextRequest) {
 
     // Verificar se é requisição de estatísticas
     if (searchParams.get('stats') === 'true') {
-      const stats = await TransactionsService.getTransactionStats(filters);
+      const serviceStats = await TransactionsService.getTransactionStats(filters);
+
+      // Converter formato do serviço para formato da API
+      const apiStats = {
+        total: Number(serviceStats.totalAmount) || 0,
+        income: Number(serviceStats.totalCreditsValue) || 0,
+        expenses: Number(serviceStats.totalDebitsValue) || 0,
+        transactionCount: serviceStats.totalTransactions || 0,
+        incomeCount: serviceStats.totalCredits || 0,
+        expenseCount: serviceStats.totalDebits || 0
+      };
+
       return NextResponse.json({
         success: true,
-        data: { statistics: stats }
+        data: { statistics: apiStats }
       });
     }
 
