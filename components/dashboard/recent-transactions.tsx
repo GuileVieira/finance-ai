@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 import { Transaction } from '@/lib/db/schema';
 
 interface RecentTransactionsProps {
@@ -13,9 +14,10 @@ interface RecentTransactionsProps {
 }
 
 export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentTransactionsProps) {
+
   const getCategoryVariant = (category: string) => {
     // Todas as categorias usam variantes monocromáticas
-    return 'primary-light';
+    return 'outline' as const;
   };
 
   if (isLoading) {
@@ -88,19 +90,19 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
                 </Badge>
               </div>
               <div className={`text-right font-medium ${
-                transaction.amount && transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                Number(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {transaction.amount && transaction.amount > 0 ? '+' : ''}R$ {Math.abs(Number(transaction.amount)).toLocaleString('pt-BR')}
+                {Number(transaction.amount) > 0 ? '+' : ''}R$ {Math.abs(Number(transaction.amount)).toLocaleString('pt-BR')}
               </div>
             </div>
           ))}
           <div className="pt-4 border-t flex gap-2">
-            <Button variant="outline" size="sm">
-              Ver todas
-            </Button>
-            <Button variant="outline" size="sm">
-              Filtrar por Categoria
-            </Button>
+            <Link href="/transactions">
+              <Button variant="outline" size="sm">
+                Ver todas
+              </Button>
+            </Link>
+            
           </div>
         </div>
       </CardContent>

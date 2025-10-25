@@ -340,14 +340,32 @@ export default class DashboardService {
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
       const recentTransactions = await db
-        .select()
+        .select({
+          id: transactions.id,
+          accountId: transactions.accountId,
+          categoryId: transactions.categoryId,
+          uploadId: transactions.uploadId,
+          description: transactions.description,
+          amount: transactions.amount,
+          type: transactions.type,
+          transactionDate: transactions.transactionDate,
+          balanceAfter: transactions.balanceAfter,
+          rawDescription: transactions.rawDescription,
+          metadata: transactions.metadata,
+          manuallyCategorized: transactions.manuallyCategorized,
+          verified: transactions.verified,
+          confidence: transactions.confidence,
+          reasoning: transactions.reasoning,
+          createdAt: transactions.createdAt,
+          updatedAt: transactions.updatedAt
+        })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
         .orderBy(desc(transactions.transactionDate))
         .limit(limit);
 
-      return recentTransactions.map(t => t.transactions) as Transaction[];
+      return recentTransactions;
 
     } catch (error) {
       console.error('Error getting recent transactions:', error);
