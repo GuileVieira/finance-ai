@@ -82,9 +82,18 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Retornando ${result.transactions.length} transações`);
 
+    // Garantir que o total seja um número
+    const resultWithNumberTotal = {
+      ...result,
+      pagination: {
+        ...result.pagination,
+        total: Number(result.pagination.total)
+      }
+    };
+
     return NextResponse.json({
       success: true,
-      data: result
+      data: resultWithNumberTotal
     });
 
   } catch (error) {
