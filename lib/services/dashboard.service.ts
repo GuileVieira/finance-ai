@@ -93,13 +93,8 @@ export default class DashboardService {
       // Calcular saldo e taxa de crescimento
       const netBalance = (metrics.totalIncome || 0) - (metrics.totalExpenses || 0);
 
-      // Buscar comparações com o período anterior (desabilitado temporariamente para parar o loop infinito)
-      const comparisons = {
-        growthRate: 0,
-        expensesGrowthRate: 0,
-        balanceGrowthRate: 0,
-        transactionsGrowthRate: 0
-      };
+      // Buscar comparações com o período anterior
+      const comparisons = await this.calculateAllComparisons(filters);
 
       // Converter valores de centavos para reais se necessário
       const convertFromCents = (value: number | null | undefined): number => {
@@ -389,10 +384,115 @@ export default class DashboardService {
   }
 
   /**
-   * Calcular taxa de crescimento comparando com período anterior (desabilitado para evitar loops)
+   * Calcular comparações com o mês anterior usando SQL direto (sem recursão)
+   */
+  private static async calculateAllComparisons(filters: DashboardFilters): Promise<{
+    growthRate: number;
+    expensesGrowthRate: number;
+    balanceGrowthRate: number;
+    transactionsGrowthRate: number;
+  }> {
+    try {
+      if (!filters.startDate || !filters.endDate) {
+        return {
+          growthRate: 0,
+          expensesGrowthRate: 0,
+          balanceGrowthRate: 0,
+          transactionsGrowthRate: 0
+        };
+      }
+
+      console.log('📊 Calculando comparações com mês anterior...');
+
+      // Calcular datas do mês anterior
+      const currentDate = new Date(filters.endDate);
+      const previousMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const previousMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+
+      const previousStartDate = previousMonthStart.toISOString().split('T')[0];
+      const previousEndDate = previousMonthEnd.toISOString().split('T')[0];
+
+      console.log(`📅 Comparando: ${filters.startDate} até ${filters.endDate} vs ${previousStartDate} até ${previousEndDate}`);
+
+      // Mês atual - SQL direto sem chamar getMetrics novamente
+      const currentMetricsResult = await db
+        .select({
+          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+          transactionCount: count(transactions.id).mapWith(Number),
+        })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(
+          and(
+            gte(transactions.transactionDate, filters.startDate!),
+            lte(transactions.transactionDate, filters.endDate!),
+            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+            filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined
+          )
+        );
+
+      // Mês anterior - SQL direto
+      const previousMetricsResult = await db
+        .select({
+          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+          transactionCount: count(transactions.id).mapWith(Number),
+        })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(
+          and(
+            gte(transactions.transactionDate, previousStartDate),
+            lte(transactions.transactionDate, previousEndDate),
+            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+            filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined
+          )
+        );
+
+      const currentMetrics = currentMetricsResult[0];
+      const previousMetrics = previousMetricsResult[0];
+
+      console.log('📈 Métricas atuais:', currentMetrics);
+      console.log('📉 Métricas anteriores:', previousMetrics);
+
+      // Função auxiliar para calcular taxa de crescimento
+      const calculateGrowth = (current: number, previous: number): number => {
+        if (!previous || previous === 0) return 0;
+        const growth = ((current - previous) / previous) * 100;
+        // Manter 2 casas decimais sem arredondamento excessivo
+        return Math.round(growth * 100) / 100;
+      };
+
+      const currentBalance = (currentMetrics.totalIncome || 0) - (currentMetrics.totalExpenses || 0);
+      const previousBalance = (previousMetrics.totalIncome || 0) - (previousMetrics.totalExpenses || 0);
+
+      const comparisons = {
+        growthRate: calculateGrowth(currentMetrics.totalIncome || 0, previousMetrics.totalIncome || 0),
+        expensesGrowthRate: calculateGrowth(currentMetrics.totalExpenses || 0, previousMetrics.totalExpenses || 0),
+        balanceGrowthRate: calculateGrowth(currentBalance, previousBalance),
+        transactionsGrowthRate: calculateGrowth(currentMetrics.transactionCount || 0, previousMetrics.transactionCount || 0)
+      };
+
+      console.log('📊 Comparações calculadas:', comparisons);
+      return comparisons;
+
+    } catch (error) {
+      console.error('Error calculating comparisons:', error);
+      return {
+        growthRate: 0,
+        expensesGrowthRate: 0,
+        balanceGrowthRate: 0,
+        transactionsGrowthRate: 0
+      };
+    }
+  }
+
+  /**
+   * Calcular taxa de crescimento comparando com período anterior
    */
   private static async calculateGrowthRate(filters: DashboardFilters): Promise<number> {
-    // TODO: Implementar comparação segura sem loops recursivos
-    return 0;
+    const comparisons = await this.calculateAllComparisons(filters);
+    return comparisons.growthRate;
   }
 }

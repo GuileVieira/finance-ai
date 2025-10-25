@@ -56,7 +56,7 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
               ) : (
                 <TrendingDown className="h-3 w-3" />
               )}
-              {isPositive ? '+' : ''}{metric.change}%
+              {isPositive ? '+' : ''}{metric.change.toFixed(2)}%
             </Badge>
           )}
         </div>
