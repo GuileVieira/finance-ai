@@ -151,7 +151,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {formatCurrency(stats?.expenses || 0)}
+                  - {formatCurrency(stats?.expenses || 0)}
                 </div>
                 <p className="text-xs text-gray-500">
                   {stats?.expenseCount || 0} transações
@@ -357,7 +357,7 @@ export default function TransactionsPage() {
                   {paginatedTransactions.map((transaction) => (
                     <TableRow key={transaction.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
-                        {formatDate(transaction.date)}
+                        {formatDate(transaction.transactionDate)}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -366,12 +366,12 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
-                          {transaction.category || 'Sem categoria'}
+                          {transaction.categoryName || 'Sem categoria'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {transaction.bank || 'Não identificado'}
+                          {transaction.bankName || 'Não identificado'}
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-bold ${
