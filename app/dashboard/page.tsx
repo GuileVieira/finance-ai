@@ -7,6 +7,11 @@ import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
 import { CategoryChart } from '@/components/dashboard/category-chart';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { TopExpenses } from '@/components/dashboard/top-expenses';
+import { Insights } from '@/components/dashboard/insights';
+import { Benchmarks } from '@/components/dashboard/benchmarks';
+import { BudgetComparison } from '@/components/dashboard/budget-comparison';
+import { StrategicAlerts } from '@/components/dashboard/strategic-alerts';
+import { Scenarios } from '@/components/dashboard/scenarios';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
@@ -198,8 +203,18 @@ export default function DashboardPage() {
             isLoading={isLoading}
             isEmpty={!topExpenses || topExpenses.length === 0}
           />
-          {/* Espaço para Insights */}
+          <Insights />
         </div>
+
+        {/* Análises Estratégicas - Ocultas temporariamente */}
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Benchmarks />
+          <BudgetComparison />
+        </div>
+
+        <StrategicAlerts />
+
+        <Scenarios /> */}
       </div>
     </LayoutWrapper>
   );
