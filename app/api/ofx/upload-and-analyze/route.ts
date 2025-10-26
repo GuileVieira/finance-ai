@@ -7,6 +7,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
+import BatchProcessingService from '@/lib/services/batch-processing.service';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id}) - ${accountMatchType}`);
 
-    // Criar registro de upload (agora com a conta correta)
+    // Criar registro de upload
     console.log('📝 Criando registro de upload...');
     const [newUpload] = await db.insert(uploads).values({
       companyId: defaultCompany.id,
@@ -275,220 +276,94 @@ export async function POST(request: NextRequest) {
       filePath: storageResult.filePath,
       fileHash: fileHash,
       storageProvider: 'filesystem',
-      status: 'processing',
+      status: 'pending', // Será atualizado para processing quando começar o batch
       totalTransactions: parseResult.transactions.length,
       uploadedAt: new Date()
     }).returning();
 
     console.log(`✅ Upload registrado: ${newUpload.id}`);
 
-    // Classificar cada transação e salvar no banco
-    console.log('🤖 Classificando e salvando transações...');
-    const classifiedTransactions = [];
-    let successfulSaves = 0;
-    let failedSaves = 0;
+    // Preparar processamento em batches
+    console.log('🔄 Preparando processamento incremental...');
+    const batchService = BatchProcessingService;
+    await batchService.prepareUploadForBatchProcessing(newUpload.id, parseResult.transactions.length);
 
-    for (let i = 0; i < parseResult.transactions.length; i++) {
-      const transaction = parseResult.transactions[i];
+    // Converter transações para o formato esperado pelo batch service
+    const formattedTransactions = parseResult.transactions.map(tx => ({
+      description: tx.description,
+      name: tx.name,
+      memo: tx.memo,
+      amount: tx.amount,
+      date: tx.date,
+      fitid: tx.fitid,
+      balance: tx.balance
+    }));
 
-      console.log(`📝 Analisando transação ${i + 1}/${parseResult.transactions.length}:`, {
-        description: transaction.description,
-        amount: transaction.amount,
-        date: transaction.date
-      });
+    // Processar em batches
+    console.log(`📦 Processando ${formattedTransactions.length} transações em batches...`);
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+    const batchSize = 15; // Mesmo batch size do serviço
+
+    for (let i = 0; i < formattedTransactions.length; i += batchSize) {
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const batchTransactions = formattedTransactions.slice(i, i + batchSize);
+
+      console.log(`🔄 Processando batch ${batchNumber}/${Math.ceil(formattedTransactions.length / batchSize)} (${batchTransactions.length} transações)`);
 
       try {
-        // Primeiro, verificar se há regras existentes
-        let categoryData: any = null;
-        let categoryName = 'Não classificado';
-        let confidence = 0;
-        let reasoning = '';
-        let source = 'ai';
-
-        // Buscar sugestões baseadas em regras existentes
-        console.log(`🔍 Verificando regras existentes para: "${transaction.description}"`);
-        const suggestResponse = await fetch('http://localhost:3000/api/categories/suggest', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const batchResult = await batchService.processBatch(
+          newUpload.id,
+          batchTransactions,
+          defaultAccount.id,
+          null, // categoryId - será determinado no processamento
+          {
+            fileName: file.name,
+            bankName: parseResult.bankInfo?.bankName
           },
-          body: JSON.stringify({
-            companyId: defaultCompany.id,
-            description: transaction.description,
-            amount: transaction.amount,
-            transactionType: transaction.amount >= 0 ? 'credit' : 'debit'
-          })
-        });
+          batchNumber,
+          i
+        );
 
-        if (suggestResponse.ok) {
-          const suggestResult = await suggestResponse.json();
-          if (suggestResult.success && suggestResult.data.suggestions.length > 0) {
-            const bestSuggestion = suggestResult.data.suggestions[0]; // Pegar a sugestão com maior confiança
+        totalSuccessful += batchResult.success;
+        totalFailed += batchResult.failed;
 
-            // Usar sugestão se confiança for alta (> 0.7)
-            if (bestSuggestion.confidence > 0.7) {
-              categoryName = bestSuggestion.categoryName;
-              confidence = bestSuggestion.confidence;
-              reasoning = `Regra aplicada: ${bestSuggestion.reasoning}`;
-              source = 'rule';
-              categoryData = {
-                categoryId: bestSuggestion.categoryId,
-                category: bestSuggestion.categoryName,
-                confidence: bestSuggestion.confidence,
-                reasoning: bestSuggestion.reasoning
-              };
-              console.log(`✅ Regra aplicada para transação ${i + 1}: ${categoryName} (${confidence})`);
-            }
-          }
-        }
-
-        // Se não encontrou regra com alta confiança, usar IA
-        if (!categoryData) {
-          console.log(`🤖 Usando IA para classificar transação ${i + 1}`);
-          const classifyResponse = await fetch('http://localhost:3000/api/ai/work-categorize', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              description: transaction.description,
-              amount: transaction.amount,
-              memo: transaction.memo,
-              fileName: file.name,
-              bankName: parseResult.bankInfo?.bankName,
-              date: transaction.date,
-              balance: transaction.balance
-            })
-          });
-
-          if (!classifyResponse.ok) {
-            console.error(`❌ Erro ao classificar transação ${i + 1}:`, classifyResponse.statusText);
-            reasoning = `Erro na classificação: ${classifyResponse.statusText}`;
-          } else {
-            const classifyResult = await classifyResponse.json();
-            if (classifyResult.success) {
-              categoryData = classifyResult.data;
-              categoryName = classifyResult.data.category;
-              confidence = classifyResult.data.confidence || 0;
-              reasoning = classifyResult.data.reasoning || '';
-              source = 'ai';
-              console.log(`✅ Transação ${i + 1} classificada por IA: ${categoryName} (${confidence})`);
-            } else {
-              console.error(`❌ Erro na resposta da classificação ${i + 1}:`, classifyResult.error);
-              reasoning = `Erro na resposta: ${classifyResult.error}`;
-            }
-          }
-        }
-
-        // Buscar categoria no banco
-        let categoryId = null;
-        if (categoryName && categoryName !== 'Não classificado') {
-          const [foundCategory] = await db.select()
-            .from(categories)
-            .where(and(
-              eq(categories.companyId, defaultCompany.id),
-              eq(categories.name, categoryName),
-              eq(categories.active, true)
-            ))
-            .limit(1);
-
-          if (foundCategory) {
-            categoryId = foundCategory.id;
-          }
-        }
-
-        // Salvar transação no banco
-        const transactionData = {
-          accountId: defaultAccount.id,
-          categoryId,
-          uploadId: newUpload.id,
-          description: transaction.description,
-          name: transaction.name,
-          memo: transaction.memo,
-          amount: transaction.amount.toString(),
-          type: transaction.amount >= 0 ? 'credit' : 'debit',
-          transactionDate: new Date(transaction.date),
-          rawDescription: transaction.description,
-          metadata: {
-            fitid: transaction.fitid,
-            originalAmount: transaction.amount
-          },
-          manuallyCategorized: false,
-          verified: false,
-          confidence: confidence.toString(),
-          reasoning
-        };
-
-        await db.insert(transactions).values(transactionData);
-        successfulSaves++;
-
-        // Adicionar à lista de transações classificadas para retorno
-        classifiedTransactions.push({
-          ...transaction,
-          category: categoryName,
-          confidence,
-          reasoning,
-          categoryId,
-          source
-        });
-
-        // Pequeno delay para não sobrecarregar a API
-        if (i < parseResult.transactions.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        console.log(`✅ Batch ${batchNumber} concluído: ${batchResult.success} sucesso, ${batchResult.failed} falhas`);
 
       } catch (error) {
-        console.error(`❌ Erro ao processar transação ${i + 1}:`, error);
-        failedSaves++;
-
-        classifiedTransactions.push({
-          ...transaction,
-          category: 'Não classificado',
-          confidence: 0,
-          reasoning: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-          source: 'error'
-        });
+        console.error(`❌ Erro no batch ${batchNumber}:`, error);
+        totalFailed += batchTransactions.length;
       }
     }
 
-    // Atualizar status do upload
-    await db.update(uploads)
-      .set({
-        status: failedSaves > 0 ? 'completed' : 'completed', // ainda completed mesmo com erros parciais
-        successfulTransactions: successfulSaves,
-        failedTransactions: failedSaves,
-        processedAt: new Date(),
-        processingLog: {
-          totalProcessed: parseResult.transactions.length,
-          successful: successfulSaves,
-          failed: failedSaves,
-          processingTime: Date.now() - startTime
-        }
-      })
-      .where(eq(uploads.id, newUpload.id));
-
-    console.log(`✅ Transações salvas: ${successfulSaves} sucesso, ${failedSaves} falhas`);
-
-    console.log('📊 Análise concluída:', {
-      totalTransactions: parseResult.transactions.length,
-      classifiedTransactions: classifiedTransactions.length,
-      processingTime: Date.now() - startTime
+    // Marcar upload como concluído
+    await batchService.completeUpload(newUpload.id, {
+      successful: totalSuccessful,
+      failed: totalFailed,
+      totalTime: Date.now() - startTime
     });
 
+    console.log(`🎉 Processamento concluído: ${totalSuccessful} sucesso, ${totalFailed} falhas`);
+
+    // Buscar transações salvas para estatísticas
+    const savedTransactions = await db.select()
+      .from(transactions)
+      .where(eq(transactions.uploadId, newUpload.id));
+
     // Estatísticas da classificação
-    const categoryStats = classifiedTransactions.reduce((stats, transaction) => {
-      const category = transaction.category || 'Não classificado';
+    const categoryStats = savedTransactions.reduce((stats, transaction) => {
+      const category = 'Categoria não disponível'; // Simplificado para o novo formato
       stats[category] = (stats[category] || 0) + 1;
       return stats;
     }, {} as Record<string, number>);
 
-    const totalAmount = classifiedTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-    const credits = classifiedTransactions
-      .filter(t => t.amount > 0)
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-    const debits = Math.abs(classifiedTransactions
-      .filter(t => t.amount < 0)
-      .reduce((sum, t) => sum + (t.amount || 0), 0));
+    const totalAmount = savedTransactions.reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0);
+    const credits = savedTransactions
+      .filter(t => parseFloat(t.amount || '0') > 0)
+      .reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0);
+    const debits = Math.abs(savedTransactions
+      .filter(t => parseFloat(t.amount || '0') < 0)
+      .reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0));
 
     const analysisResult = {
       fileInfo: {
@@ -511,27 +386,34 @@ export async function POST(request: NextRequest) {
         filename: newUpload.filename,
         filePath: newUpload.filePath,
         totalTransactions: newUpload.totalTransactions,
-        successfulTransactions: newUpload.successfulTransactions,
-        failedTransactions: newUpload.failedTransactions,
-        status: newUpload.status
+        successfulTransactions: totalSuccessful,
+        failedTransactions: totalFailed,
+        status: 'completed'
       },
-      transactions: classifiedTransactions,
+      transactions: [], // Simplificado - as transações estão no banco
       statistics: {
-        totalTransactions: classifiedTransactions.length,
+        totalTransactions: savedTransactions.length,
         totalAmount: Math.abs(totalAmount),
         credits: credits,
         debits: debits,
         categoryDistribution: categoryStats,
-        averageConfidence: classifiedTransactions.reduce((sum, t) => sum + (t.confidence || 0), 0) / classifiedTransactions.length,
+        averageConfidence: savedTransactions.reduce((sum, t) => sum + parseFloat(t.confidence || '0'), 0) / savedTransactions.length,
         databasePersistence: {
-          successful: successfulSaves,
-          failed: failedSaves,
+          successful: totalSuccessful,
+          failed: totalFailed,
           totalProcessed: parseResult.transactions.length
+        },
+        batchProcessing: {
+          enabled: true,
+          batchSize: 15,
+          totalBatches: Math.ceil(parseResult.transactions.length / 15),
+          processingTime: Date.now() - startTime
         }
       },
       processingTime: Date.now() - startTime,
       timestamp: new Date().toISOString(),
-      savedToDatabase: successfulSaves > 0
+      savedToDatabase: totalSuccessful > 0,
+      message: `Processado em batches - ${totalSuccessful} transações salvas com sucesso`
     };
 
     console.log('🎯 Resultado final da análise:', analysisResult);

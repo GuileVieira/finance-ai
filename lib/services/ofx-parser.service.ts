@@ -192,7 +192,7 @@ export class OFXParserService {
     return rawTransactions.map(tx => ({
       id: tx.FITID || '',
       date: new Date(tx.DTPOSTED),
-      description: tx.DESCRIPTION || this.cleanDescription(tx.NAME || ''),
+      description: this.cleanDescription(tx.NAME || tx.MEMO || ''),
       amount: parseFloat(tx.TRNAMT || '0'),
       type: this.getTransactionType(tx.TRNTYPE, tx.TRNAMT),
       checkNumber: tx.CHECKNUM,

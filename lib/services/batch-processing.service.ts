@@ -1,0 +1,476 @@
+import { db } from '@/lib/db/connection';
+import { uploads, processingBatches, transactions, categories } from '@/lib/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { NewTransaction, NewProcessingBatch, ProcessingBatch } from '@/lib/db/schema';
+
+export interface BatchProcessingConfig {
+  batchSize: number;
+  maxRetries: number;
+  retryDelay: number;
+  enableCheckpoints: boolean;
+}
+
+export interface TransactionData {
+  description: string;
+  name?: string;
+  memo?: string;
+  amount: number;
+  date: string;
+  fitid?: string;
+  balance?: number;
+}
+
+export interface ProcessingProgress {
+  uploadId: string;
+  currentBatch: number;
+  totalBatches: number;
+  processedTransactions: number;
+  totalTransactions: number;
+  status: 'processing' | 'completed' | 'failed' | 'paused';
+  percentage: number;
+  estimatedTimeRemaining?: number;
+}
+
+export class BatchProcessingService {
+  private static instance: BatchProcessingService;
+  private config: BatchProcessingConfig = {
+    batchSize: 15, // Processar 15 transações por vez
+    maxRetries: 3,
+    retryDelay: 1000,
+    enableCheckpoints: true
+  };
+
+  private constructor() {}
+
+  public static getInstance(): BatchProcessingService {
+    if (!BatchProcessingService.instance) {
+      BatchProcessingService.instance = new BatchProcessingService();
+    }
+    return BatchProcessingService.instance;
+  }
+
+  /**
+   * Preparar upload para processamento em batches
+   */
+  async prepareUploadForBatchProcessing(
+    uploadId: string,
+    totalTransactions: number
+  ): Promise<void> {
+    const totalBatches = Math.ceil(totalTransactions / this.config.batchSize);
+
+    // Atualizar upload com informações de batch
+    await db.update(uploads)
+      .set({
+        status: 'processing',
+        totalBatches,
+        processedTransactions: 0,
+        currentBatch: 0,
+        lastProcessedIndex: 0
+      })
+      .where(eq(uploads.id, uploadId));
+
+    console.log(`🔄 [BATCH-PREP] Upload ${uploadId} preparado:`, {
+      totalTransactions,
+      totalBatches,
+      batchSize: this.config.batchSize
+    });
+  }
+
+  /**
+   * Criar um novo batch de processamento
+   */
+  async createBatch(
+    uploadId: string,
+    batchNumber: number,
+    totalTransactions: number
+  ): Promise<ProcessingBatch> {
+    const [batch] = await db.insert(processingBatches)
+      .values({
+        uploadId,
+        batchNumber,
+        totalTransactions,
+        status: 'pending',
+        startedAt: new Date()
+      })
+      .returning();
+
+    console.log(`📦 [BATCH-CREATE] Batch ${batchNumber}/${totalTransactions} criado para upload ${uploadId}`);
+    return batch;
+  }
+
+  /**
+   * Processar um lote de transações
+   */
+  async processBatch(
+    uploadId: string,
+    batchTransactions: TransactionData[],
+    accountId: string,
+    categoryId: string | null,
+    context: {
+      fileName?: string;
+      bankName?: string;
+    },
+    batchNumber: number,
+    startIndex: number
+  ): Promise<{
+    success: number;
+    failed: number;
+    errors: string[];
+  }> {
+    console.log(`🔄 [BATCH-PROCESS] Iniciando batch ${batchNumber}:`, {
+      uploadId,
+      transactionsCount: batchTransactions.length,
+      startIndex
+    });
+
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    // Atualizar status do batch
+    await db.update(processingBatches)
+      .set({
+        status: 'processing',
+        startedAt: new Date()
+      })
+      .where(
+        and(
+          eq(processingBatches.uploadId, uploadId),
+          eq(processingBatches.batchNumber, batchNumber)
+        )
+      );
+
+    try {
+      // Processar cada transação do batch
+      for (let i = 0; i < batchTransactions.length; i++) {
+        const transaction = batchTransactions[i];
+        const globalIndex = startIndex + i;
+
+        try {
+          // Classificar transação
+          const classificationResult = await this.classifyTransaction(transaction, context);
+
+          // Preparar dados para inserção
+          const transactionData: NewTransaction = {
+            accountId,
+            categoryId: classificationResult.categoryId,
+            uploadId,
+            description: transaction.description,
+            name: transaction.name,
+            memo: transaction.memo,
+            amount: transaction.amount.toString(),
+            type: transaction.amount >= 0 ? 'credit' : 'debit',
+            transactionDate: new Date(transaction.date),
+            rawDescription: transaction.description,
+            metadata: {
+              fitid: transaction.fitid,
+              originalAmount: transaction.amount,
+              batchNumber,
+              globalIndex
+            },
+            manuallyCategorized: false,
+            verified: false,
+            confidence: classificationResult.confidence.toString(),
+            reasoning: classificationResult.reasoning
+          };
+
+          // Inserir transação
+          await db.insert(transactions).values(transactionData);
+          success++;
+
+          // Atualizar progresso do upload a cada 5 transações
+          if (success % 5 === 0) {
+            await this.updateUploadProgress(uploadId, globalIndex + 1, batchNumber);
+          }
+
+        } catch (error) {
+          failed++;
+          const errorMsg = `Erro na transação ${globalIndex}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
+          errors.push(errorMsg);
+          console.error(`❌ [BATCH-ERROR] ${errorMsg}`);
+        }
+      }
+
+      // Atualizar batch como concluído
+      await db.update(processingBatches)
+        .set({
+          status: 'completed',
+          processedTransactions: success,
+          completedAt: new Date(),
+          processingLog: {
+            success,
+            failed,
+            errors,
+            processingTime: Date.now()
+          }
+        })
+        .where(
+          and(
+            eq(processingBatches.uploadId, uploadId),
+            eq(processingBatches.batchNumber, batchNumber)
+          )
+        );
+
+      // Atualizar progresso final do batch
+      await this.updateUploadProgress(uploadId, startIndex + batchTransactions.length, batchNumber);
+
+      console.log(`✅ [BATCH-COMPLETE] Batch ${batchNumber} concluído:`, {
+        success,
+        failed,
+        uploadId
+      });
+
+    } catch (error) {
+      // Marcar batch como falha
+      await db.update(processingBatches)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
+          completedAt: new Date()
+        })
+        .where(
+          and(
+            eq(processingBatches.uploadId, uploadId),
+            eq(processingBatches.batchNumber, batchNumber)
+          )
+        );
+
+      console.error(`❌ [BATCH-FAIL] Batch ${batchNumber} falhou:`, error);
+      throw error;
+    }
+
+    return { success, failed, errors };
+  }
+
+  /**
+   * Classificar uma transação individual
+   */
+  private async classifyTransaction(
+    transaction: TransactionData,
+    context: { fileName?: string; bankName?: string }
+  ): Promise<{
+    categoryId: string | null;
+    categoryName: string;
+    confidence: number;
+    reasoning: string;
+    source: string;
+  }> {
+    // Primeiro tentar regras existentes
+    try {
+      const suggestResponse = await fetch('http://localhost:3000/api/categories/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: transaction.description,
+          amount: transaction.amount,
+          transactionType: transaction.amount >= 0 ? 'credit' : 'debit'
+        })
+      });
+
+      if (suggestResponse.ok) {
+        const suggestResult = await suggestResponse.json();
+        if (suggestResult.success && suggestResult.data.suggestions.length > 0) {
+          const bestSuggestion = suggestResult.data.suggestions[0];
+
+          if (bestSuggestion.confidence > 0.7) {
+            return {
+              categoryId: bestSuggestion.categoryId,
+              categoryName: bestSuggestion.categoryName,
+              confidence: bestSuggestion.confidence,
+              reasoning: bestSuggestion.reasoning,
+              source: 'rule'
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Falha ao verificar regras, usando IA...');
+    }
+
+    // Usar IA como fallback
+    try {
+      const classifyResponse = await fetch('http://localhost:3000/api/ai/work-categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: transaction.description,
+          amount: transaction.amount,
+          memo: transaction.memo,
+          fileName: context.fileName,
+          bankName: context.bankName,
+          date: transaction.date
+        })
+      });
+
+      if (classifyResponse.ok) {
+        const classifyResult = await classifyResponse.json();
+        if (classifyResult.success) {
+          // Buscar categoria no banco
+          const [foundCategory] = await db.select()
+            .from(categories)
+            .where(and(
+              eq(categories.name, classifyResult.data.category),
+              eq(categories.active, true)
+            ))
+            .limit(1);
+
+          return {
+            categoryId: foundCategory?.id || null,
+            categoryName: classifyResult.data.category,
+            confidence: classifyResult.data.confidence || 0,
+            reasoning: classifyResult.data.reasoning || '',
+            source: 'ai'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro na classificação por IA:', error);
+    }
+
+    // Fallback final
+    return {
+      categoryId: null,
+      categoryName: 'Não classificado',
+      confidence: 0,
+      reasoning: 'Falha na classificação',
+      source: 'error'
+    };
+  }
+
+  /**
+   * Atualizar progresso do upload
+   */
+  private async updateUploadProgress(
+    uploadId: string,
+    processedTransactions: number,
+    currentBatch: number
+  ): Promise<void> {
+    await db.update(uploads)
+      .set({
+        processedTransactions,
+        currentBatch,
+        lastProcessedIndex: processedTransactions - 1
+      })
+      .where(eq(uploads.id, uploadId));
+  }
+
+  /**
+   * Obter progresso atual do processamento
+   */
+  async getProcessingProgress(uploadId: string): Promise<ProcessingProgress | null> {
+    const [upload] = await db.select()
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1);
+
+    if (!upload) return null;
+
+    const percentage = upload.totalTransactions > 0
+      ? Math.round((upload.processedTransactions / upload.totalTransactions) * 100)
+      : 0;
+
+    return {
+      uploadId,
+      currentBatch: upload.currentBatch || 0,
+      totalBatches: upload.totalBatches || 0,
+      processedTransactions: upload.processedTransactions || 0,
+      totalTransactions: upload.totalTransactions || 0,
+      status: upload.status as any,
+      percentage,
+      estimatedTimeRemaining: await this.calculateEstimatedTime(upload)
+    };
+  }
+
+  /**
+   * Calcular tempo restante estimado
+   */
+  private async calculateEstimatedTime(upload: any): Promise<number | undefined> {
+    if (!upload.processedTransactions || !upload.currentBatch) return undefined;
+
+    // Calcular tempo médio por batch
+    const batches = await db.select()
+      .from(processingBatches)
+      .where(and(
+        eq(processingBatches.uploadId, upload.id),
+        eq(processingBatches.status, 'completed')
+      ));
+
+    if (batches.length === 0) return undefined;
+
+    const avgTimePerBatch = batches.reduce((sum, batch) => {
+      if (batch.startedAt && batch.completedAt) {
+        return sum + (new Date(batch.completedAt).getTime() - new Date(batch.startedAt).getTime());
+      }
+      return sum;
+    }, 0) / batches.length;
+
+    const remainingBatches = (upload.totalBatches || 0) - (upload.currentBatch || 0);
+    return remainingBatches * avgTimePerBatch;
+  }
+
+  /**
+   * Marcar upload como concluído
+   */
+  async completeUpload(uploadId: string, stats: {
+    successful: number;
+    failed: number;
+    totalTime: number;
+  }): Promise<void> {
+    await db.update(uploads)
+      .set({
+        status: 'completed',
+        successfulTransactions: stats.successful,
+        failedTransactions: stats.failed,
+        processedAt: new Date(),
+        currentBatch: 0, // Reset para indicar conclusão
+        processingLog: {
+          totalProcessed: stats.successful + stats.failed,
+          successful: stats.successful,
+          failed: stats.failed,
+          processingTime: stats.totalTime
+        }
+      })
+      .where(eq(uploads.id, uploadId));
+
+    console.log(`🎉 [UPLOAD-COMPLETE] Upload ${uploadId} concluído:`, stats);
+  }
+
+  /**
+   * Retomar processamento de upload interrompido
+   */
+  async resumeProcessing(uploadId: string): Promise<{
+    canResume: boolean;
+    nextBatch: number;
+    lastProcessedIndex: number;
+  }> {
+    const [upload] = await db.select()
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1);
+
+    if (!upload || upload.status !== 'processing') {
+      return { canResume: false, nextBatch: 0, lastProcessedIndex: 0 };
+    }
+
+    // Encontrar último batch concluído com sucesso
+    const [lastCompletedBatch] = await db.select()
+      .from(processingBatches)
+      .where(and(
+        eq(processingBatches.uploadId, uploadId),
+        eq(processingBatches.status, 'completed')
+      ))
+      .orderBy(desc(processingBatches.batchNumber))
+      .limit(1);
+
+    const nextBatch = (lastCompletedBatch?.batchNumber || 0) + 1;
+    const lastProcessedIndex = upload.lastProcessedIndex || 0;
+
+    return {
+      canResume: nextBatch <= (upload.totalBatches || 0),
+      nextBatch,
+      lastProcessedIndex
+    };
+  }
+}
+
+export default BatchProcessingService.getInstance();

@@ -92,6 +92,10 @@ export const uploads = pgTable('financeai_uploads', {
   totalTransactions: integer('total_transactions').default(0),
   successfulTransactions: integer('successful_transactions').default(0),
   failedTransactions: integer('failed_transactions').default(0),
+  processedTransactions: integer('processed_transactions').default(0), // Progresso real
+  currentBatch: integer('current_batch').default(0),
+  totalBatches: integer('total_batches').default(0),
+  lastProcessedIndex: integer('last_processed_index').default(0), // Para retomada
   uploadedAt: timestamp('uploaded_at').defaultNow(),
   processedAt: timestamp('processed_at'),
   createdAt: timestamp('created_at').defaultNow()
@@ -102,6 +106,25 @@ export const uploads = pgTable('financeai_uploads', {
   uploadedAtIdx: index('idx_uploads_uploaded_at').on(table.uploadedAt)
 }));
 
+// Controle de processamento em batches
+export const processingBatches = pgTable('financeai_processing_batches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  uploadId: uuid('upload_id').references(() => uploads.id, { onDelete: 'cascade' }),
+  batchNumber: integer('batch_number').notNull(),
+  totalTransactions: integer('total_transactions').notNull(),
+  processedTransactions: integer('processed_transactions').default(0),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, processing, completed, failed
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  errorMessage: text('error_message'),
+  processingLog: json('processing_log'),
+  createdAt: timestamp('created_at').defaultNow()
+}, (table) => ({
+  uploadIdIdx: index('idx_processing_batches_upload_id').on(table.uploadId),
+  statusIdx: index('idx_processing_batches_status').on(table.status),
+  batchNumberIdx: index('idx_processing_batches_batch_number').on(table.batchNumber)
+}));
+
 // Transações financeiras
 export const transactions = pgTable('financeai_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -109,8 +132,8 @@ export const transactions = pgTable('financeai_transactions', {
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
   uploadId: uuid('upload_id').references(() => uploads.id, { onDelete: 'set null' }),
   description: text('description').notNull(),
-  name: text('name'), // Nome do beneficiário/estabelecimento do OFX
-  memo: text('memo'), // Memo/detalhes adicionais do OFX
+  name: text('name'), // Nome do beneficiário/estabelecimento do OFX (opcional)
+  memo: text('memo'), // Memo/detalhes adicionais do OFX (opcional)
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   type: varchar('type', { length: 10 }).notNull(), // credit, debit
   transactionDate: date('transaction_date').notNull(),
@@ -184,6 +207,9 @@ export type NewCategory = typeof categories.$inferInsert;
 
 export type Upload = typeof uploads.$inferSelect;
 export type NewUpload = typeof uploads.$inferInsert;
+
+export type ProcessingBatch = typeof processingBatches.$inferSelect;
+export type NewProcessingBatch = typeof processingBatches.$inferInsert;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
