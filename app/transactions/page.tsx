@@ -376,6 +376,9 @@ export default function TransactionsPage() {
     });
   };
 
+  // Encontrar transação selecionada para mostrar detalhes
+  const selectedTransaction = transactions.find(t => t.id === editingTransaction);
+
   return (
     <LayoutWrapper>
       <div className="space-y-6">
@@ -662,14 +665,14 @@ export default function TransactionsPage() {
         )}
 
         {/* Card de Edição Individual */}
-        {editingTransaction && !isGroupMode && (
+        {editingTransaction && !isGroupMode && selectedTransaction && (
           <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
                   <Edit className="h-5 w-5 text-primary" />
                   <span className="font-medium text-foreground">
-                    Editando Transação Individual
+                    Detalhes da Transação
                   </span>
                 </div>
                 <Button
@@ -684,35 +687,115 @@ export default function TransactionsPage() {
                 </Button>
               </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Alterar categoria:
-                  </label>
-                  <Combobox
-                    options={categoryOptions}
-                    value={singleTransactionCategory}
-                    onValueChange={setSingleTransactionCategory}
-                    placeholder="Buscar categoria..."
-                    searchPlaceholder="Digite o nome da categoria..."
-                    emptyMessage="Nenhuma categoria encontrada"
-                  />
+              {/* Grid com detalhes da transação */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Coluna da esquerda - Detalhes da transação */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Informações da Transação</h3>
+
+                  <div className="space-y-3">
+                    {/* Data */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Data</label>
+                      <p className="text-sm">{formatDate(selectedTransaction.transactionDate)}</p>
+                    </div>
+
+                    {/* Nome */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                      <p className="text-sm">{selectedTransaction.name || '-'}</p>
+                    </div>
+
+                    {/* Descrição */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Descrição</label>
+                      <p className="text-sm">{selectedTransaction.description}</p>
+                    </div>
+
+                    {/* Memo */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Memo</label>
+                      <p className="text-sm text-gray-600">{selectedTransaction.memo || '-'}</p>
+                    </div>
+
+                    {/* Banco */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Banco</label>
+                      <Badge variant="outline" className="text-xs">
+                        {selectedTransaction.bankName || 'Não identificado'}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center" style={{ paddingTop: '24px' }}>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => {
-                      if (singleTransactionCategory && editingTransaction) {
-                        handleUpdateSingleTransaction(editingTransaction, singleTransactionCategory);
-                      }
-                    }}
-                    disabled={!singleTransactionCategory}
-                  >
-                    <CheckSquare className="h-4 w-4 mr-2" />
-                    Aplicar
-                  </Button>
+
+                {/* Coluna da direita - Valor e Categoria */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Valores e Categoria</h3>
+
+                  <div className="space-y-3">
+                    {/* Valor */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Valor</label>
+                      <p className={`text-lg font-bold ${
+                        selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {selectedTransaction.amount > 0 ? '+' : ''}{formatCurrency(selectedTransaction.amount)}
+                      </p>
+                    </div>
+
+                    {/* Categoria Atual */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Categoria Atual</label>
+                      <div className="mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {selectedTransaction.categoryName || 'Sem categoria'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Nova Categoria */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-2">
+                        Alterar categoria:
+                      </label>
+                      <Combobox
+                        options={categoryOptions}
+                        value={singleTransactionCategory}
+                        onValueChange={setSingleTransactionCategory}
+                        placeholder="Buscar categoria..."
+                        searchPlaceholder="Digite o nome da categoria..."
+                        emptyMessage="Nenhuma categoria encontrada"
+                      />
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setSingleTransactionCategory('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    if (singleTransactionCategory && editingTransaction) {
+                      handleUpdateSingleTransaction(editingTransaction, singleTransactionCategory);
+                    }
+                  }}
+                  disabled={!singleTransactionCategory}
+                >
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Aplicar Alteração
+                </Button>
               </div>
             </CardContent>
           </Card>
