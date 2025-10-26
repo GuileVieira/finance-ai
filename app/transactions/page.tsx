@@ -703,19 +703,19 @@ export default function TransactionsPage() {
                     {/* Nome */}
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Nome</label>
-                      <p className="text-sm">{selectedTransaction.name || '-'}</p>
+                      <p className="text-sm text-foreground">{selectedTransaction.name || '-'}</p>
                     </div>
 
                     {/* Descrição */}
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Descrição</label>
-                      <p className="text-sm">{selectedTransaction.description}</p>
+                      <p className="text-sm text-foreground">{selectedTransaction.description}</p>
                     </div>
 
                     {/* Memo */}
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Memo</label>
-                      <p className="text-sm text-gray-600">{selectedTransaction.memo || '-'}</p>
+                      <p className="text-sm text-muted-foreground">{selectedTransaction.memo || '-'}</p>
                     </div>
 
                     {/* Banco */}
@@ -889,19 +889,19 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <p className="font-medium text-gray-900">{transaction.name || '-'}</p>
+                          <p className="font-medium text-foreground">{transaction.name || '-'}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-48 lg:max-w-64">
                           {/* Descrição principal */}
-                          <p className="font-medium text-gray-900 truncate" title={transaction.description}>
+                          <p className="font-medium text-foreground truncate" title={transaction.description}>
                             {transaction.description}
                           </p>
 
                           {/* Memo abaixo da descrição com fonte menor */}
                           {transaction.memo ? (
-                            <p className="text-sm text-gray-600 truncate mt-1" title={transaction.memo}>
+                            <p className="text-sm text-muted-foreground truncate mt-1" title={transaction.memo}>
                               * {transaction.memo}
                             </p>
                           ) : (
