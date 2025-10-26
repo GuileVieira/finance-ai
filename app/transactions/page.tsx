@@ -21,6 +21,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MetricCardSkeleton } from '@/components/transactions/metric-card-skeleton';
 import { TableSkeleton } from '@/components/transactions/table-skeleton';
+import { CategoryRuleDialog } from '@/components/transactions/category-rule-dialog';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState({
@@ -71,6 +72,16 @@ export default function TransactionsPage() {
   // Estado para edição inline da categoria
   const [inlineEditingTransaction, setInlineEditingTransaction] = useState<string | null>(null);
   const [inlineEditingCategory, setInlineEditingCategory] = useState<string>('');
+
+  // Estado para o diálogo de regras
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [transactionForRule, setTransactionForRule] = useState<{
+    id: string;
+    description: string;
+    amount: number;
+    categoryName?: string;
+    selectedCategoryId: string;
+  } | null>(null);
 
   // Filtros com paginação
   const filtersWithPagination = useMemo(() => ({
@@ -176,27 +187,23 @@ export default function TransactionsPage() {
     }).format(amount);
   };
 
-  // Função para atualizar transação individual
-  const handleUpdateSingleTransaction = async (transactionId: string, categoryId: string) => {
-    try {
-      // Encontrar a transação para criar regra
-      const transaction = transactions.find(t => t.id === transactionId);
-      if (!transaction) {
-        toast({
-          title: 'Erro',
-          description: 'Transação não encontrada',
-          variant: 'destructive',
-        });
-        return;
-      }
+  // Função para lidar com a confirmação do diálogo de regras
+  const handleRuleDialogConfirm = async (options: {
+    createRule: boolean;
+    applyRetroactive: boolean;
+    rulePattern: string;
+    ruleType: string;
+  }) => {
+    if (!transactionForRule) return;
 
+    try {
       // Atualizar transação
-      const response = await fetch(`/api/transactions/${transactionId}`, {
+      const response = await fetch(`/api/transactions/${transactionForRule.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ categoryId }),
+        body: JSON.stringify({ categoryId: transactionForRule.selectedCategoryId }),
       });
 
       const result = await response.json();
@@ -205,113 +212,134 @@ export default function TransactionsPage() {
         throw new Error(result.error || 'Erro ao atualizar transação');
       }
 
-      // Criar regra automaticamente
-      await fetch('/api/transaction-rules', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          companyId,
-          categoryId,
-          rulePattern: transaction.description,
-          ruleType: 'contains',
-          confidenceScore: 0.9,
-        }),
-      });
+      let ruleCreated = false;
 
-      toast({
-        title: 'Transação Atualizada',
-        description: `Categoria alterada e regra criada para "${transaction.description}"`,
-      });
+      // Criar regra se solicitado
+      if (options.createRule) {
+        const ruleResponse = await fetch('/api/transaction-rules', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            companyId,
+            categoryId: transactionForRule.selectedCategoryId,
+            rulePattern: options.rulePattern,
+            ruleType: options.ruleType,
+            confidenceScore: 0.9,
+          }),
+        });
 
-      // Fechar card de edição
-      setEditingTransaction(null);
-      setSingleTransactionCategory('');
+        const ruleResult = await ruleResponse.json();
 
-      // Apenas invalidar queries específicas em vez de recarregar tudo
-      if ('refetch' in window) {
-        window.location.reload();
-      } else {
-        // Fallback para reload
-        window.location.reload();
+        if (ruleResult.success) {
+          ruleCreated = true;
+
+          // Aplicar regra retroativamente se solicitado
+          if (options.applyRetroactive && ruleResult.data?.id) {
+            await fetch('/api/transaction-rules/apply-retroactive', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                companyId,
+                ruleId: ruleResult.data.id,
+                applyToAll: true,
+              }),
+            });
+          }
+        }
       }
 
+      // Mensagem de sucesso baseada no que foi feito
+      if (ruleCreated) {
+        if (options.applyRetroactive) {
+          toast({
+            title: 'Regra Criada e Aplicada',
+            description: `Categoria alterada e regra aplicada retroativamente para "${transactionForRule.description}"`,
+          });
+        } else {
+          toast({
+            title: 'Regra Criada',
+            description: `Categoria alterada e regra criada para "${transactionForRule.description}"`,
+          });
+        }
+      } else {
+        toast({
+          title: 'Transação Atualizada',
+          description: `Categoria alterada para "${transactionForRule.categoryName}"`,
+        });
+      }
+
+      // Fechar card de edição se estiver aberto
+      if (editingTransaction === transactionForRule.id) {
+        setEditingTransaction(null);
+        setSingleTransactionCategory('');
+      }
+
+      // Recarregar dados
+      refetch();
+
     } catch (error) {
-      console.error('❌ Erro ao atualizar transação:', error);
+      console.error('❌ Erro ao processar atualização:', error);
       toast({
         title: 'Erro',
-        description: error instanceof Error ? error.message : 'Falha ao atualizar transação',
+        description: error instanceof Error ? error.message : 'Falha ao processar atualização',
         variant: 'destructive',
       });
     }
   };
 
-  // Função para atualizar categoria inline
-  const handleInlineUpdateCategory = async (transactionId: string, categoryId: string) => {
-    try {
-      // Encontrar a transação para criar regra
-      const transaction = transactions.find(t => t.id === transactionId);
-      if (!transaction) {
-        toast({
-          title: 'Erro',
-          description: 'Transação não encontrada',
-          variant: 'destructive',
-        });
-        return;
-      }
+  // Função para abrir diálogo de regras
+  const openRuleDialog = (transaction: {
+    id: string;
+    description: string;
+    amount: number;
+    categoryName?: string;
+  }, categoryId: string, categoryName?: string) => {
+    setTransactionForRule({
+      ...transaction,
+      selectedCategoryId: categoryId,
+      categoryName,
+    });
+    setRuleDialogOpen(true);
+  };
 
-      // Atualizar transação
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ categoryId }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao atualizar transação');
-      }
-
-      // Criar regra automaticamente
-      await fetch('/api/transaction-rules', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          companyId,
-          categoryId,
-          rulePattern: transaction.description,
-          ruleType: 'contains',
-          confidenceScore: 0.9,
-        }),
-      });
-
-      toast({
-        title: 'Categoria Atualizada',
-        description: `Categoria alterada e regra criada para "${transaction.description}"`,
-      });
-
-      // Fechar edição inline
-      setInlineEditingTransaction(null);
-      setInlineEditingCategory('');
-
-      // Atualizar dados sem reload
-      refetch();
-      console.log('✅ Categoria atualizada inline - dados atualizados');
-
-    } catch (error) {
-      console.error('❌ Erro ao atualizar categoria:', error);
+  // Função para atualizar transação individual (agora abre diálogo)
+  const handleUpdateSingleTransaction = (transactionId: string, categoryId: string) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) {
       toast({
         title: 'Erro',
-        description: error instanceof Error ? error.message : 'Falha ao atualizar categoria',
+        description: 'Transação não encontrada',
         variant: 'destructive',
       });
+      return;
     }
+
+    const category = categoryOptions.find(c => c.value === categoryId);
+    openRuleDialog(transaction, categoryId, category?.label);
+  };
+
+  // Função para atualizar categoria inline (agora abre diálogo)
+  const handleInlineUpdateCategory = (transactionId: string, categoryId: string) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) {
+      toast({
+        title: 'Erro',
+        description: 'Transação não encontrada',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const category = categoryOptions.find(c => c.value === categoryId);
+    openRuleDialog(transaction, categoryId, category?.label);
+
+    // Fechar edição inline
+    setInlineEditingTransaction(null);
+    setInlineEditingCategory('');
   };
 
   const getCategoryAnalysis = () => {
@@ -747,7 +775,9 @@ export default function TransactionsPage() {
                       />
                     </TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>Nome</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Memo</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Banco</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -776,8 +806,18 @@ export default function TransactionsPage() {
                         {formatDate(transaction.transactionDate)}
                       </TableCell>
                       <TableCell>
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-900">{transaction.name || '-'}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div>
                           <p className="font-medium">{transaction.description}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-gray-600 max-w-32 truncate">
+                          {transaction.memo || '-'}
                         </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -895,6 +935,26 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Diálogo de configuração de regras */}
+      {transactionForRule && (
+        <CategoryRuleDialog
+          open={ruleDialogOpen}
+          onOpenChange={setRuleDialogOpen}
+          transaction={{
+            id: transactionForRule.id,
+            description: transactionForRule.description,
+            amount: transactionForRule.amount,
+            categoryName: transactionForRule.categoryName,
+          }}
+          selectedCategory={{
+            id: transactionForRule.selectedCategoryId,
+            name: transactionForRule.categoryName || '',
+          }}
+          companyId={companyId}
+          onConfirm={handleRuleDialogConfirm}
+        />
+      )}
 
       <Toaster />
     </LayoutWrapper>

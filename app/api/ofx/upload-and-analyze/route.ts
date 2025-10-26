@@ -403,13 +403,14 @@ export async function POST(request: NextRequest) {
           categoryId,
           uploadId: newUpload.id,
           description: transaction.description,
+          name: transaction.name,
+          memo: transaction.memo,
           amount: transaction.amount.toString(),
           type: transaction.amount >= 0 ? 'credit' : 'debit',
           transactionDate: new Date(transaction.date),
           rawDescription: transaction.description,
           metadata: {
             fitid: transaction.fitid,
-            memo: transaction.memo,
             originalAmount: transaction.amount
           },
           manuallyCategorized: false,

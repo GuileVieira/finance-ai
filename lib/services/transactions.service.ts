@@ -65,6 +65,8 @@ export class TransactionsService {
         categoryId: transactions.categoryId,
         uploadId: transactions.uploadId,
         description: transactions.description,
+        name: transactions.name,
+        memo: transactions.memo,
         amount: transactions.amount,
         type: transactions.type,
         transactionDate: transactions.transactionDate,

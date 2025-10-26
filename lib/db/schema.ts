@@ -109,6 +109,8 @@ export const transactions = pgTable('financeai_transactions', {
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
   uploadId: uuid('upload_id').references(() => uploads.id, { onDelete: 'set null' }),
   description: text('description').notNull(),
+  name: text('name'), // Nome do beneficiário/estabelecimento do OFX
+  memo: text('memo'), // Memo/detalhes adicionais do OFX
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   type: varchar('type', { length: 10 }).notNull(), // credit, debit
   transactionDate: date('transaction_date').notNull(),
@@ -128,6 +130,8 @@ export const transactions = pgTable('financeai_transactions', {
   dateIdx: index('idx_transactions_date').on(table.transactionDate),
   typeIdx: index('idx_transactions_type').on(table.type),
   verifiedIdx: index('idx_transactions_verified').on(table.verified),
+  nameIdx: index('idx_transactions_name').on(table.name), // Índice para busca por nome
+  memoIdx: index('idx_transactions_memo').on(table.memo), // Índice para busca por memo
   // Índices compostos para performance de consultas analíticas
   dateTypeIdx: index('idx_transactions_date_type').on(table.transactionDate, table.type),
   dateAmountIdx: index('idx_transactions_date_amount').on(table.transactionDate.desc()),

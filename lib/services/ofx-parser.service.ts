@@ -192,13 +192,13 @@ export class OFXParserService {
     return rawTransactions.map(tx => ({
       id: tx.FITID || '',
       date: new Date(tx.DTPOSTED),
-      description: this.cleanDescription(tx.MEMO || tx.NAME || ''),
+      description: tx.DESCRIPTION || this.cleanDescription(tx.NAME || ''),
       amount: parseFloat(tx.TRNAMT || '0'),
       type: this.getTransactionType(tx.TRNTYPE, tx.TRNAMT),
       checkNumber: tx.CHECKNUM,
       referenceNumber: tx.REFNUM,
-      memo: tx.MEMO || '',
-      name: tx.NAME || '',
+      memo: tx.MEMO || null,
+      name: tx.NAME || null,
       raw: tx // Dados originais para referência
     }));
   }
