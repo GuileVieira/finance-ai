@@ -777,7 +777,6 @@ export default function TransactionsPage() {
                     <TableHead>Data</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Memo</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Banco</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -811,13 +810,22 @@ export default function TransactionsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{transaction.description}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-600 max-w-32 truncate">
-                          {transaction.memo || '-'}
+                        <div className="max-w-48 lg:max-w-64">
+                          {/* Descrição principal */}
+                          <p className="font-medium text-gray-900 truncate" title={transaction.description}>
+                            {transaction.description}
+                          </p>
+
+                          {/* Memo abaixo da descrição com fonte menor */}
+                          {transaction.memo ? (
+                            <p className="text-sm text-gray-600 truncate mt-1" title={transaction.memo}>
+                              * {transaction.memo}
+                            </p>
+                          ) : (
+                            <div className="h-4 mt-1">
+                              {/* Espaço reservado sutil quando não há memo */}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
