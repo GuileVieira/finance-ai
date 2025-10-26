@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-const { readFileSync } = require('fs');
+const { readFileSync, rmSync, existsSync } = require('fs');
 const { resolve } = require('path');
+const { readdirSync, statSync } = require('fs');
 
 console.log('🧹 Script de Limpeza Completa do Banco OFX');
 console.log('='.repeat(50));
@@ -11,6 +12,65 @@ require('dotenv').config();
 
 // Obter URL do banco da variável de ambiente
 const dbUrl = process.env.DATABASE_URL;
+
+// Função para limpar arquivos do storage
+function cleanStorageFiles(storagePath = 'storage_tmp') {
+  try {
+    if (!existsSync(storagePath)) {
+      console.log('📁 Storage não encontrado, pulando limpeza de arquivos');
+      return;
+    }
+
+    console.log('🗂️ Limpando arquivos do storage...');
+
+    let totalFiles = 0;
+    let totalSize = 0;
+
+    // Função recursiva para deletar diretório
+    function deleteDirectory(dirPath) {
+      if (!existsSync(dirPath)) return;
+
+      const files = readdirSync(dirPath);
+
+      for (const file of files) {
+        const filePath = resolve(dirPath, file);
+        const stat = statSync(filePath);
+
+        if (stat.isDirectory()) {
+          deleteDirectory(filePath); // Recursivo para subdiretórios
+        } else {
+          const fileSize = stat.size;
+          rmSync(filePath);
+          totalFiles++;
+          totalSize += fileSize;
+
+          if (flags.verbose) {
+            console.log(`   📄 Removido: ${filePath} (${formatFileSize(fileSize)})`);
+          }
+        }
+      }
+
+      // Deletar diretório vazio
+      rmSync(dirPath);
+    }
+
+    deleteDirectory(storagePath);
+
+    console.log(`✅ Storage limpo: ${totalFiles} arquivos removidos (${formatFileSize(totalSize)})`);
+
+  } catch (error) {
+    console.error('❌ Erro ao limpar storage:', error);
+  }
+}
+
+// Função para formatar tamanho de arquivo
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 if (!dbUrl) {
   console.error('❌ DATABASE_URL não encontrada nas variáveis de ambiente');
@@ -102,6 +162,13 @@ async function main() {
     );
     console.log(`📋 Uploads encontrados: ${uploadCount.rows[0].count}`);
 
+    // Contar processing batches
+    const batchCount = await client.query(
+      `SELECT COUNT(*) as count FROM financeai_processing_batches ${whereClause}`,
+      parameters
+    );
+    console.log(`📦 Processing batches encontrados: ${batchCount.rows[0].count}`);
+
     // Contar transações
     let transactionCount = null;
     if (!flags.uploadsOnly) {
@@ -122,9 +189,11 @@ async function main() {
     console.log('\n📋 RELATÓRIO DE LIMPEZA:');
     console.log('='.repeat(50));
     console.log(`📋 Uploads para remover: ${uploadCount.rows[0].count}`);
+    console.log(`📦 Processing batches para remover: ${batchCount.rows[0].count}`);
     if (!flags.uploadsOnly && transactionCount) {
       console.log(`💳 Transações para remover: ${transactionCount.rows[0].count}`);
     }
+    console.log(`📁 Arquivos do storage para remover: Todos`);
 
     if (flags.dryRun) {
       console.log('\n✨ Modo de simulação - Nenhuma alteração foi realizada');
@@ -133,7 +202,9 @@ async function main() {
     }
 
     // Confirmação
-    if (uploadCount.rows[0].count === 0 && (!transactionCount || transactionCount.rows[0].count === 0)) {
+    if (uploadCount.rows[0].count === 0 &&
+        batchCount.rows[0].count === 0 &&
+        (!transactionCount || transactionCount.rows[0].count === 0)) {
       console.log('\n✅ Nenhum dado encontrado para limpeza');
       return;
     }
@@ -169,6 +240,14 @@ async function main() {
       console.log(`✅ Transações removidas: ${deleteTransactions.rowCount || 0}`);
     }
 
+    // Remover processing batches
+    console.log('📦 Removendo processing batches...');
+    const deleteBatches = await client.query(
+      `DELETE FROM financeai_processing_batches ${whereClause}`,
+      parameters
+    );
+    console.log(`✅ Processing batches removidos: ${deleteBatches.rowCount || 0}`);
+
     // Remover uploads
     console.log('📋 Removendo uploads...');
     const deleteUploads = await client.query(
@@ -177,14 +256,19 @@ async function main() {
     );
     console.log(`✅ Uploads removidos: ${deleteUploads.rowCount || 0}`);
 
+    // Limpar arquivos do storage
+    cleanStorageFiles();
+
     // Relatório final
-    console.log('\n🎉 LIMPEZA CONCLUÍDA COM SUCESSO!');
+    console.log('\n🎉 LIMPEZA COMPLETA CONCLUÍDA COM SUCESSO!');
     console.log('='.repeat(50));
     console.log(`📋 Uploads removidos: ${deleteUploads.rowCount || 0}`);
+    console.log(`📦 Processing batches removidos: ${deleteBatches.rowCount || 0}`);
     if (!flags.uploadsOnly) {
-      console.log(`💳 Transações removidas: ${removedTransactions || 0}`);
+      console.log(`💳 Transações removidas: ${deleteTransactions.rowCount || 0}`);
     }
-    console.log('\n✨ Sistema limpo e pronto para novos uploads OFX!');
+    console.log('📁 Arquivos do storage: Removidos');
+    console.log('\n✨ Sistema 100% limpo e pronto para novos uploads OFX!');
 
   } catch (error) {
     console.error('❌ Erro durante a limpeza:', error);
