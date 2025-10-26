@@ -747,7 +747,7 @@ export default function TransactionsPage() {
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Categoria Atual</label>
                       <div className="mt-1">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs capitalize">
                           {selectedTransaction.categoryName || 'Sem categoria'}
                         </Badge>
                       </div>
@@ -951,7 +951,7 @@ export default function TransactionsPage() {
                         ) : (
                           <Badge
                             variant="secondary"
-                            className="text-xs cursor-pointer hover:bg-secondary/80"
+                            className="text-xs cursor-pointer hover:bg-secondary/80 capitalize"
                             onClick={() => {
                               if (!isGroupMode) {
                                 setInlineEditingTransaction(transaction.id);

@@ -168,7 +168,7 @@ export function CategoryCard({
             </div>
           ) : (
             <h3
-              className="font-semibold text-sm line-clamp-2 cursor-text hover:text-primary transition-colors"
+              className="font-semibold text-sm line-clamp-2 cursor-text hover:text-primary transition-colors capitalize"
               onClick={handleNameDoubleClick}
               title="Duplo-clique para editar"
             >

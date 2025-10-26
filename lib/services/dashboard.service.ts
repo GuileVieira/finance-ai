@@ -13,6 +13,20 @@ import { Transaction } from '@/lib/db/schema';
 
 export default class DashboardService {
   /**
+   * Função utilitária para capitalizar texto (Title Case)
+   * Transforma "OUTRAS DESPESAS NOP" em "Outras Despesas Nop"
+   */
+  private static capitalizeText(text: string): string {
+    if (!text) return text;
+
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  /**
    * Verificar se o banco de dados está disponível
    */
   private static checkDatabaseConnection(): void {
@@ -357,15 +371,27 @@ export default class DashboardService {
           confidence: transactions.confidence,
           reasoning: transactions.reasoning,
           createdAt: transactions.createdAt,
-          updatedAt: transactions.updatedAt
+          updatedAt: transactions.updatedAt,
+          // Adicionar campos da categoria
+          categoryName: categories.name,
+          categoryType: categories.type,
+          categoryColor: categories.colorHex,
+          categoryIcon: categories.icon
         })
         .from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
         .orderBy(desc(transactions.transactionDate))
         .limit(limit);
 
-      return recentTransactions;
+      // Adicionar nome da categoria como propriedade adicional, com capitalização adequada
+      return recentTransactions.map(transaction => ({
+        ...transaction,
+        categoryName: transaction.categoryName
+          ? this.capitalizeText(transaction.categoryName)
+          : 'Sem Categoria'
+      }));
 
     } catch (error) {
       console.error('Error getting recent transactions:', error);

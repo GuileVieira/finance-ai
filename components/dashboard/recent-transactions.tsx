@@ -66,30 +66,30 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="grid grid-cols-4 text-xs font-medium text-muted-foreground mb-2">
-            <div>Data</div>
-            <div>Descrição</div>
-            <div>Categoria</div>
-            <div className="text-right">Valor</div>
+          <div className="flex items-center text-xs font-medium text-muted-foreground mb-2">
+            <div className="w-20">Data</div>
+            <div className="flex-1 min-w-0 px-2">Descrição</div>
+            <div className="w-44">Categoria</div>
+            <div className="w-24 text-right">Valor</div>
           </div>
           {transactions.filter(transaction => transaction != null).map((transaction) => (
-            <div key={transaction.id} className="grid grid-cols-4 items-center text-sm">
-              <div className="font-medium">
+            <div key={transaction.id} className="flex items-center text-sm">
+              <div className="w-20 font-medium text-xs">
                 {transaction.transactionDate
                   ? new Date(transaction.transactionDate).toLocaleDateString('pt-BR')
                   : 'Sem data'
                 }
               </div>
-              <div className="truncate">{transaction.description}</div>
-              <div>
+              <div className="flex-1 min-w-0 px-2 truncate">{transaction.description}</div>
+              <div className="w-44">
                 <Badge
                   variant={getCategoryVariant(transaction.categoryId || '')}
-                  className="text-xs"
+                  className="text-xs px-2 py-1"
                 >
-                  {transaction.categoryId ? 'Categorizado' : 'Sem Categoria'}
+                  {(transaction as any).categoryName || 'Sem Categoria'}
                 </Badge>
               </div>
-              <div className={`text-right font-medium ${
+              <div className={`w-24 text-right font-medium text-xs ${
                 Number(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 {Number(transaction.amount) > 0 ? '+' : ''}R$ {Math.abs(Number(transaction.amount)).toLocaleString('pt-BR')}

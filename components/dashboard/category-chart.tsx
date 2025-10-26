@@ -81,8 +81,8 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
                     ) : (
                       <ArrowDownRight className="h-3 w-3 text-red-600" />
                     )}
-                    <span className="text-sm font-medium">
-                      {category.name.toUpperCase()}
+                    <span className="text-sm font-medium capitalize">
+                      {category.name}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       category.type === 'revenue'
