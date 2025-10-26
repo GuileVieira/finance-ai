@@ -666,7 +666,7 @@ export default function TransactionsPage() {
 
         {/* Card de Edição Individual */}
         {editingTransaction && !isGroupMode && selectedTransaction && (
-          <Card className="border-primary/50 bg-primary/5">
+          <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
