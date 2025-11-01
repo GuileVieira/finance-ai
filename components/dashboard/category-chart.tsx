@@ -69,22 +69,24 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
         <div className="space-y-4">
           {categories.map((category) => (
             <div key={category.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: category.color }}
                   />
-                  <div className="flex items-center gap-1">
-                    {category.type === 'revenue' ? (
-                      <ArrowUpRight className="h-3 w-3 text-success" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 text-destructive" />
-                    )}
-                    <span className="text-sm font-medium capitalize">
-                      {category.name}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      {category.type === 'revenue' ? (
+                        <ArrowUpRight className="h-3 w-3 text-success shrink-0" />
+                      ) : (
+                        <ArrowDownRight className="h-3 w-3 text-destructive shrink-0" />
+                      )}
+                      <span className="text-xs sm:text-sm font-medium capitalize truncate">
+                        {category.name}
+                      </span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 self-start ${
                       category.type === 'revenue'
                         ? 'bg-success/10 text-success dark:bg-success/20'
                         : 'bg-destructive/10 text-destructive dark:bg-destructive/20'
@@ -93,8 +95,8 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className={`text-sm font-medium ${
+                <div className="text-right shrink-0">
+                  <div className={`text-xs sm:text-sm font-medium ${
                     category.type === 'revenue' ? 'text-success' : 'text-destructive'
                   }`}>
                     {category.type === 'revenue' ? '+' : '-'} R$ {Math.abs(category.totalAmount).toLocaleString('pt-BR')}

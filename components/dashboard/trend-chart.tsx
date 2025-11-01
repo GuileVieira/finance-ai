@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CustomTooltip } from '@/components/ui/custom-tooltip';
 
 interface TrendData {
   date: string;
@@ -69,6 +70,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip
+              content={<CustomTooltip />}
               formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
             />
             <Legend />

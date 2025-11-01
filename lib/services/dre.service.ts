@@ -223,6 +223,7 @@ export default class DREService {
           percentage: contributionMarginPercentage
         },
         operationalResult: operatingIncome,
+        nonOperationalExpenses: totalNonOperational,
         nonOperational: {
           revenue: 0, // TODO: Separar receitas não operacionais
           expenses: totalNonOperational,

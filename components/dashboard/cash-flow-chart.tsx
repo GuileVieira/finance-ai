@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ComposedChart } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendData } from '@/lib/api/dashboard';
+import { CustomTooltip } from '@/components/ui/custom-tooltip';
 
 interface CashFlowData {
   day: string;
@@ -101,6 +102,7 @@ export function CashFlowChart({ data, isLoading, period }: CashFlowChartProps) {
             <XAxis dataKey="day" />
             <YAxis />
             <Tooltip
+              content={<CustomTooltip />}
               formatter={(value: number, name: string) => [
                 `R$ ${value.toLocaleString('pt-BR')}`,
                 name === 'inflow' ? 'Entradas' :

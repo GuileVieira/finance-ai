@@ -25,6 +25,7 @@ import {
   ResponsiveContainer,
   Bar
 } from 'recharts';
+import { CustomTooltip } from '@/components/ui/custom-tooltip';
 
 interface CashFlowReportProps {
   data: CashFlowReport;
@@ -120,6 +121,7 @@ export default function CashFlowReportComponent({
               <XAxis dataKey="date" />
               <YAxis tickFormatter={(value) => `R$ ${value/1000}k`} />
               <Tooltip
+                content={<CustomTooltip />}
                 formatter={(value: number, name: string) => [
                   formatCurrency(value),
                   name === 'inflow' ? 'Entradas' :

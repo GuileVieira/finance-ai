@@ -15,13 +15,29 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">
               {metric.title}
             </p>
-            <p className={`text-2xl font-bold ${metric.color || 'text-foreground'}`}>
+            {metric.change !== 0 && (
+              <Badge
+                variant={isPositive ? 'success-light' : 'danger-light'}
+                className="flex items-center gap-1 text-xs shrink-0"
+              >
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span className="hidden sm:inline">{isPositive ? '+' : ''}{metric.change.toFixed(2)}%</span>
+                <span className="sm:hidden">{isPositive ? '+' : ''}{metric.change.toFixed(0)}%</span>
+              </Badge>
+            )}
+          </div>
+          <div>
+            <p className={`text-lg sm:text-2xl font-bold ${metric.color || 'text-foreground'} whitespace-nowrap`}>
               {(() => {
                 const value = typeof metric.value === 'number' ? metric.value : parseFloat(metric.value.toString());
                 if (isNaN(value)) return metric.value;
@@ -42,19 +58,6 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
               })()}
             </p>
           </div>
-          {metric.change !== 0 && (
-            <Badge
-              variant={isPositive ? 'success-light' : 'danger-light'}
-              className="flex items-center gap-1"
-            >
-              {isPositive ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              {isPositive ? '+' : ''}{metric.change.toFixed(2)}%
-            </Badge>
-          )}
         </div>
       </CardContent>
     </Card>

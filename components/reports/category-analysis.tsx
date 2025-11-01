@@ -28,6 +28,7 @@ import {
   Info
 } from 'lucide-react';
 import { DRECategory, CategoryRule } from '@/lib/types';
+import { CustomTooltip } from '@/components/ui/custom-tooltip';
 
 interface CategoryAnalysisProps {
   categories: DRECategory[];
@@ -156,6 +157,7 @@ export default function CategoryAnalysis({
               ))}
             </Pie>
             <Tooltip
+              content={<CustomTooltip />}
               formatter={(value: number) => [formatCurrency(value), 'Valor']}
               labelFormatter={(label) => `Categoria: ${label}`}
             />
@@ -203,6 +205,7 @@ export default function CategoryAnalysis({
             <XAxis type="number" tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`} />
             <YAxis dataKey="name" type="category" width={120} />
             <Tooltip
+              content={<CustomTooltip />}
               formatter={(value: number, name: string) => [
                 name === 'value' ? formatCurrency(value) : value,
                 name === 'value' ? 'Valor' : name === 'percentage' ? '%' : 'Trans'

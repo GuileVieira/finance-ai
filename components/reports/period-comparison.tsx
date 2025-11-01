@@ -27,6 +27,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { DREStatement, ReportPeriod } from '@/lib/types';
+import { CustomTooltip } from '@/components/ui/custom-tooltip';
 
 interface PeriodComparisonProps {
   currentPeriod: DREStatement;
@@ -273,6 +274,7 @@ export default function PeriodComparison({
                   return `R$ ${(value/1000).toFixed(0)}k`;
                 }} />
                 <Tooltip
+                  content={<CustomTooltip />}
                   formatter={(value: number) => [
                     comparisonMetric === 'margin' ? formatPercentage(value) : formatCurrency(value),
                     metricConfig.label
@@ -295,6 +297,7 @@ export default function PeriodComparison({
                 <XAxis type="number" tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`} />
                 <YAxis dataKey="period" type="category" width={120} />
                 <Tooltip
+                  content={<CustomTooltip />}
                   formatter={(value: number, name: string) => [
                     name === 'value' ? formatCurrency(value) : value,
                     name === 'value' ? 'Valor' : name
