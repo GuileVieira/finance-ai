@@ -14,24 +14,24 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
   const getInsightIcon = (type: Insight['type']) => {
     switch (type) {
       case 'alert':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
+        return <AlertTriangle className="w-5 h-5 text-destructive" />;
       case 'recommendation':
         return <Lightbulb className="w-5 h-5 text-primary" />;
       case 'positive':
-        return <TrendingUp className="w-5 h-5 text-green-500" />;
+        return <TrendingUp className="w-5 h-5 text-success" />;
       case 'trend':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        return <AlertCircle className="w-5 h-5 text-warning" />;
       default:
-        return <AlertCircle className="w-5 h-5 text-gray-500" />;
+        return <AlertCircle className="w-5 h-5 text-muted-foreground/70" />;
     }
   };
 
   const getImpactColor = (impact: Insight['impact']) => {
     switch (impact) {
       case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/20';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-warning/10 text-warning border-warning/20 dark:bg-warning/20';
       case 'low':
         return 'bg-primary/10 text-primary border-primary/20';
       default:
@@ -55,13 +55,13 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
   const getTypeColor = (type: Insight['type']) => {
     switch (type) {
       case 'alert':
-        return 'border-red-200 bg-red-50';
+        return 'border-destructive/20 bg-destructive/10 dark:bg-destructive/10';
       case 'recommendation':
         return 'border-primary/20 bg-primary/5';
       case 'positive':
-        return 'border-green-200 bg-green-50';
+        return 'border-success/20 bg-success/10 dark:bg-success/10';
       case 'trend':
-        return 'border-yellow-200 bg-yellow-50';
+        return 'border-warning/20 bg-warning/10 dark:bg-warning/10';
       default:
         return 'border-border bg-muted';
     }
@@ -126,7 +126,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
                   </Badge>
                 </div>
 
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-foreground leading-relaxed">
                   {insight.description}
                 </p>
 

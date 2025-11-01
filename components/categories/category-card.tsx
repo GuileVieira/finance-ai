@@ -154,7 +154,7 @@ export function CategoryCard({
                 onClick={handleSave}
                 title="Salvar alterações"
               >
-                <Check className="h-3 w-3 text-green-600" />
+                <Check className="h-3 w-3 text-success" />
               </Button>
               <Button
                 size="sm"
@@ -163,7 +163,7 @@ export function CategoryCard({
                 onClick={handleCancel}
                 title="Cancelar alterações"
               >
-                <X className="h-3 w-3 text-red-600" />
+                <X className="h-3 w-3 text-destructive" />
               </Button>
             </div>
           ) : (

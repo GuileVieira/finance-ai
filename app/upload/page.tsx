@@ -432,7 +432,7 @@ export default function UploadPage() {
         {errorFiles.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-red-600 flex items-center gap-2">
+              <CardTitle className="text-destructive flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
                 Arquivos com Erro ({errorFiles.length})
               </CardTitle>
@@ -440,10 +440,10 @@ export default function UploadPage() {
             <CardContent>
               <div className="space-y-3">
                 {errorFiles.map(file => (
-                  <div key={file.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <div key={file.id} className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
                     <div>
                       <p className="font-medium">{file.file.name}</p>
-                      <p className="text-sm text-red-600">{file.error}</p>
+                      <p className="text-sm text-destructive">{file.error}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -464,7 +464,7 @@ export default function UploadPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-success" />
                 Arquivos Importados ({completedFiles.length})
               </CardTitle>
             </CardHeader>
@@ -491,8 +491,8 @@ export default function UploadPage() {
                             {/* Mostrar status de salvamento da API */}
                             {file.apiData?.savedToDatabase ? (
                               <div className="flex items-center space-x-2">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-sm text-green-600">
+                                <CheckCircle className="w-4 h-4 text-success" />
+                                <span className="text-sm text-success">
                                   {file.apiData.statistics.databasePersistence.successful} transações salvas
                                 </span>
                                 {file.apiData.statistics.databasePersistence.failed > 0 && (
@@ -533,13 +533,13 @@ export default function UploadPage() {
                             <p className="text-sm text-muted-foreground">Transações</p>
                           </div>
                           <div className="text-center p-3 bg-card rounded-lg border">
-                            <p className="text-2xl font-bold text-green-600">
+                            <p className="text-2xl font-bold text-success">
                               {file.analysis?.credits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Créditos</p>
                           </div>
                           <div className="text-center p-3 bg-card rounded-lg border">
-                            <p className="text-2xl font-bold text-red-600">
+                            <p className="text-2xl font-bold text-destructive">
                               {file.analysis?.debits.length}
                             </p>
                             <p className="text-sm text-muted-foreground">Débitos</p>
@@ -628,7 +628,7 @@ export default function UploadPage() {
                                     </Badge>
                                   </TableCell>
                                   <TableCell className={`text-right font-medium ${
-                                    tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                                    tx.type === 'credit' ? 'text-success' : 'text-destructive'
                                   }`}>
                                     {formatCurrency(tx.amount)}
                                   </TableCell>
@@ -685,7 +685,7 @@ export default function UploadPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <BarChart3 className="h-5 w-5 text-info" />
                 Estatísticas de Transações Salvas
               </CardTitle>
             </CardHeader>
@@ -755,7 +755,7 @@ export default function UploadPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <h4 className="font-medium text-green-600">✅ Implementado</h4>
+                <h4 className="font-medium text-success">✅ Implementado</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Importação de arquivos OFX</li>
                   <li>• <strong>Salvamento automático no banco de dados</strong></li>
@@ -769,13 +769,13 @@ export default function UploadPage() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-green-600">✅ Implementado</h4>
+                <h4 className="font-medium text-success">✅ Implementado</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Listagem de uploads anteriores (<a href="/settings/uploads" className="text-blue-600 hover:underline">Ver aqui</a>)</li>
+                  <li>• Listagem de uploads anteriores (<a href="/settings/uploads" className="text-info hover:underline">Ver aqui</a>)</li>
                   <li>• Download dos arquivos OFX originais</li>
                   <li>• Validação de arquivos duplicados</li>
                 </ul>
-                <h4 className="font-medium text-blue-600 mt-4">🚀 Em Breve</h4>
+                <h4 className="font-medium text-info mt-4">🚀 Em Breve</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Suporte para Excel (XLS/XLSX)</li>
                   <li>• Integração com Supabase Storage</li>

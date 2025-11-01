@@ -188,15 +188,15 @@ export default function SettingsUploadsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success dark:bg-success/20';
       case 'processing':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-info/10 text-info dark:bg-info/20';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive dark:bg-destructive/20';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/10 text-warning dark:bg-warning/20';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted/50 text-muted-foreground';
     }
   };
 

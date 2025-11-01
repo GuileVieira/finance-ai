@@ -14,7 +14,7 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
-import { CashFlowReport, CashFlowItem } from '@/lib/types';
+import { CashFlowReport, CashFlowDay } from '@/lib/types';
 import {
   LineChart,
   Line,
@@ -54,14 +54,17 @@ export default function CashFlowReportComponent({
   };
 
   const chartData = useMemo(() => {
-    return data.dailyFlows.map((flow, index) => ({
-      date: formatDate(flow.date),
-      balance: flow.balance,
-      income: flow.amount > 0 ? flow.amount : 0,
-      expense: flow.amount < 0 ? Math.abs(flow.amount) : 0,
+    if (!data?.cashFlowDays || !Array.isArray(data.cashFlowDays)) {
+      return [];
+    }
+    return data.cashFlowDays.map((day: CashFlowDay, index: number) => ({
+      date: formatDate(day.date),
+      balance: day.closingBalance,
+      income: day.income,
+      expense: day.expenses,
       day: index + 1
     }));
-  }, [data.dailyFlows]);
+  }, [data.cashFlowDays]);
 
   const dailyStats = useMemo(() => {
     const stats = {
@@ -73,33 +76,33 @@ export default function CashFlowReportComponent({
       daysNegative: 0
     };
 
-    if (data.dailyFlows.length === 0) return stats;
+    if (!data?.cashFlowDays || data.cashFlowDays.length === 0) return stats;
 
     let totalIncome = 0;
     let totalExpense = 0;
 
-    data.dailyFlows.forEach(flow => {
-      totalIncome += flow.amount > 0 ? flow.amount : 0;
-      totalExpense += flow.amount < 0 ? Math.abs(flow.amount) : 0;
+    data.cashFlowDays.forEach((day: CashFlowDay) => {
+      totalIncome += day.income;
+      totalExpense += day.expenses;
 
-      if (flow.balance > stats.highestBalance) {
-        stats.highestBalance = flow.balance;
+      if (day.closingBalance > stats.highestBalance) {
+        stats.highestBalance = day.closingBalance;
       }
-      if (flow.balance < stats.lowestBalance) {
-        stats.lowestBalance = flow.balance;
+      if (day.closingBalance < stats.lowestBalance) {
+        stats.lowestBalance = day.closingBalance;
       }
-      if (flow.balance >= 0) {
+      if (day.closingBalance >= 0) {
         stats.daysPositive++;
       } else {
         stats.daysNegative++;
       }
     });
 
-    stats.avgDailyIncome = totalIncome / data.dailyFlows.length;
-    stats.avgDailyExpense = totalExpense / data.dailyFlows.length;
+    stats.avgDailyIncome = totalIncome / data.cashFlowDays.length;
+    stats.avgDailyExpense = totalExpense / data.cashFlowDays.length;
 
     return stats;
-  }, [data.dailyFlows]);
+  }, [data.cashFlowDays]);
 
   const renderDailyView = () => (
     <Card>
@@ -172,26 +175,26 @@ export default function CashFlowReportComponent({
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  {data.dailyFlows.map((flow, index) => (
-                    <tr key={`${flow.date}-${index}`} className="border-t">
-                      <td className="p-3">{formatDate(flow.date)}</td>
+                  {data.cashFlowDays.map((day: CashFlowDay, index: number) => (
+                    <tr key={`${day.date}-${index}`} className="border-t">
+                      <td className="p-3">{formatDate(day.date)}</td>
                       <td className="p-3">
                         <div>
-                          <div className="font-medium">{flow.description}</div>
+                          <div className="font-medium">Fluxo do Dia</div>
                           <Badge variant="outline" className="text-xs mt-1">
-                            {flow.category}
+                            {day.transactions} transações
                           </Badge>
                         </div>
                       </td>
                       <td className={`p-3 text-right font-medium ${
-                        flow.amount >= 0 ? 'text-success' : 'text-danger'
+                        day.netCashFlow >= 0 ? 'text-success' : 'text-danger'
                       }`}>
-                        {flow.amount >= 0 ? '+' : ''}{formatCurrency(flow.amount)}
+                        {day.netCashFlow >= 0 ? '+' : ''}{formatCurrency(day.netCashFlow)}
                       </td>
                       <td className={`p-3 text-right font-medium ${
-                        flow.balance >= 0 ? 'text-success' : 'text-danger'
+                        day.closingBalance >= 0 ? 'text-success' : 'text-danger'
                       }`}>
-                        {formatCurrency(flow.balance)}
+                        {formatCurrency(day.closingBalance)}
                       </td>
                     </tr>
                   ))}
@@ -251,7 +254,7 @@ export default function CashFlowReportComponent({
             <span className="text-sm text-muted-foreground">Total Saídas</span>
           </div>
           <div className="font-semibold text-danger">
-            {formatCurrency(data.totalExpense)}
+            {formatCurrency(data.totalExpenses)}
           </div>
         </CardContent>
       </Card>

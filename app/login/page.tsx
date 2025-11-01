@@ -64,17 +64,17 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-primary mb-2">
             FinanceAI
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-muted-foreground text-sm">
             Gestão Financeira Inteligente
           </p>
         </div>
 
         <Card className="shadow-lg border-0">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-gray-900">
+            <CardTitle className="text-2xl font-bold text-center text-foreground">
               Bem-vindo!
             </CardTitle>
-            <CardDescription className="text-center text-gray-600">
+            <CardDescription className="text-center text-muted-foreground">
               Faça login na sua conta
             </CardDescription>
           </CardHeader>
@@ -88,7 +88,7 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
                   📧 Email
                 </Label>
                 <Input
@@ -104,7 +104,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
                   🔒 Senha
                 </Label>
                 <Input
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 />
                 <Label
                   htmlFor="remember"
-                  className="text-sm text-gray-600 cursor-pointer"
+                  className="text-sm text-muted-foreground cursor-pointer"
                 >
                   Manter conectado
                 </Label>
@@ -144,7 +144,7 @@ export default function LoginPage() {
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin" />
                     <span>Entrando...</span>
                   </div>
                 ) : (
@@ -161,7 +161,7 @@ export default function LoginPage() {
                     Esqueceu a senha?
                   </Link>
                 </div>
-                <div className="text-gray-600">
+                <div className="text-muted-foreground">
                   Não tem conta?{" "}
                   <Link
                     href="/register"
@@ -180,10 +180,10 @@ export default function LoginPage() {
           <p className="text-xs text-primary font-medium mb-2">
             📋 Modo Demo - Credenciais de Teste:
           </p>
-          <p className="text-xs text-blue-700 mb-1">
+          <p className="text-xs text-info mb-1">
             Email: demo@financeai.com
           </p>
-          <p className="text-xs text-blue-700 mb-1">
+          <p className="text-xs text-info mb-1">
             Senha: FinanceAI123
           </p>
           <p className="text-xs text-primary/80 mt-2">

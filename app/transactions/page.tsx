@@ -392,13 +392,13 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Receitas</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {formatCurrency(stats?.income || 0)}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground/70">
                   {stats?.incomeCount || 0} transações
                 </p>
               </CardContent>
@@ -412,13 +412,13 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Despesas</CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-4 w-4 text-destructive" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-destructive">
                   - {formatCurrency(stats?.expenses || 0)}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground/70">
                   {stats?.expenseCount || 0} transações
                 </p>
               </CardContent>
@@ -432,13 +432,13 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Saldo</CardTitle>
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+                <DollarSign className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${(stats?.total || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <div className={`text-2xl font-bold ${(stats?.total || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(stats?.total || 0)}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground/70">
                   {stats?.transactionCount || 0} total
                 </p>
               </CardContent>
@@ -453,15 +453,15 @@ export default function TransactionsPage() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Transações</CardTitle>
                 <div className="flex items-center space-x-2">
-                  {isRefetching && <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />}
-                  <Filter className="h-4 w-4 text-gray-600" />
+                  {isRefetching && <RefreshCw className="h-4 w-4 text-info animate-spin" />}
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {isLoading ? '...' : (pagination?.total || 0)}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground/70">
                   {isLoading ? '...' : `${totalPages} página(s)`}
                 </p>
               </CardContent>
@@ -471,11 +471,11 @@ export default function TransactionsPage() {
 
         {/* Mensagem de Erro */}
         {hasError && (
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-destructive/20 bg-destructive/10">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <p className="text-sm text-red-800">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <p className="text-sm text-destructive">
                   <strong>Erro ao carregar dados:</strong> {error?.message || statsError?.message || 'Erro desconhecido'}
                 </p>
                 <Button
@@ -502,9 +502,9 @@ export default function TransactionsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Busca */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Buscar transação</label>
+                  <label className="text-sm font-medium text-foreground">Buscar transação</label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                     <Input
                       placeholder="Digite descrição..."
                       value={filters.search}
@@ -516,7 +516,7 @@ export default function TransactionsPage() {
 
                 {/* Período */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Período</label>
+                  <label className="text-sm font-medium text-foreground">Período</label>
                   <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o período" />
@@ -533,7 +533,7 @@ export default function TransactionsPage() {
 
                 {/* Banco - dados reais da API */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Banco/Conta</label>
+                  <label className="text-sm font-medium text-foreground">Banco/Conta</label>
                   <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)} disabled={isLoadingAccounts}>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione o banco"} />
@@ -550,7 +550,7 @@ export default function TransactionsPage() {
 
                 {/* Categoria - dados reais da API */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Categoria</label>
+                  <label className="text-sm font-medium text-foreground">Categoria</label>
                   <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
                     <SelectTrigger>
                       <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Selecione a categoria"} />
@@ -568,7 +568,7 @@ export default function TransactionsPage() {
 
                 {/* Tipo */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Tipo de Transação</label>
+                  <label className="text-sm font-medium text-foreground">Tipo de Transação</label>
                   <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
@@ -737,7 +737,7 @@ export default function TransactionsPage() {
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Valor</label>
                       <p className={`text-lg font-bold ${
-                        selectedTransaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        selectedTransaction.amount > 0 ? 'text-success' : 'text-destructive'
                       }`}>
                         {selectedTransaction.amount > 0 ? '+' : ''}{formatCurrency(selectedTransaction.amount)}
                       </p>
@@ -825,9 +825,9 @@ export default function TransactionsPage() {
               <TableSkeleton rows={10} columns={5} />
             ) : isEmpty ? (
               <div className="text-center py-12">
-                <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma transação encontrada</h3>
-                <p className="text-gray-500 mb-4">
+                <Filter className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma transação encontrada</h3>
+                <p className="text-muted-foreground/70 mb-4">
                   Tente ajustar os filtros ou verificar outro período.
                 </p>
                 <Button variant="outline" onClick={() => setFilters({
@@ -869,7 +869,7 @@ export default function TransactionsPage() {
                   {paginatedTransactions.map((transaction) => (
                     <TableRow
                       key={transaction.id}
-                      className={`hover:bg-muted/50 cursor-pointer ${isTransactionSelected(transaction.id) ? 'bg-blue-50/50' : ''} ${editingTransaction === transaction.id ? 'ring-2 ring-primary' : ''}`}
+                      className={`hover:bg-muted/50 cursor-pointer ${isTransactionSelected(transaction.id) ? 'bg-info/10' : ''} ${editingTransaction === transaction.id ? 'ring-2 ring-primary' : ''}`}
                       onClick={() => {
                         if (!isGroupMode && inlineEditingTransaction !== transaction.id) {
                           setEditingTransaction(editingTransaction === transaction.id ? null : transaction.id);
@@ -969,7 +969,7 @@ export default function TransactionsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-bold ${
-                        transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        transaction.amount > 0 ? 'text-success' : 'text-destructive'
                       }`}>
                         {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                       </TableCell>
@@ -984,7 +984,7 @@ export default function TransactionsPage() {
               <>
                 <Separator className="my-4" />
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Mostrando {((pagination.page - 1) * itemsPerPage) + 1} a {Math.min(pagination.page * itemsPerPage, pagination.total)} de {pagination.total} transações
                   </p>
                   <div className="flex space-x-2">
@@ -1015,11 +1015,11 @@ export default function TransactionsPage() {
         </Card>
 
         {/* Insights */}
-        <Card className="bg-emerald-50 border-emerald-200">
+        <Card className="bg-success/10 border-success/20">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <span className="text-emerald-600">💡</span>
-              <p className="text-sm text-emerald-800">
+              <span className="text-success">💡</span>
+              <p className="text-sm text-success">
                 <strong>Insights:</strong> 94% de acurácia na categorização automática • Salários representam 51.8% dos custos fixos • 47 categorias financeiras mapeadas
               </p>
             </div>

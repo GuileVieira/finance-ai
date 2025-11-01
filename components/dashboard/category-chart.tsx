@@ -51,7 +51,7 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
           <CardTitle>Detalhamento por Categoria</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground/70">
             <p className="text-lg font-medium mb-2">Nenhuma categoria registrada</p>
             <p className="text-sm">As categorias aparecerão aqui conforme você adiciona transações</p>
           </div>
@@ -77,17 +77,17 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
                   />
                   <div className="flex items-center gap-1">
                     {category.type === 'revenue' ? (
-                      <ArrowUpRight className="h-3 w-3 text-green-600" />
+                      <ArrowUpRight className="h-3 w-3 text-success" />
                     ) : (
-                      <ArrowDownRight className="h-3 w-3 text-red-600" />
+                      <ArrowDownRight className="h-3 w-3 text-destructive" />
                     )}
                     <span className="text-sm font-medium capitalize">
                       {category.name}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       category.type === 'revenue'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                        ? 'bg-success/10 text-success dark:bg-success/20'
+                        : 'bg-destructive/10 text-destructive dark:bg-destructive/20'
                     }`}>
                       {category.type === 'revenue' ? 'RECEITA' : 'DESPESA'}
                     </span>
@@ -95,7 +95,7 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
                 </div>
                 <div className="text-right">
                   <div className={`text-sm font-medium ${
-                    category.type === 'revenue' ? 'text-green-600' : 'text-red-600'
+                    category.type === 'revenue' ? 'text-success' : 'text-destructive'
                   }`}>
                     {category.type === 'revenue' ? '+' : '-'} R$ {Math.abs(category.totalAmount).toLocaleString('pt-BR')}
                   </div>

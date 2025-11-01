@@ -46,7 +46,7 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
           <CardTitle>Top 5 Despesas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground/70">
             <p className="text-lg font-medium mb-2">Nenhuma despesa registrada</p>
             <p className="text-sm">As despesas aparecerão aqui conforme você adiciona transações</p>
           </div>
@@ -65,7 +65,7 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
           {expenses.slice(0, 5).map((expense, index) => (
             <div key={expense.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
                   {index + 1}°
                 </div>
                 <div>
@@ -81,7 +81,7 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-medium text-sm text-red-600">
+                <div className="font-medium text-sm text-destructive">
                   R$ {expense.amount.toLocaleString('pt-BR')}
                 </div>
               </div>

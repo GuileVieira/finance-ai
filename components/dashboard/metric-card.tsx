@@ -21,7 +21,7 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
             <p className="text-sm font-medium text-muted-foreground">
               {metric.title}
             </p>
-            <p className={`text-2xl font-bold ${metric.color || 'text-gray-600'}`}>
+            <p className={`text-2xl font-bold ${metric.color || 'text-foreground'}`}>
               {(() => {
                 const value = typeof metric.value === 'number' ? metric.value : parseFloat(metric.value.toString());
                 if (isNaN(value)) return metric.value;
@@ -44,12 +44,8 @@ export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) 
           </div>
           {metric.change !== 0 && (
             <Badge
-              variant={isPositive ? 'default' : 'secondary'}
-              className={`flex items-center gap-1 ${
-                isPositive
-                  ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20'
-                  : 'bg-red-500/15 text-red-600 border-red-500/20'
-              }`}
+              variant={isPositive ? 'success-light' : 'danger-light'}
+              className="flex items-center gap-1"
             >
               {isPositive ? (
                 <TrendingUp className="h-3 w-3" />
