@@ -94,6 +94,8 @@ export default class DREService {
           incomeAmount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
           expenseAmount: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
           transactionCount: count(transactions.id).mapWith(Number),
+          creditCount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN 1 ELSE 0 END`).mapWith(Number),
+          debitCount: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN 1 ELSE 0 END`).mapWith(Number),
         })
         .from(transactions)
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
@@ -103,22 +105,72 @@ export default class DREService {
         .orderBy(sql`SUM(ABS(${transactions.amount})) DESC`); // Ordenar por valor total
 
       // Processar categorias
-      const dreCategories: DRECategory[] = categoryData
-        .filter(cat => cat.categoryId) // Remover categorias nulas
-        .map(cat => ({
-          id: cat.categoryId!,
-          name: cat.categoryName || 'Sem Categoria',
-          type: cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational',
-          budget: 0, // TODO: Implementar orçamento
-          actual: cat.totalAmount || 0,
-          variance: 0, // TODO: Calcular variação vs orçamento
-          percentage: 0, // Será calculado depois
-          color: cat.colorHex || '#6366F1',
-          icon: cat.icon || '📊',
-          subcategories: [], // TODO: Implementar subcategorias
-          growthRate: 0, // TODO: Calcular taxa de crescimento
-          transactions: cat.transactionCount || 0, // Adicionar número de transações
-        }));
+      const categorizedData = categoryData.filter(cat => cat.categoryId);
+
+      const dreCategories: DRECategory[] = categorizedData
+        .map(cat => {
+          const revenueAmount = cat.incomeAmount || 0;
+          const expenseAmount = cat.expenseAmount || 0;
+          const resolvedType = (cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | undefined)
+            || (revenueAmount >= expenseAmount ? 'revenue' : 'variable_cost');
+          const actualValue = resolvedType === 'revenue' ? revenueAmount : expenseAmount;
+
+          return {
+            id: cat.categoryId!,
+            name: cat.categoryName || 'Sem Categoria',
+            type: resolvedType,
+            budget: 0, // TODO: Implementar orçamento
+            actual: actualValue,
+            variance: 0, // TODO: Calcular variação vs orçamento
+            percentage: 0, // Será calculado depois
+            color: cat.colorHex || '#6366F1',
+            icon: cat.icon || '📊',
+            subcategories: [], // TODO: Implementar subcategorias
+            growthRate: 0, // TODO: Calcular taxa de crescimento
+            transactions: cat.transactionCount || 0,
+          };
+        });
+
+      const uncategorizedData = categoryData.filter(cat => !cat.categoryId);
+
+      const uncategorizedRevenue = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.incomeAmount || 0), 0);
+      const uncategorizedExpenses = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.expenseAmount || 0), 0);
+      const uncategorizedRevenueTransactions = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.creditCount || 0), 0);
+      const uncategorizedExpenseTransactions = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.debitCount || 0), 0);
+
+      if (uncategorizedRevenue > 0) {
+        dreCategories.push({
+          id: 'uncategorized-revenue',
+          name: 'Receitas não categorizadas',
+          type: 'revenue',
+          budget: 0,
+          actual: uncategorizedRevenue,
+          variance: 0,
+          percentage: 0,
+          color: '#0EA5E9',
+          icon: '📁',
+          subcategories: [],
+          growthRate: 0,
+          transactions: uncategorizedRevenueTransactions,
+        });
+      }
+
+      if (uncategorizedExpenses > 0) {
+        dreCategories.push({
+          id: 'uncategorized-expense',
+          name: 'Despesas não categorizadas',
+          type: 'variable_cost',
+          budget: 0,
+          actual: uncategorizedExpenses,
+          variance: 0,
+          percentage: 0,
+          color: '#A855F7',
+          icon: '📁',
+          subcategories: [],
+          growthRate: 0,
+          transactions: uncategorizedExpenseTransactions,
+        });
+      }
 
       // Calcular totais gerais
       const totalRevenue = dreCategories

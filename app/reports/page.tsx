@@ -213,11 +213,7 @@ export default function ReportsPage() {
               <PeriodComparison
                 currentPeriod={dreData.current}
                 previousPeriod={dreData.comparison}
-                periods={[ // TODO: Implementar períodos dinâmicos
-                  { value: '2025-10', label: 'Outubro/2025' },
-                  { value: '2025-09', label: 'Setembro/2025' },
-                  { value: '2025-08', label: 'Agosto/2025' }
-                ]}
+                onPeriodChange={(periodId) => handleFilterChange('period', periodId)}
               />
             ) : (
               <div className="text-center py-12">

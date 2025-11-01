@@ -126,6 +126,24 @@ export default function PeriodComparison({
 
   const metricConfig = getMetricConfig(comparisonMetric);
 
+  const periodSelectValue = useMemo(() => {
+    if (!periods || periods.length === 0) {
+      return currentPeriod.period;
+    }
+
+    const matchById = periods.find(period => period.id === currentPeriod.period);
+    if (matchById) {
+      return matchById.id;
+    }
+
+    const matchByName = periods.find(period => period.name === currentPeriod.period);
+    if (matchByName) {
+      return matchByName.id;
+    }
+
+    return currentPeriod.period;
+  }, [periods, currentPeriod.period]);
+
   const renderMetricCard = (title: string, currentValue: number, previousValue?: number, format: 'currency' | 'percentage' = 'currency') => {
     const variation = previousValue ? calculateVariation(currentValue, previousValue) : null;
 
@@ -172,8 +190,8 @@ export default function PeriodComparison({
         <div className="flex gap-2">
           {periods.length > 0 && (
             <Select
-              value={currentPeriod.period}
-              onValueChange={onPeriodChange}
+              value={periodSelectValue}
+              onValueChange={value => onPeriodChange?.(value)}
             >
               <SelectTrigger className="w-48">
                 <SelectValue />

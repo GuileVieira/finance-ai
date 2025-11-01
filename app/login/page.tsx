@@ -48,7 +48,7 @@ export default function LoginPage() {
         // Simula login bem-sucedido
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userName', email.split('@')[0]);
-        router.push('/');
+        router.push('/dashboard');
       } else {
         setError('Por favor, preencha todos os campos');
       }
