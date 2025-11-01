@@ -1,8 +1,8 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { z } from 'zod';
-import { completion } from 'litellm';
 import { mockCategories } from '@/lib/mock-categories';
 import { AgentPrompts } from './prompts';
+import { aiProviderService } from '@/lib/ai/ai-provider.service';
 import {
   searchCompanyTool,
   validateCNPJTool,
@@ -22,28 +22,25 @@ import {
   BatchClassificationResponse
 } from './types';
 
-// Configuração da API LiteLLM
-const litellmConfig = {
-  api_key: process.env.OPENROUTER_API_KEY,
-  api_base: 'https://openrouter.ai/api/v1',
-  temperature: 0.1,
-  max_tokens: 2000
+// Configuração padrão para chamadas de IA
+const aiConfig = {
+  temperature: parseFloat(process.env.AI_TEMPERATURE || '0.1'),
+  max_tokens: parseInt(process.env.AI_MAX_TOKENS || '2000')
 };
 
-// Função para chamar modelos via LiteLLM
+// Função para chamar modelos via AI Provider Service
 async function callLLM(model: string, messages: Array<{role: string, content: string}>): Promise<string> {
   try {
-    const response = await completion(
+    const response = await aiProviderService.complete({
       model,
-      messages,
-      {
-        temperature: litellmConfig.temperature,
-        max_tokens: litellmConfig.max_tokens,
-        api_base: litellmConfig.api_base,
-        api_key: litellmConfig.api_key
-      }
-    );
-    return response.choices[0].message.content || '';
+      messages: messages.map(m => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content
+      })),
+      temperature: aiConfig.temperature,
+      max_tokens: aiConfig.max_tokens
+    });
+    return response.content;
   } catch (error) {
     console.error(`Erro ao chamar modelo ${model}:`, error);
     throw error;
@@ -377,12 +374,15 @@ Classifique esta transação seguindo o formato JSON especificado.`;
         { role: 'user', content: `Classifique esta transação: "${state.description}"` }
       ];
 
-      // Tentar com Gemini primeiro
-      let classificationText = await callLLM('gemini/gemini-2.0-flash-exp', messages);
+      // Tentar com modelo primário primeiro
+      const primaryModel = process.env.AI_MODEL_PRIMARY || 'google/gemini-2.0-flash-exp';
+      const fallbackModel = process.env.AI_MODEL_FALLBACK || 'openai/gpt-4o-mini';
 
-      // Se falhar, tentar com GPT-4o-mini
+      let classificationText = await callLLM(primaryModel, messages);
+
+      // Se falhar, tentar com modelo fallback
       if (!classificationText || classificationText.length < 20) {
-        classificationText = await callLLM('openai/gpt-4o-mini', messages);
+        classificationText = await callLLM(fallbackModel, messages);
       }
       const jsonMatch = classificationText.match(/```json\\s*([\\s\\S]*?)\\s*```/);
 

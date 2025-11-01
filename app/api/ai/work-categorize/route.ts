@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
 import { searchCompanyInfo, searchByCNPJ, ProcessedSearchResult } from '@/lib/tools/duckduckgo-search.tool';
+import { aiProviderService } from '@/lib/ai/ai-provider.service';
 
 // Cache de categorias do banco para evitar múltiplas consultas
 let cachedCategories: any[] = [];
@@ -624,35 +625,18 @@ Retorne APENAS o nome exato da categoria escolhida.`
 
       console.log(`📤 Enviando requisição para ${model}...`);
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          max_tokens: 200, // Aumentado para lidar com prompts mais complexos
-          temperature: 0.2 // Ligeiramente maior para permitir criatividade na análise
-        })
+      const response = await aiProviderService.complete({
+        model: model,
+        messages: messages,
+        max_tokens: 200, // Aumentado para lidar com prompts mais complexos
+        temperature: 0.2 // Ligeiramente maior para permitir criatividade na análise
       });
 
-      console.log(`📡 Resposta HTTP de ${model}:`, response.status, response.statusText);
+      console.log(`✅ Sucesso com modelo ${model}! Provedor: ${response.provider}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      const aiCategory = response.content || 'OUTRAS DESPESAS NOP';
 
-      const result = await response.json();
-
-      if (!result.choices || result.choices.length === 0) {
-        throw new Error('Nenhuma resposta da API');
-      }
-
-      const aiCategory = result.choices[0]?.message?.content?.trim() || 'OUTRAS DESPESAS NOP';
-
-      console.log(`✅ Sucesso com modelo ${model}! Categoria original: "${aiCategory}"`);
+      console.log(`✅ Categoria original: "${aiCategory}"`);
 
       // Mapear para categoria válida do banco
       const validCategory = mapAIResultToValidCategory(aiCategory, availableCategories);
@@ -662,9 +646,9 @@ Retorne APENAS o nome exato da categoria escolhida.`
       return {
         category: validCategory,
         confidence: 0.9,
-        reasoning: `IA (${model}) - especialista em finanças empresariais categorizou como "${aiCategory}" → mapeado para "${validCategory}" com base na descrição, valor e contexto OFX${context ? ' e informações bancárias' : ''}`,
+        reasoning: `IA (${response.provider}/${response.model}) - especialista em finanças empresariais categorizou como "${aiCategory}" → mapeado para "${validCategory}" com base na descrição, valor e contexto OFX${context ? ' e informações bancárias' : ''}`,
         source: 'ai',
-        model_used: model
+        model_used: `${response.provider}/${response.model}`
       };
     } catch (error) {
       console.error(`❌ Erro no modelo ${model}:`, {
