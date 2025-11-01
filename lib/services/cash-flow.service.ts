@@ -1,7 +1,7 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, accounts } from '@/lib/db/schema';
 import { CashFlowReport, CashFlowDay } from '@/lib/types';
-import { eq, and, gte, lte, sum, count, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, sum, count, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
 export interface CashFlowFilters {
@@ -58,6 +58,9 @@ export default class CashFlowService {
     try {
       const { startDate, endDate } = this.convertFiltersToDates(filters);
 
+      // Buscar saldo inicial (último saldo antes do período)
+      const openingBalance = await this.getOpeningBalance(filters, startDate);
+
       const whereConditions = [
         gte(transactions.transactionDate, startDate),
         lte(transactions.transactionDate, endDate)
@@ -73,13 +76,12 @@ export default class CashFlowService {
 
       const whereClause = and(...whereConditions);
 
-      // Buscar transações individuais para calcular saldos corretamente
-      const allTransactions = await db
+      // Buscar transações individuais para calcular fluxo diário
+      const allTransactions = await db!
         .select({
           date: transactions.transactionDate,
           type: transactions.type,
           amount: transactions.amount,
-          balanceAfter: transactions.balanceAfter,
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -91,8 +93,6 @@ export default class CashFlowService {
         income: number;
         expenses: number;
         transactions: number;
-        closingBalance: number;
-        balanceAfter: number;
       }>();
 
       for (const transaction of allTransactions) {
@@ -105,8 +105,6 @@ export default class CashFlowService {
             income: 0,
             expenses: 0,
             transactions: 0,
-            closingBalance: Number(transaction.balanceAfter) || 0,
-            balanceAfter: Number(transaction.balanceAfter) || 0,
           });
         }
 
@@ -118,10 +116,6 @@ export default class CashFlowService {
         } else {
           dayData.expenses += amount;
         }
-
-        // Atualiza o saldo final do dia
-        dayData.closingBalance = Number(transaction.balanceAfter) || 0;
-        dayData.balanceAfter = Number(transaction.balanceAfter) || 0;
       }
 
       // Converter para array e ordenar por data
@@ -131,14 +125,11 @@ export default class CashFlowService {
           income: data.income,
           expenses: data.expenses,
           transactions: data.transactions,
-          closingBalance: data.closingBalance,
-          openingBalance: 0, // Será calculado abaixo
-          balanceAfter: data.balanceAfter,
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
-      // Processar dados diários
-      let runningBalance = 0;
+      // Processar dados diários com cálculo correto de saldos
+      let runningBalance = openingBalance;
       const cashFlowDays: CashFlowDay[] = [];
 
       for (let i = 0; i < dailyData.length; i++) {
@@ -147,21 +138,12 @@ export default class CashFlowService {
         const expenses = day.expenses || 0;
         const netCashFlow = income - expenses;
 
-        // Calcular saldo de abertura
-        let openingBalance: number;
-        if (i === 0) {
-          // Primeiro dia: usar o saldo do dia anterior se existir, ou 0
-          openingBalance = runningBalance;
-        } else {
-          // Dias seguintes: usar o saldo final do dia anterior
-          openingBalance = cashFlowDays[i - 1].closingBalance;
-        }
-
-        runningBalance = openingBalance + netCashFlow;
+        const openingBalanceForDay = runningBalance;
+        runningBalance += netCashFlow;
 
         cashFlowDays.push({
           date: day.date,
-          openingBalance,
+          openingBalance: openingBalanceForDay,
           income,
           expenses,
           netCashFlow,
@@ -178,7 +160,7 @@ export default class CashFlowService {
       const firstDay = cashFlowDays[0];
       const lastDay = cashFlowDays[cashFlowDays.length - 1];
 
-      const openingBalance = firstDay?.openingBalance || 0;
+      const periodOpeningBalance = firstDay?.openingBalance || 0;
       const closingBalance = lastDay?.closingBalance || 0;
 
       // Encontrar melhor e pior dia
@@ -195,7 +177,7 @@ export default class CashFlowService {
 
       return {
         period: periodLabel,
-        openingBalance,
+        openingBalance: periodOpeningBalance,
         closingBalance,
         totalIncome,
         totalExpenses,
@@ -280,19 +262,21 @@ export default class CashFlowService {
       const whereClause = and(...whereConditions);
 
       // Calcular médias diárias
-      const averages = await db
+      const result = await db!
         .select({
-          avgIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number) /
-                  count(sql`DISTINCT ${transactions.transactionDate}`).mapWith(Number),
-          avgExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number) /
-                   count(sql`DISTINCT ${transactions.transactionDate}`).mapWith(Number),
+          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+          distinctDays: count(sql`DISTINCT ${transactions.transactionDate}`).mapWith(Number),
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause);
 
-      const avgIncome = averages[0]?.avgIncome || 0;
-      const avgExpenses = averages[0]?.avgExpenses || 0;
+      const data = result[0];
+      const avgIncome = data?.distinctDays ? (data.totalIncome || 0) / data.distinctDays : 0;
+      const avgExpenses = data?.distinctDays ? (data.totalExpenses || 0) / data.distinctDays : 0;
+
+
 
       // Buscar saldo atual
       const currentBalance = await this.getCurrentBalance(filters);
@@ -332,6 +316,43 @@ export default class CashFlowService {
   }
 
   /**
+   * Obter saldo inicial do período
+   */
+  private static async getOpeningBalance(filters: CashFlowFilters, startDate: string): Promise<number> {
+    try {
+      const whereConditions = [
+        lt(transactions.transactionDate, startDate)
+      ];
+
+      if (filters.accountId && filters.accountId !== 'all') {
+        whereConditions.push(eq(transactions.accountId, filters.accountId));
+      }
+
+      if (filters.companyId && filters.companyId !== 'all') {
+        whereConditions.push(eq(accounts.companyId, filters.companyId));
+      }
+
+      const whereClause = and(...whereConditions);
+
+      const latestBalance = await db!
+        .select({
+          balance: transactions.balanceAfter
+        })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(whereClause)
+        .orderBy(desc(transactions.transactionDate))
+        .limit(1);
+
+      return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
+
+    } catch (error) {
+      console.error('Error getting opening balance:', error);
+      return 0;
+    }
+  }
+
+  /**
    * Obter saldo atual
    */
   private static async getCurrentBalance(filters: CashFlowFilters = {}): Promise<number> {
@@ -348,7 +369,7 @@ export default class CashFlowService {
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      const latestBalance = await db
+      const latestBalance = await db!
         .select({
           balance: transactions.balanceAfter
         })

@@ -87,7 +87,7 @@ export function Header({ userName }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary-100 text-primary">
+                    <AvatarFallback className="bg-secondary text-secondary-foreground">
                       {currentUser.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
