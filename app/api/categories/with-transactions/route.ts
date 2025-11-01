@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CategoryFilters, CategoryWithStats } from '@/lib/api/categories';
 import { db } from '@/lib/db/drizzle';
 import { categories, transactions } from '@/lib/db/schema';
-import { eq, desc, isNull, count, sum, sql } from 'drizzle-orm';
+import { eq, desc, isNull, count, sum, sql, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {

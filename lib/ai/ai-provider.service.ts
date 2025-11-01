@@ -131,6 +131,64 @@ export class AIProviderService {
   }
 
   /**
+   * Extrai tempo de espera do erro de rate limit
+   */
+  private extractRetryAfter(errorMessage: string): number {
+    // Procura por padrões como "try again in 1.302s" ou "retry_after"
+    const match = errorMessage.match(/try again in ([\d.]+)s/i);
+    if (match) {
+      return parseFloat(match[1]) * 1000; // converter para ms
+    }
+    return 0;
+  }
+
+  /**
+   * Realiza uma chamada de completion com retry automático para rate limit
+   */
+  async completeWithRetry(
+    options: AICompletionOptions,
+    maxRetries = 3
+  ): Promise<AICompletionResponse> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this.complete(options);
+      } catch (error) {
+        lastError = error as Error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Verificar se é erro de rate limit (429)
+        const isRateLimit = errorMessage.includes('429') || errorMessage.includes('rate_limit');
+
+        if (!isRateLimit || attempt === maxRetries - 1) {
+          // Não é rate limit ou última tentativa - lançar erro
+          throw error;
+        }
+
+        // Extrair tempo de espera sugerido pela API
+        const retryAfter = this.extractRetryAfter(errorMessage);
+
+        // Usar tempo sugerido ou exponential backoff
+        const waitTime = retryAfter > 0
+          ? retryAfter + 500 // tempo sugerido + 500ms de buffer
+          : Math.pow(2, attempt) * 1000; // 1s, 2s, 4s...
+
+        console.log(
+          `⏳ Rate limit atingido (tentativa ${attempt + 1}/${maxRetries}). ` +
+          `Aguardando ${(waitTime / 1000).toFixed(1)}s antes de tentar novamente...`
+        );
+
+        // Aguardar antes de tentar novamente
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+
+    // Se chegou aqui, todas as tentativas falharam
+    throw lastError || new Error('Todas as tentativas de retry falharam');
+  }
+
+  /**
    * Realiza uma chamada de completion para o provedor configurado
    */
   async complete(options: AICompletionOptions): Promise<AICompletionResponse> {
@@ -207,7 +265,7 @@ export class AIProviderService {
 
     for (const model of models) {
       try {
-        const response = await this.complete({
+        const response = await this.completeWithRetry({
           model,
           messages,
           temperature: options?.temperature,

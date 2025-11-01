@@ -625,7 +625,7 @@ Retorne APENAS o nome exato da categoria escolhida.`
 
       console.log(`📤 Enviando requisição para ${model}...`);
 
-      const response = await aiProviderService.complete({
+      const response = await aiProviderService.completeWithRetry({
         model: model,
         messages: messages,
         max_tokens: 200, // Aumentado para lidar com prompts mais complexos
