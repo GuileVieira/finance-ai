@@ -163,16 +163,23 @@ body {
 
 /* Tooltip styles para Recharts */
 .recharts-tooltip-wrapper {
-  z-index: 50 !important;
+  z-index: 9999 !important;
 }
 
 .recharts-default-tooltip {
-  background-color: oklch(var(--popover)) !important;
-  border: 1px solid oklch(var(--border)) !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
   border-radius: 6px !important;
   padding: 10px 12px !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-  z-index: 50 !important;
-  color: oklch(var(--popover-foreground)) !important;
+  z-index: 9999 !important;
+  color: #1f2937 !important;
+}
+
+/* Dark mode tooltip */
+.dark .recharts-default-tooltip {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  color: #f9fafb !important;
 }
 

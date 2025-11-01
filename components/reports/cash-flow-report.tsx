@@ -16,14 +16,13 @@ import {
 } from 'lucide-react';
 import { CashFlowReport, CashFlowDay } from '@/lib/types';
 import {
-  LineChart,
+  ComposedChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
   Bar
 } from 'recharts';
 
@@ -60,8 +59,8 @@ export default function CashFlowReportComponent({
     return data.cashFlowDays.map((day: CashFlowDay, index: number) => ({
       date: formatDate(day.date),
       balance: day.closingBalance,
-      income: day.income,
-      expense: day.expenses,
+      inflow: day.income,
+      outflow: day.expenses,
       day: index + 1
     }));
   }, [data.cashFlowDays]);
@@ -113,41 +112,42 @@ export default function CashFlowReportComponent({
         </p>
       </CardHeader>
       <CardContent>
-        {/* Gráfico de Fluxo de Caixa */}
+        {/* Gráfico de Fluxo de Caixa Combinado */}
         <div className="mb-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
               <XAxis dataKey="date" />
               <YAxis tickFormatter={(value) => `R$ ${value/1000}k`} />
               <Tooltip
-                formatter={(value: number) => [formatCurrency(value), 'Saldo']}
+                formatter={(value: number, name: string) => [
+                  formatCurrency(value),
+                  name === 'inflow' ? 'Entradas' :
+                  name === 'outflow' ? 'Saídas' : 'Saldo'
+                ]}
                 labelFormatter={(label) => `Data: ${label}`}
               />
+              <Bar dataKey="inflow" fill="#10b981" name="inflow" />
+              <Bar dataKey="outflow" fill="#ef4444" name="outflow" />
               <Line
                 type="monotone"
                 dataKey="balance"
-                stroke="#10b981"
+                stroke="#374151"
                 strokeWidth={2}
-                dot={{ fill: "#10b981", r: 3 }}
+                dot={{ fill: "#374151", r: 3 }}
+                name="balance"
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Gráfico de Entradas vs Saídas */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium mb-3">Entradas vs Saídas Diárias</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis tickFormatter={(value) => `R$ ${value/1000}k`} />
-              <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
-              <Bar dataKey="income" fill="#10b981" name="Entradas" />
-              <Bar dataKey="expense" fill="#ef4444" name="Saídas" />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Insight do Saldo Mínimo */}
+        <div className="mb-6 p-3 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">💰 Insight:</span> Saldo mínimo no período foi
+            <span className="text-primary font-semibold"> {formatCurrency(dailyStats.lowestBalance)}</span>.
+            Mantenha um buffer de caixa de pelo menos 30 dias de despesas fixas.
+          </p>
         </div>
 
         {/* Tabela Detalhada */}

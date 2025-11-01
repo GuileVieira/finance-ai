@@ -85,7 +85,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(whereClause || undefined)
         .orderBy(transactions.transactionDate);
 
       // Agrupar transações por dia e calcular totais
@@ -270,7 +270,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause);
+        .where(whereClause || undefined);
 
       const data = result[0];
       const avgIncome = data?.distinctDays ? (data.totalIncome || 0) / data.distinctDays : 0;
@@ -340,7 +340,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(whereClause || undefined)
         .orderBy(desc(transactions.transactionDate))
         .limit(1);
 
@@ -375,7 +375,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(whereClause || undefined)
         .orderBy(desc(transactions.transactionDate))
         .limit(1);
 

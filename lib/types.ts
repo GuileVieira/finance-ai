@@ -64,6 +64,23 @@ export interface UserData {
 // Tipos para Relatórios Financeiros
 export interface DREStatement {
   period: string;
+
+  // Campos novos (usados pelo componente de comparação)
+  grossRevenue: number;
+  netRevenue: number;
+  taxes: number;
+  financialCosts: number;
+  variableCosts: number;
+  fixedCosts: number;
+  contributionMargin: {
+    value: number;
+    percentage: number;
+  };
+  operationalResult: number;
+  nonOperationalExpenses: number;
+  netResult: number;
+
+  // Campos antigos (mantidos para compatibilidade)
   totalRevenue: number;
   totalVariableCosts: number;
   totalFixedCosts: number;
@@ -71,6 +88,7 @@ export interface DREStatement {
   totalExpenses: number;
   operatingIncome: number;
   netIncome: number;
+
   categories: DRECategory[];
   generatedAt: string;
 }

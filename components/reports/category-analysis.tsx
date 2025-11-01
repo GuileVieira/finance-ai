@@ -199,7 +199,7 @@ export default function CategoryAnalysis({
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={barChartData} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
             <XAxis type="number" tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`} />
             <YAxis dataKey="name" type="category" width={120} />
             <Tooltip

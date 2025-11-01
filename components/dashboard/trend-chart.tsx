@@ -65,7 +65,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip

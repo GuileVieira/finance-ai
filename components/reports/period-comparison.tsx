@@ -266,7 +266,7 @@ export default function PeriodComparison({
           {chartType === 'line' ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
                 <XAxis dataKey="period" />
                 <YAxis tickFormatter={(value) => {
                   if (comparisonMetric === 'margin') return `${value}%`;
@@ -291,7 +291,7 @@ export default function PeriodComparison({
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
                 <XAxis type="number" tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`} />
                 <YAxis dataKey="period" type="category" width={120} />
                 <Tooltip

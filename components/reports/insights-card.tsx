@@ -20,7 +20,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'positive':
         return <TrendingUp className="w-5 h-5 text-success" />;
       case 'trend':
-        return <AlertCircle className="w-5 h-5 text-warning" />;
+        return <AlertCircle className="w-5 h-5 text-info" />;
       default:
         return <AlertCircle className="w-5 h-5 text-muted-foreground/70" />;
     }
@@ -33,7 +33,7 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
       case 'medium':
         return 'bg-warning/10 text-warning border-warning/20 dark:bg-warning/20';
       case 'low':
-        return 'bg-primary/10 text-primary border-primary/20';
+        return 'bg-info/10 text-info border-info/20 dark:bg-info/20';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -53,18 +53,8 @@ export default function InsightsCard({ insights, onInsightClick }: InsightsCardP
   };
 
   const getTypeColor = (type: Insight['type']) => {
-    switch (type) {
-      case 'alert':
-        return 'border-destructive/20 bg-destructive/10 dark:bg-destructive/10';
-      case 'recommendation':
-        return 'border-primary/20 bg-primary/5';
-      case 'positive':
-        return 'border-success/20 bg-success/10 dark:bg-success/10';
-      case 'trend':
-        return 'border-warning/20 bg-warning/10 dark:bg-warning/10';
-      default:
-        return 'border-border bg-muted';
-    }
+    // Fundo neutro para todos os tipos - badge de impacto domina a hierarquia visual
+    return 'border-border bg-muted/30 hover:bg-muted/50';
   };
 
   const formatCurrency = (value: number) => {

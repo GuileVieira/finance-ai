@@ -46,13 +46,7 @@ export default function ReportsPage() {
     refetchInterval: 1000 * 60 * 15, // Atualizar a cada 15 minutos
   });
 
-  // Para comparação, vamos buscar DRE do período anterior
-  const { dreData: previousDreData } = useReportsData({
-    ...filters,
-    period: '2025-09' // TODO: Calcular período anterior dinamicamente
-  }, {
-    enabled: false // Desabilitado por enquanto
-  });
+  // dreData agora contém { current, comparison } automaticamente via useDREComparison
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));

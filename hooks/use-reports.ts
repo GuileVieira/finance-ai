@@ -332,41 +332,42 @@ export function useReportExport() {
 
 /**
  * Hook combinado para página de relatórios
+ * Usa useDREComparison para incluir comparação automática com período anterior
  */
 export function useReportsData(
   filters: ReportsFilters = {},
   options: UseReportsOptions = {}
 ) {
-  const dre = useDREStatement(filters, options);
+  const dreComparison = useDREComparison(filters, options);
   const cashFlow = useCashFlowReport(filters, 30, options);
   const insights = useFinancialInsights(filters, options);
   const exportReport = useReportExport();
 
   // Função para invalidar todos os caches de relatórios
   const invalidateAllReports = useCallback(() => {
-    dre.invalidateCache();
+    dreComparison.invalidateCache();
     cashFlow.invalidateCache();
     insights.invalidateCache();
-  }, [dre.invalidateCache, cashFlow.invalidateCache, insights.invalidateCache]);
+  }, [dreComparison.invalidateCache, cashFlow.invalidateCache, insights.invalidateCache]);
 
   // Estado de loading combinado
   const isLoading = useMemo(() => (
-    dre.isLoading || cashFlow.isLoading || insights.isLoading
-  ), [dre.isLoading, cashFlow.isLoading, insights.isLoading]);
+    dreComparison.isLoading || cashFlow.isLoading || insights.isLoading
+  ), [dreComparison.isLoading, cashFlow.isLoading, insights.isLoading]);
 
   // Estado de erro combinado
   const hasError = useMemo(() => (
-    dre.hasError || cashFlow.hasError || insights.hasError
-  ), [dre.hasError, cashFlow.hasError, insights.hasError]);
+    dreComparison.hasError || cashFlow.hasError || insights.hasError
+  ), [dreComparison.hasError, cashFlow.hasError, insights.hasError]);
 
   // Primeiro erro encontrado
   const firstError = useMemo(() => (
-    dre.error || cashFlow.error || insights.error
-  ), [dre.error, cashFlow.error, insights.error]);
+    dreComparison.error || cashFlow.error || insights.error
+  ), [dreComparison.error, cashFlow.error, insights.error]);
 
   return {
-    // Dados
-    dreData: dre.dreData,
+    // Dados - comparisonData já contém { current, comparison }
+    dreData: dreComparison.comparisonData,
     cashFlowData: cashFlow.cashFlowData,
     insightsData: insights.insightsData,
 
@@ -377,7 +378,7 @@ export function useReportsData(
 
     // Funções
     refetchAll: () => {
-      dre.refetch();
+      dreComparison.refetch();
       cashFlow.refetch();
       insights.refetch();
     },
