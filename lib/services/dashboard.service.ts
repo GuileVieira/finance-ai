@@ -303,7 +303,7 @@ export default class DashboardService {
           amount: transactions.amount,
           category: categories.name,
           date: transactions.transactionDate,
-          accountName: accounts.name,
+          accountName: accounts.bankName,
         })
         .from(transactions)
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
@@ -318,7 +318,7 @@ export default class DashboardService {
         amount: Math.abs(Number(expense.amount) || 0),
         category: expense.category || 'Sem Categoria',
         date: expense.date,
-        accountName: expense.accountName || 'Não Identificado',
+        accountName: expense.accountName || 'Banco Não Identificado',
       }));
 
     } catch (error) {

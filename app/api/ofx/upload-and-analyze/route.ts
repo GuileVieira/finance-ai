@@ -4,7 +4,7 @@ import { categorizeTransaction } from '@/lib/transaction-classifier';
 import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads, transactions, categories } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
+import { initializeDatabase, getDefaultCompany, getDefaultAccount, findAccountByBankInfo, updateAccountBankInfo } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
@@ -170,6 +170,17 @@ export async function POST(request: NextRequest) {
         defaultAccount = exactMatch;
         accountMatchType = 'conta exata';
         console.log(`✅ Encontrada conta exata: ${exactMatch.name} (${exactMatch.accountNumber})`);
+
+        // Atualizar informações da conta com dados do OFX se disponíveis
+        if (parseResult.bankInfo?.bankName) {
+          console.log('🔄 Atualizando informações bancárias da conta encontrada...');
+          defaultAccount = await updateAccountBankInfo(exactMatch.id, {
+            bankName: parseResult.bankInfo.bankName,
+            bankCode: parseResult.bankInfo.bankId,
+            agencyNumber: parseResult.bankInfo.branchId,
+            accountType: parseResult.bankInfo.accountType
+          }) || defaultAccount;
+        }
       }
     }
 
@@ -184,6 +195,18 @@ export async function POST(request: NextRequest) {
         defaultAccount = bankMatch;
         accountMatchType = 'banco correspondente';
         console.log(`✅ Encontrada conta do mesmo banco: ${bankMatch.name} (${bankMatch.bankName})`);
+
+        // Atualizar informações da conta com dados do OFX
+        if (parseResult.bankInfo) {
+          console.log('🔄 Atualizando informações bancárias da conta encontrada...');
+          defaultAccount = await updateAccountBankInfo(bankMatch.id, {
+            bankName: parseResult.bankInfo.bankName,
+            bankCode: parseResult.bankInfo.bankId,
+            accountNumber: parseResult.bankInfo.accountId,
+            agencyNumber: parseResult.bankInfo.branchId,
+            accountType: parseResult.bankInfo.accountType
+          }) || defaultAccount;
+        }
       }
     }
 
@@ -209,6 +232,16 @@ export async function POST(request: NextRequest) {
         defaultAccount = similarAccount;
         accountMatchType = 'conta similar existente';
         console.log(`✅ Encontrada conta similar: ${similarAccount.name} (${similarAccount.bankName})`);
+
+        // Atualizar informações da conta com dados do OFX
+        console.log('🔄 Atualizando informações bancárias da conta similar...');
+        defaultAccount = await updateAccountBankInfo(similarAccount.id, {
+          bankName: parseResult.bankInfo.bankName,
+          bankCode: parseResult.bankInfo.bankId,
+          accountNumber: parseResult.bankInfo.accountId,
+          agencyNumber: parseResult.bankInfo.branchId,
+          accountType: parseResult.bankInfo.accountType
+        }) || defaultAccount;
       } else {
         console.log('🏦 Criando nova conta baseada nas informações do OFX...');
 

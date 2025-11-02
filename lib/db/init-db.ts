@@ -1,6 +1,6 @@
 import { db } from './connection';
 import { companies, accounts, categories } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { mockCategories } from '../mock-categories';
 
 export async function initializeDatabase() {
@@ -131,4 +131,67 @@ export async function getDefaultAccount(companyId?: string) {
   }
 
   return account;
+}
+
+// Função para buscar conta por informações bancárias do OFX
+export async function findAccountByBankInfo(
+  companyId: string,
+  bankCode: string,
+  accountNumber: string
+) {
+  if (!bankCode || !accountNumber) {
+    console.log('⚠️ findAccountByBankInfo: bankCode ou accountNumber não fornecidos');
+    return undefined;
+  }
+
+  const [account] = await db.select()
+    .from(accounts)
+    .where(and(
+      eq(accounts.companyId, companyId),
+      eq(accounts.bankCode, bankCode),
+      eq(accounts.accountNumber, accountNumber),
+      eq(accounts.active, true)
+    ))
+    .limit(1);
+
+  if (account) {
+    console.log(`✅ Conta encontrada: ${account.name} (${account.bankName})`);
+  } else {
+    console.log(`ℹ️ Nenhuma conta encontrada para bankCode: ${bankCode}, accountNumber: ${accountNumber}`);
+  }
+
+  return account;
+}
+
+// Função para atualizar informações bancárias de uma conta existente
+export async function updateAccountBankInfo(
+  accountId: string,
+  bankInfo: {
+    bankName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    agencyNumber?: string;
+    accountType?: string;
+  }
+) {
+  const updateData: Record<string, string> = {};
+
+  if (bankInfo.bankName) updateData.bankName = bankInfo.bankName;
+  if (bankInfo.bankCode) updateData.bankCode = bankInfo.bankCode;
+  if (bankInfo.accountNumber) updateData.accountNumber = bankInfo.accountNumber;
+  if (bankInfo.agencyNumber) updateData.agencyNumber = bankInfo.agencyNumber;
+  if (bankInfo.accountType) updateData.accountType = bankInfo.accountType;
+
+  if (Object.keys(updateData).length === 0) {
+    console.log('⚠️ updateAccountBankInfo: Nenhum dado para atualizar');
+    return undefined;
+  }
+
+  const [updatedAccount] = await db.update(accounts)
+    .set(updateData)
+    .where(eq(accounts.id, accountId))
+    .returning();
+
+  console.log(`✅ Conta atualizada: ${updatedAccount.name} → ${updatedAccount.bankName}`);
+  return updatedAccount;
 }

@@ -3,7 +3,7 @@ import { parseOFXFile } from '@/lib/ofx-parser';
 import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
+import { initializeDatabase, getDefaultCompany, getDefaultAccount, findAccountByBankInfo, updateAccountBankInfo } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 
@@ -99,37 +99,70 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Obter/criar conta
-    let defaultAccount = await getDefaultAccount();
-    if (!defaultAccount && parseResult.bankInfo) {
-      const [newAccount] = await db.insert(accounts).values({
-        companyId: defaultCompany.id,
-        name: parseResult.bankInfo?.accountId
-          ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
-          : `Conta ${parseResult.bankInfo.bankName || 'Banco'} - OFX`,
-        bankName: parseResult.bankInfo?.bankName || 'Banco Não Identificado',
-        bankCode: parseResult.bankInfo?.bankId || '000',
-        agencyNumber: parseResult.bankInfo?.branchId || '0000',
-        accountNumber: parseResult.bankInfo?.accountId || '00000-0',
-        accountType: parseResult.bankInfo?.accountType || 'checking',
-        openingBalance: 0,
-        active: true
-      }).returning();
+    // Estratégia de resolução de conta (igual ao upload-async)
+    let targetAccount = null;
 
-      defaultAccount = newAccount;
+    if (parseResult.bankInfo && parseResult.bankInfo.bankId && parseResult.bankInfo.accountId) {
+      console.log('🔍 Buscando conta existente para:', {
+        bankCode: parseResult.bankInfo.bankId,
+        accountNumber: parseResult.bankInfo.accountId
+      });
+
+      // Tentar encontrar conta que corresponda ao banco e número de conta do OFX
+      targetAccount = await findAccountByBankInfo(
+        defaultCompany.id,
+        parseResult.bankInfo.bankId,
+        parseResult.bankInfo.accountId
+      );
+
+      if (targetAccount && parseResult.bankInfo.bankName) {
+        // Conta encontrada - atualizar com informações do OFX
+        console.log('🔄 Atualizando informações bancárias da conta existente...');
+        targetAccount = await updateAccountBankInfo(targetAccount.id, {
+          bankName: parseResult.bankInfo.bankName,
+          bankCode: parseResult.bankInfo.bankId,
+          accountNumber: parseResult.bankInfo.accountId,
+          agencyNumber: parseResult.bankInfo.branchId,
+          accountType: parseResult.bankInfo.accountType
+        });
+      } else if (!targetAccount) {
+        // Conta não encontrada - criar nova
+        console.log('🏦 Criando nova conta baseada no OFX...');
+        const [newAccount] = await db.insert(accounts).values({
+          companyId: defaultCompany.id,
+          name: parseResult.bankInfo.accountId
+            ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
+            : `Conta ${parseResult.bankInfo.bankName || 'Banco'} - OFX`,
+          bankName: parseResult.bankInfo.bankName || 'Banco Não Identificado',
+          bankCode: parseResult.bankInfo.bankId || '000',
+          agencyNumber: parseResult.bankInfo.branchId || '0000',
+          accountNumber: parseResult.bankInfo.accountId || '00000-0',
+          accountType: parseResult.bankInfo.accountType || 'checking',
+          openingBalance: 0,
+          active: true
+        }).returning();
+
+        targetAccount = newAccount;
+      }
+    } else {
+      // OFX não tem bankInfo completo - usar conta padrão
+      console.log('ℹ️ OFX sem bankInfo completo, usando conta padrão...');
+      targetAccount = await getDefaultAccount();
     }
 
-    if (!defaultAccount) {
+    if (!targetAccount) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma conta encontrada'
+        error: 'Nenhuma conta encontrada e não foi possível criar automaticamente.'
       }, { status: 400 });
     }
+
+    console.log(`✅ Conta selecionada: ${targetAccount.name} (${targetAccount.bankName})`);
 
     // Criar registro de upload
     const [newUpload] = await db.insert(uploads).values({
       companyId: defaultCompany.id,
-      accountId: defaultAccount.id,
+      accountId: targetAccount.id,
       filename: storageResult.metadata?.filename || file.name,
       originalName: file.name,
       fileType: 'ofx',
@@ -157,8 +190,8 @@ export async function POST(request: NextRequest) {
           parseResult.transactions,
           {
             fileName: file.name,
-            bankName: parseResult.bankInfo?.bankName,
-            accountId: defaultAccount.id,
+            bankName: parseResult.bankInfo?.bankName || targetAccount.bankName,
+            accountId: targetAccount.id,
             companyId: defaultCompany.id
           },
           {
@@ -183,8 +216,8 @@ export async function POST(request: NextRequest) {
       import('@/lib/services/batch-processing.service').then(({ default: BatchService }) => {
         processOFXInBackground(newUpload.id, parseResult.transactions, {
           fileName: file.name,
-          bankName: parseResult.bankInfo?.bankName,
-          accountId: defaultAccount.id,
+          bankName: parseResult.bankInfo?.bankName || targetAccount.bankName,
+          accountId: targetAccount.id,
           companyId: defaultCompany.id
         }, BatchService).catch(error => {
           console.error(`❌ [BACKGROUND] Erro no processamento:`, error);
@@ -212,9 +245,9 @@ export async function POST(request: NextRequest) {
           totalTransactions: parseResult.transactions.length
         },
         accountInfo: {
-          id: defaultAccount.id,
-          name: defaultAccount.name,
-          bankName: defaultAccount.bankName
+          id: targetAccount.id,
+          name: targetAccount.name,
+          bankName: targetAccount.bankName
         },
         uploadTime: responseTime
       }
