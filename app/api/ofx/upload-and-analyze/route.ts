@@ -8,6 +8,7 @@ import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
+import AsyncUploadProcessorService from '@/lib/services/async-upload-processor.service';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const safeMode = formData.get('safeMode') === 'true'; // Modo seguro para testes
+    const async = formData.get('async') === 'true'; // Modo assíncrono (padrão: true)
 
     if (!file) {
       return NextResponse.json({
@@ -283,8 +285,46 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Upload registrado: ${newUpload.id}`);
 
-    // Preparar processamento em batches
-    console.log('🔄 Preparando processamento incremental...');
+    // Se modo assíncrono, retornar imediatamente e processar em background
+    if (async) {
+      console.log('🚀 Modo assíncrono ativado - iniciando processamento em background');
+
+      // Iniciar processamento em background (não aguardar)
+      AsyncUploadProcessorService.startProcessing(
+        newUpload.id,
+        fileBuffer,
+        defaultAccount.id,
+        {
+          fileName: file.name,
+          bankName: parseResult.bankInfo?.bankName
+        }
+      ).catch(error => {
+        console.error('❌ Erro no processamento assíncrono:', error);
+      });
+
+      // Retornar imediatamente com informações básicas
+      return NextResponse.json({
+        success: true,
+        data: {
+          upload: {
+            id: newUpload.id,
+            fileName: file.name,
+            status: 'pending',
+            totalTransactions: parseResult.transactions.length
+          },
+          account: {
+            id: defaultAccount.id,
+            name: defaultAccount.name,
+            bankName: defaultAccount.bankName
+          },
+          message: 'Upload registrado com sucesso. Processamento iniciado em background.',
+          progressEndpoint: `/api/uploads/${newUpload.id}/progress`
+        }
+      });
+    }
+
+    // Modo síncrono (comportamento original)
+    console.log('🔄 Modo síncrono - preparando processamento incremental...');
     const batchService = BatchProcessingService;
     await batchService.prepareUploadForBatchProcessing(newUpload.id, parseResult.transactions.length);
 

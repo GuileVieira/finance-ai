@@ -1,6 +1,7 @@
 import { writeFile, mkdir, access } from 'fs/promises';
 import { join, dirname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface FileStorageResult {
   success: boolean;
@@ -15,12 +16,30 @@ export interface FileStorageResult {
   };
 }
 
+export type StorageProvider = 'filesystem' | 'supabase';
+
 export class FileStorageService {
   private static instance: FileStorageService;
   private readonly storageBasePath: string;
+  private supabaseClient: SupabaseClient | null = null;
+  private provider: StorageProvider;
+  private readonly bucketName = 'ofx-files';
 
   private constructor() {
     this.storageBasePath = join(process.cwd(), 'storage_tmp');
+
+    // Determinar provider baseado nas variáveis de ambiente
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey && supabaseKey !== 'your_supabase_anon_key_here') {
+      this.provider = 'supabase';
+      this.supabaseClient = createClient(supabaseUrl, supabaseKey);
+      console.log('🚀 Storage provider: Supabase');
+    } else {
+      this.provider = 'filesystem';
+      console.log('📁 Storage provider: Filesystem');
+    }
   }
 
   public static getInstance(): FileStorageService {
@@ -30,8 +49,12 @@ export class FileStorageService {
     return FileStorageService.instance;
   }
 
+  public getProvider(): StorageProvider {
+    return this.provider;
+  }
+
   /**
-   * Salva um arquivo OFX no sistema de arquivos
+   * Salva um arquivo OFX no sistema de arquivos ou Supabase
    */
   async saveOFXFile(
     buffer: ArrayBuffer,
@@ -47,53 +70,143 @@ export class FileStorageService {
         };
       }
 
-      // Gerar estrutura de pastas: storage_tmp/ofx/[empresa-id]/[ano-mes]/
-      const now = new Date();
-      const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-      const relativePath = join('ofx', companyId, yearMonth);
-      const fullPath = join(this.storageBasePath, relativePath);
-
-      // Criar diretórios se não existirem
-      await this.ensureDirectoryExists(fullPath);
-
-      // Gerar nome de arquivo único com timestamp
-      const timestamp = now.toISOString().replace(/[:.]/g, '-');
-      const extension = this.getFileExtension(originalName);
-      const filename = `${timestamp}_${uuidv4()}.${extension}`;
-      const filePath = join(fullPath, filename);
-
-      // Salvar arquivo
-      await writeFile(filePath, new Uint8Array(buffer));
-
-      // Salvar metadados
-      const metadataPath = join(fullPath, `${filename}.json`);
-      const metadata = {
-        originalName,
-        filename,
-        size: buffer.byteLength,
-        mimeType: this.getMimeType(originalName),
-        uploadedAt: now.toISOString(),
-        companyId,
-        relativePath: join(relativePath, filename)
-      };
-
-      await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
-
-      console.log(`📁 Arquivo salvo: ${filePath}`);
-
-      return {
-        success: true,
-        filePath: metadata.relativePath,
-        metadata
-      };
-
+      if (this.provider === 'supabase') {
+        return await this.saveToSupabase(buffer, originalName, companyId);
+      } else {
+        return await this.saveToFilesystem(buffer, originalName, companyId);
+      }
     } catch (error) {
       console.error('❌ Erro ao salvar arquivo:', error);
       return {
         success: false,
         error: `Erro ao salvar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
       };
+    }
+  }
+
+  /**
+   * Salva arquivo no Supabase Storage
+   */
+  private async saveToSupabase(
+    buffer: ArrayBuffer,
+    originalName: string,
+    companyId: string
+  ): Promise<FileStorageResult> {
+    if (!this.supabaseClient) {
+      throw new Error('Supabase client não inicializado');
+    }
+
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+    const extension = this.getFileExtension(originalName);
+    const filename = `${timestamp}_${uuidv4()}.${extension}`;
+
+    // Caminho no bucket: ofx/[empresa-id]/[ano-mes]/arquivo.ofx
+    const storagePath = `ofx/${companyId}/${yearMonth}/${filename}`;
+
+    // Garantir que o bucket existe
+    await this.ensureBucketExists();
+
+    // Upload para o Supabase
+    const { data, error } = await this.supabaseClient.storage
+      .from(this.bucketName)
+      .upload(storagePath, buffer, {
+        contentType: this.getMimeType(originalName),
+        upsert: false
+      });
+
+    if (error) {
+      throw new Error(`Erro no upload Supabase: ${error.message}`);
+    }
+
+    const metadata = {
+      originalName,
+      filename,
+      size: buffer.byteLength,
+      mimeType: this.getMimeType(originalName),
+      uploadedAt: now.toISOString(),
+      companyId,
+      relativePath: storagePath
+    };
+
+    console.log(`☁️ Arquivo salvo no Supabase: ${storagePath}`);
+
+    return {
+      success: true,
+      filePath: storagePath,
+      metadata
+    };
+  }
+
+  /**
+   * Salva arquivo no filesystem local
+   */
+  private async saveToFilesystem(
+    buffer: ArrayBuffer,
+    originalName: string,
+    companyId: string
+  ): Promise<FileStorageResult> {
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const relativePath = join('ofx', companyId, yearMonth);
+    const fullPath = join(this.storageBasePath, relativePath);
+
+    // Criar diretórios se não existirem
+    await this.ensureDirectoryExists(fullPath);
+
+    // Gerar nome de arquivo único com timestamp
+    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+    const extension = this.getFileExtension(originalName);
+    const filename = `${timestamp}_${uuidv4()}.${extension}`;
+    const filePath = join(fullPath, filename);
+
+    // Salvar arquivo
+    await writeFile(filePath, new Uint8Array(buffer));
+
+    // Salvar metadados
+    const metadataPath = join(fullPath, `${filename}.json`);
+    const metadata = {
+      originalName,
+      filename,
+      size: buffer.byteLength,
+      mimeType: this.getMimeType(originalName),
+      uploadedAt: now.toISOString(),
+      companyId,
+      relativePath: join(relativePath, filename)
+    };
+
+    await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+
+    console.log(`📁 Arquivo salvo: ${filePath}`);
+
+    return {
+      success: true,
+      filePath: metadata.relativePath,
+      metadata
+    };
+  }
+
+  /**
+   * Garante que o bucket do Supabase existe
+   */
+  private async ensureBucketExists(): Promise<void> {
+    if (!this.supabaseClient) return;
+
+    try {
+      const { data: buckets } = await this.supabaseClient.storage.listBuckets();
+      const bucketExists = buckets?.some(b => b.name === this.bucketName);
+
+      if (!bucketExists) {
+        await this.supabaseClient.storage.createBucket(this.bucketName, {
+          public: false,
+          fileSizeLimit: 52428800 // 50MB
+        });
+        console.log(`✅ Bucket '${this.bucketName}' criado no Supabase`);
+      }
+    } catch (error) {
+      console.error('⚠️ Erro ao verificar/criar bucket:', error);
     }
   }
 
