@@ -46,16 +46,29 @@ export function UploadHistory({
 
       if (result.success && result.data?.uploads) {
         // Mapear para o formato esperado
-        const mappedUploads = result.data.uploads.map((upload: Record<string, unknown>) => ({
-          id: upload.id as string,
-          fileName: upload.originalName as string,
-          status: upload.status as 'pending' | 'processing' | 'completed' | 'failed',
-          totalTransactions: upload.totalTransactions as number,
-          processedTransactions: upload.successfulTransactions as number,
-          uploadedAt: upload.uploadedAt as string,
-          completedAt: upload.processedAt as string | null,
-          errorMessage: (upload.processingLog as string) || null
-        }));
+        const mappedUploads = result.data.uploads.map((upload: Record<string, unknown>) => {
+          // processingLog pode ser string, objeto ou null
+          let errorMessage = null;
+          if (upload.processingLog) {
+            if (typeof upload.processingLog === 'string') {
+              errorMessage = upload.processingLog;
+            } else if (typeof upload.processingLog === 'object') {
+              // Se for objeto, converter para string JSON ou extrair mensagem
+              errorMessage = JSON.stringify(upload.processingLog);
+            }
+          }
+
+          return {
+            id: upload.id as string,
+            fileName: upload.originalName as string,
+            status: upload.status as 'pending' | 'processing' | 'completed' | 'failed',
+            totalTransactions: upload.totalTransactions as number,
+            processedTransactions: upload.successfulTransactions as number,
+            uploadedAt: upload.uploadedAt as string,
+            completedAt: upload.processedAt as string | null,
+            errorMessage
+          };
+        });
         setUploads(mappedUploads);
       }
     } catch (error) {

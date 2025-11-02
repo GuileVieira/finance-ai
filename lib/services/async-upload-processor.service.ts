@@ -86,7 +86,7 @@ export class AsyncUploadProcessorService {
 
       // Parse do arquivo OFX
       const ofxContent = fileBuffer.toString('utf-8');
-      const parseResult = parseOFXFile(ofxContent);
+      const parseResult = await parseOFXFile(ofxContent);
 
       if (!parseResult.success) {
         throw new Error(parseResult.error || 'Erro ao fazer parse do OFX');

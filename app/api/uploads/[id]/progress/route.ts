@@ -3,10 +3,10 @@ import BatchProcessingService from '@/lib/services/batch-processing.service';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const uploadId = params.id;
+    const { id: uploadId } = await params;
 
     console.log(`📊 [PROGRESS] Consultando progresso do upload: ${uploadId}`);
 
