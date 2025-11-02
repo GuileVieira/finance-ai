@@ -63,6 +63,102 @@ function cleanStorageFiles(storagePath = 'storage_tmp') {
   }
 }
 
+// Função para limpar Supabase Storage
+async function cleanSupabaseStorage() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey || supabaseKey === 'your_supabase_anon_key_here') {
+    console.log('📁 Supabase não configurado, pulando limpeza do storage remoto');
+    return;
+  }
+
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const bucketName = 'ofx-files';
+
+    console.log('☁️  Limpando Supabase Storage...');
+
+    // Listar todas as empresas (pastas no nível ofx/)
+    const { data: companies, error: listError } = await supabase.storage
+      .from(bucketName)
+      .list('ofx', { limit: 1000 });
+
+    if (listError) {
+      if (listError.message.includes('not found')) {
+        console.log('✅ Bucket não encontrado ou vazio');
+        return;
+      }
+      throw listError;
+    }
+
+    if (!companies || companies.length === 0) {
+      console.log('✅ Nenhum arquivo encontrado no Supabase Storage');
+      return;
+    }
+
+    let totalFiles = 0;
+
+    // Para cada empresa
+    for (const company of companies) {
+      if (!company.name) continue;
+
+      // Listar meses dentro da empresa
+      const { data: months, error: monthsError } = await supabase.storage
+        .from(bucketName)
+        .list(`ofx/${company.name}`, { limit: 1000 });
+
+      if (monthsError || !months) continue;
+
+      // Para cada mês
+      for (const month of months) {
+        if (!month.name) continue;
+
+        // Listar arquivos dentro do mês
+        const { data: files, error: filesError } = await supabase.storage
+          .from(bucketName)
+          .list(`ofx/${company.name}/${month.name}`);
+
+        if (filesError || !files || files.length === 0) continue;
+
+        // Montar paths completos
+        const filePaths = files.map(f =>
+          `ofx/${company.name}/${month.name}/${f.name}`
+        );
+
+        if (flags.dryRun) {
+          console.log(`   ☁️  [DRY-RUN] ${filePaths.length} arquivos de ${company.name}/${month.name}`);
+          totalFiles += filePaths.length;
+        } else {
+          // Deletar batch
+          const { error: deleteError } = await supabase.storage
+            .from(bucketName)
+            .remove(filePaths);
+
+          if (deleteError) {
+            console.error(`❌ Erro ao deletar arquivos de ${company.name}/${month.name}:`, deleteError.message);
+          } else {
+            totalFiles += filePaths.length;
+            if (flags.verbose) {
+              console.log(`   ☁️  Removidos ${filePaths.length} arquivos de ${company.name}/${month.name}`);
+            }
+          }
+        }
+      }
+    }
+
+    if (flags.dryRun) {
+      console.log(`✅ [DRY-RUN] Supabase Storage: ${totalFiles} arquivos seriam removidos`);
+    } else {
+      console.log(`✅ Supabase Storage limpo: ${totalFiles} arquivos removidos`);
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao limpar Supabase Storage:', error.message);
+  }
+}
+
 // Função para formatar tamanho de arquivo
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 B';
@@ -193,7 +289,8 @@ async function main() {
     if (!flags.uploadsOnly && transactionCount) {
       console.log(`💳 Transações para remover: ${transactionCount.rows[0].count}`);
     }
-    console.log(`📁 Arquivos do storage para remover: Todos`);
+    console.log(`📁 Arquivos do storage local para remover: Todos`);
+    console.log(`☁️  Arquivos do Supabase Storage para remover: Todos`);
 
     if (flags.dryRun) {
       console.log('\n✨ Modo de simulação - Nenhuma alteração foi realizada');
@@ -256,8 +353,11 @@ async function main() {
     );
     console.log(`✅ Uploads removidos: ${deleteUploads.rowCount || 0}`);
 
-    // Limpar arquivos do storage
+    // Limpar arquivos do storage local
     cleanStorageFiles();
+
+    // Limpar arquivos do Supabase Storage
+    await cleanSupabaseStorage();
 
     // Relatório final
     console.log('\n🎉 LIMPEZA COMPLETA CONCLUÍDA COM SUCESSO!');
@@ -267,7 +367,8 @@ async function main() {
     if (!flags.uploadsOnly) {
       console.log(`💳 Transações removidas: ${deleteTransactions.rowCount || 0}`);
     }
-    console.log('📁 Arquivos do storage: Removidos');
+    console.log('📁 Arquivos do storage local: Removidos');
+    console.log('☁️  Arquivos do Supabase Storage: Removidos');
     console.log('\n✨ Sistema 100% limpo e pronto para novos uploads OFX!');
 
   } catch (error) {
