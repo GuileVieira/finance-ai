@@ -305,18 +305,60 @@ export class BatchProcessingService {
       if (classifyResponse.ok) {
         const classifyResult = await classifyResponse.json();
         if (classifyResult.success) {
-          // Buscar categoria no banco
-          const [foundCategory] = await db.select()
+          const categoryNameFromAI = classifyResult.data.category;
+
+          // Função auxiliar para normalizar strings (remover acentos, lowercase, trim)
+          const normalize = (str: string) => {
+            return str
+              .toLowerCase()
+              .trim()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
+          };
+
+          // Buscar categoria no banco com match exato primeiro
+          let [foundCategory] = await db.select()
             .from(categories)
             .where(and(
-              eq(categories.name, classifyResult.data.category),
+              eq(categories.name, categoryNameFromAI),
               eq(categories.active, true)
             ))
             .limit(1);
 
+          // Se não encontrou com match exato, tentar busca normalizada
+          if (!foundCategory) {
+            console.log(`⚠️ Categoria "${categoryNameFromAI}" não encontrada com match exato, tentando busca normalizada...`);
+
+            const allCategories = await db.select()
+              .from(categories)
+              .where(eq(categories.active, true));
+
+            const normalizedAIName = normalize(categoryNameFromAI);
+            foundCategory = allCategories.find(cat =>
+              normalize(cat.name) === normalizedAIName
+            );
+
+            if (foundCategory) {
+              console.log(`✅ Categoria encontrada via busca normalizada: "${foundCategory.name}"`);
+            } else {
+              console.warn(`⚠️ Categoria "${categoryNameFromAI}" não encontrada no banco. Usando fallback "Não Classificado".`);
+
+              // Buscar categoria "Não Classificado" como fallback
+              const [fallbackCategory] = await db.select()
+                .from(categories)
+                .where(and(
+                  eq(categories.name, 'Não Classificado'),
+                  eq(categories.active, true)
+                ))
+                .limit(1);
+
+              foundCategory = fallbackCategory;
+            }
+          }
+
           return {
             categoryId: foundCategory?.id || null,
-            categoryName: classifyResult.data.category,
+            categoryName: foundCategory?.name || categoryNameFromAI,
             confidence: classifyResult.data.confidence || 0,
             reasoning: classifyResult.data.reasoning || '',
             source: 'ai'
@@ -327,12 +369,21 @@ export class BatchProcessingService {
       console.error('❌ Erro na classificação por IA:', error);
     }
 
-    // Fallback final
+    // Fallback final - buscar categoria "Não Classificado"
+    console.log('🔄 Buscando categoria fallback "Não Classificado"...');
+    const [fallbackCategory] = await db.select()
+      .from(categories)
+      .where(and(
+        eq(categories.name, 'Não Classificado'),
+        eq(categories.active, true)
+      ))
+      .limit(1);
+
     return {
-      categoryId: null,
-      categoryName: 'Não classificado',
+      categoryId: fallbackCategory?.id || null,
+      categoryName: fallbackCategory?.name || 'Não classificado',
       confidence: 0,
-      reasoning: 'Falha na classificação',
+      reasoning: 'Falha na classificação - usando categoria fallback',
       source: 'error'
     };
   }

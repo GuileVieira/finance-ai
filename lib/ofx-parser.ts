@@ -95,6 +95,20 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
   }
 }
 
+// Mapeamento FID → Nome do banco
+const BANK_FID_MAP: Record<string, string> = {
+  '001': 'Banco do Brasil',
+  '033': 'Santander',
+  '104': 'Caixa Econômica Federal',
+  '237': 'Bradesco',
+  '341': 'Itaú Unibanco',
+  '422': 'Banco Safra',
+  '077': 'Banco Inter',
+  '260': 'Nu Pagamentos (Nubank)',
+  '336': 'Banco C6',
+  '212': 'Banco Original'
+};
+
 // Extrair informações do banco
 function extractBankInfo(content: string): OFXBankInfo {
   const bankInfo: OFXBankInfo = {};
@@ -102,7 +116,10 @@ function extractBankInfo(content: string): OFXBankInfo {
   // Regex para extrair informações bancárias
   const patterns = {
     bankId: /<BANKID>([^<]+)/gi,
-    bankName: /<BANKNAME>([^<]+)/gi,
+    // Buscar <ORG> dentro de <FI> para pegar nome do banco
+    org: /<FI>[\s\S]*?<ORG>([^<]+)/gi,
+    // Buscar <FID> para código do banco
+    fid: /<FI>[\s\S]*?<FID>([^<]+)/gi,
     accountId: /<ACCTID>([^<]+)/gi,
     accountType: /<ACCTTYPE>([^<]+)/gi,
     branchId: /<BRANCHID>([^<]+)/gi
@@ -111,7 +128,22 @@ function extractBankInfo(content: string): OFXBankInfo {
   for (const [key, pattern] of Object.entries(patterns)) {
     const match = pattern.exec(content);
     if (match && match[1]) {
-      bankInfo[key as keyof OFXBankInfo] = match[1].trim();
+      if (key === 'org') {
+        bankInfo.bankName = match[1].trim();
+      } else if (key === 'fid') {
+        const fid = match[1].trim();
+        // Se encontrou FID, usar mapeamento para nome amigável
+        const mappedName = BANK_FID_MAP[fid];
+        if (mappedName && !bankInfo.bankName) {
+          bankInfo.bankName = mappedName;
+        }
+        // Guardar FID como bankId se não tiver
+        if (!bankInfo.bankId) {
+          bankInfo.bankId = fid;
+        }
+      } else {
+        bankInfo[key as keyof OFXBankInfo] = match[1].trim();
+      }
     }
   }
 
@@ -119,6 +151,11 @@ function extractBankInfo(content: string): OFXBankInfo {
   if (bankInfo.bankName) {
     bankInfo.bankName = cleanBankName(bankInfo.bankName);
   }
+
+  console.log('🏦 Banco identificado:', {
+    name: bankInfo.bankName,
+    fid: bankInfo.bankId
+  });
 
   return bankInfo;
 }

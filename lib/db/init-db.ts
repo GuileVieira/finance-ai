@@ -51,8 +51,21 @@ export async function initializeDatabase() {
         active: true
       }));
 
+      // Adicionar categoria "Não Classificado" como fallback
+      categoriesToInsert.push({
+        companyId: newCompany.id,
+        name: 'Não Classificado',
+        description: 'Transações que não puderam ser categorizadas automaticamente',
+        type: 'expense' as const,
+        colorHex: '#6B7280',
+        icon: 'help-circle',
+        examples: [],
+        isSystem: true,
+        active: true
+      });
+
       await db.insert(categories).values(categoriesToInsert);
-      console.log(`✅ ${categoriesToInsert.length} categorias criadas com dados completos`);
+      console.log(`✅ ${categoriesToInsert.length} categorias criadas com dados completos (incluindo fallback)`);
 
       console.log('🎉 Banco de dados inicializado com sucesso!');
       return { company: newCompany, account: newAccount };
@@ -94,7 +107,28 @@ export async function getDefaultCompany() {
 }
 
 // Função para obter conta padrão de uma empresa
-export async function getDefaultAccount(companyId: string) {
-  const [account] = await db.select().from(accounts).where(eq(accounts.companyId, companyId)).limit(1);
+export async function getDefaultAccount(companyId?: string) {
+  // Se não receber companyId, buscar a empresa padrão
+  let targetCompanyId = companyId;
+
+  if (!targetCompanyId) {
+    const defaultCompany = await getDefaultCompany();
+    if (!defaultCompany) {
+      console.error('❌ Nenhuma empresa padrão encontrada para getDefaultAccount()');
+      return undefined;
+    }
+    targetCompanyId = defaultCompany.id;
+    console.log(`ℹ️ getDefaultAccount() sem companyId - usando empresa padrão: ${defaultCompany.name}`);
+  }
+
+  const [account] = await db.select()
+    .from(accounts)
+    .where(eq(accounts.companyId, targetCompanyId))
+    .limit(1);
+
+  if (!account) {
+    console.warn(`⚠️ Nenhuma conta encontrada para companyId: ${targetCompanyId}`);
+  }
+
   return account;
 }
