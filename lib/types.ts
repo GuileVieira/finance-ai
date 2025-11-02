@@ -96,7 +96,7 @@ export interface DREStatement {
 export interface DRECategory {
   id: string;
   name: string;
-  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational';
+  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
   budget: number;
   actual: number;
   variance: number;

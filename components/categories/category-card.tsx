@@ -28,6 +28,7 @@ interface CategoryCardProps {
   onUpdate?: (category: CategoryWithStats) => void;
   onToggle?: (active: boolean) => void;
   onDelete?: () => void;
+  onView?: () => void;
   showViewButton?: boolean;
   showEditButton?: boolean; // Novo prop opcional
   loading?: boolean;
@@ -40,6 +41,7 @@ export function CategoryCard({
   onUpdate,
   onToggle,
   onDelete,
+  onView,
   showViewButton = false,
   showEditButton = true, // Por padrão mostra botão editar
   loading = false
@@ -196,7 +198,19 @@ export function CategoryCard({
 
         {/* Botões de ação */}
         <div className="flex flex-wrap gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              {showEditButton && (
+          {showViewButton && onView && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onView}
+              className="h-7 px-2 text-xs flex-shrink-0"
+              disabled={loading}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Ver
+            </Button>
+          )}
+          {showEditButton && (
             <Button
               variant="outline"
               size="sm"

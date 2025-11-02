@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import DREStatement from '@/components/reports/dre-statement';
@@ -21,14 +21,42 @@ import {
   ReportPeriod
 } from '@/lib/types';
 import { useReportsData, useFinancialInsights } from '@/hooks/use-reports';
+import { useAvailablePeriods } from '@/hooks/use-periods';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('dre');
   const [filters, setFilters] = useState({
-    period: '2025-10',
+    period: 'all',
     accountId: 'all',
     companyId: 'all'
   });
+
+  const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
+  const availablePeriods = useMemo<ReportPeriod[]>(() => {
+    return (periodsResponse?.periods || []).map(period => ({
+      id: period.id,
+      name: period.label.replace('/', ' '),
+      startDate: period.startDate,
+      endDate: period.endDate,
+      type: period.type,
+    }));
+  }, [periodsResponse]);
+
+  useEffect(() => {
+    if (isLoadingPeriods) return;
+
+    if (availablePeriods.length === 0) {
+      setFilters(prev => ({ ...prev, period: 'all' }));
+      return;
+    }
+
+    setFilters(prev => {
+      if (prev.period !== 'all' && availablePeriods.some(period => period.id === prev.period)) {
+        return prev;
+      }
+      return { ...prev, period: availablePeriods[0].id };
+    });
+  }, [availablePeriods, isLoadingPeriods]);
 
   // Usar hooks do TanStack Query para buscar dados dos relatórios
   const {
@@ -90,15 +118,20 @@ export default function ReportsPage() {
         {/* Filtros e Ações */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
+            <Select
+              value={filters.period}
+              onValueChange={(value) => handleFilterChange('period', value)}
+              disabled={isLoadingPeriods}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Selecione o período" />
+                <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2025-10">Outubro/2025</SelectItem>
-                <SelectItem value="2025-09">Setembro/2025</SelectItem>
-                <SelectItem value="2025-08">Agosto/2025</SelectItem>
-                <SelectItem value="2025-07">Julho/2025</SelectItem>
+                {!isLoadingPeriods && availablePeriods.map(period => (
+                  <SelectItem key={period.id} value={period.id}>
+                    {period.name}
+                  </SelectItem>
+                ))}
                 <SelectItem value="all">Todos os períodos</SelectItem>
               </SelectContent>
             </Select>
@@ -213,6 +246,7 @@ export default function ReportsPage() {
               <PeriodComparison
                 currentPeriod={dreData.current}
                 previousPeriod={dreData.comparison}
+                periods={availablePeriods}
                 onPeriodChange={(periodId) => handleFilterChange('period', periodId)}
               />
             ) : (

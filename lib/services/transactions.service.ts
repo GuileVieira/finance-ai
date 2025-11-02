@@ -348,6 +348,80 @@ export class TransactionsService {
   }
 
   /**
+   * Listar períodos disponíveis com base nas transações cadastradas
+   */
+  async getAvailablePeriods(filters: TransactionFilters = {}) {
+    try {
+      await initializeDatabase();
+
+      let query = db
+        .select({
+          period: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
+          startDate: sql<string>`min(${transactions.transactionDate})`,
+          endDate: sql<string>`max(${transactions.transactionDate})`
+        })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+
+      const conditions = [];
+
+      if (filters.accountId) {
+        conditions.push(eq(transactions.accountId, filters.accountId));
+      }
+
+      if (filters.companyId) {
+        conditions.push(eq(accounts.companyId, filters.companyId));
+      }
+
+      if (filters.type) {
+        conditions.push(eq(transactions.type, filters.type));
+      }
+
+      if (filters.startDate && filters.endDate) {
+        conditions.push(between(transactions.transactionDate, filters.startDate, filters.endDate));
+      } else if (filters.startDate) {
+        conditions.push(gte(transactions.transactionDate, filters.startDate));
+      } else if (filters.endDate) {
+        conditions.push(lte(transactions.transactionDate, filters.endDate));
+      }
+
+      if (conditions.length > 0) {
+        query = query.where(
+          conditions.length === 1
+            ? conditions[0]
+            : and(...conditions)
+        );
+      }
+
+      const results = await query
+        .groupBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM') DESC`);
+
+      const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+
+      return results.map(result => {
+        const [year, month] = result.period.split('-');
+        const monthIndex = Math.max(0, Math.min(11, parseInt(month, 10) - 1));
+        const label = `${monthNames[monthIndex]}/${year}`;
+
+        return {
+          id: result.period,
+          label,
+          startDate: result.startDate,
+          endDate: result.endDate,
+          type: 'month' as const,
+        };
+      });
+    } catch (error) {
+      console.error('❌ Erro ao obter períodos disponíveis:', error);
+      return [];
+    }
+  }
+
+  /**
    * Obter transações por upload
    */
   async getTransactionsByUpload(uploadId: string) {

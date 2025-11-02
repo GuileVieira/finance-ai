@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { TrendChart } from '@/components/dashboard/trend-chart';
 import { CashFlowChart } from '@/components/dashboard/cash-flow-chart';
@@ -18,12 +18,13 @@ import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useDashboard } from '@/hooks/use-dashboard';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
+import { useAvailablePeriods } from '@/hooks/use-periods';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
 
   const [filters, setFilters] = useState({
-    period: '2025-10',
+    period: 'all',
     accountId: 'all',
     companyId: 'all'
   });
@@ -38,6 +39,25 @@ export default function DashboardPage() {
     console.log('🔄 Refresh solicitado');
     // refetch será adicionado depois
   }, []);
+
+  const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
+  const periods = periodsResponse?.periods ?? [];
+
+  useEffect(() => {
+    if (isLoadingPeriods) return;
+
+    if (periods.length === 0) {
+      setFilters(prev => ({ ...prev, period: 'all' }));
+      return;
+    }
+
+    setFilters(prev => {
+      if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
+        return prev;
+      }
+      return { ...prev, period: periods[0].id };
+    });
+  }, [isLoadingPeriods, periods]);
 
   // Usar hook do TanStack Query para buscar dados do dashboard
   const {
@@ -119,15 +139,20 @@ export default function DashboardPage() {
       <div className="space-y-6">
         {/* Filtros do Dashboard */}
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
+          <Select
+            value={filters.period}
+            onValueChange={(value) => handleFilterChange('period', value)}
+            disabled={isLoadingPeriods}
+          >
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Selecione o período" />
+              <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025-10">Outubro/2025</SelectItem>
-              <SelectItem value="2025-09">Setembro/2025</SelectItem>
-              <SelectItem value="2025-08">Agosto/2025</SelectItem>
-              <SelectItem value="2025-07">Julho/2025</SelectItem>
+              {!isLoadingPeriods && periods.map(period => (
+                <SelectItem key={period.id} value={period.id}>
+                  {period.label}
+                </SelectItem>
+              ))}
               <SelectItem value="all">Todos os períodos</SelectItem>
             </SelectContent>
           </Select>

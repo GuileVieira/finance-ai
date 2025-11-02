@@ -114,7 +114,7 @@ export default class CashFlowService {
         if (isIncome) {
           dayData.income += amount;
         } else {
-          dayData.expenses += amount;
+          dayData.expenses += Math.abs(amount);
         }
       }
 

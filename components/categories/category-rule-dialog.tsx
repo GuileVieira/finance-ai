@@ -103,7 +103,7 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
       revenue: ['*VENDA*', '*RECEB*', '*FATUR*', '*CLIENTE*'],
       variable_cost: ['*COMPRA*', '*MATERIAL*', '*INSUMO*', '*FORNECEDOR*'],
       fixed_cost: ['*ALUGUEL*', '*SALÁRIO*', '*CONTA*', '*MENSAL*'],
-      non_operational: ['*IMPOSTO*', '*JUROS*', '*MULTA*', '*BANCO*']
+      non_operating: ['*IMPOSTO*', '*JUROS*', '*MULTA*', '*BANCO*']
     };
 
     return suggestions[category.type as keyof typeof suggestions] || [];

@@ -109,11 +109,33 @@ export default class DREService {
 
       const dreCategories: DRECategory[] = categorizedData
         .map(cat => {
-          const revenueAmount = cat.incomeAmount || 0;
+          const incomeAmount = cat.incomeAmount || 0;
           const expenseAmount = cat.expenseAmount || 0;
-          const resolvedType = (cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | undefined)
-            || (revenueAmount >= expenseAmount ? 'revenue' : 'variable_cost');
-          const actualValue = resolvedType === 'revenue' ? revenueAmount : expenseAmount;
+
+          // Determinar tipo e valor da categoria
+          let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+          let actualValue: number;
+
+          if (cat.categoryType) {
+            // Se categoria tem tipo definido, usa ele
+            resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+            actualValue = (resolvedType === 'revenue') ? incomeAmount : expenseAmount;
+          } else {
+            // Se não tem tipo, decide baseado nos valores e nos tipos de transação
+            if (expenseAmount > incomeAmount) {
+              // Mais despesas do que receitas = é um custo
+              resolvedType = 'variable_cost';
+              actualValue = expenseAmount;
+            } else if (incomeAmount > 0) {
+              // Mais receitas = é receita
+              resolvedType = 'revenue';
+              actualValue = incomeAmount;
+            } else {
+              // Fallback seguro - usa o maior valor
+              resolvedType = 'variable_cost';
+              actualValue = Math.max(incomeAmount, expenseAmount);
+            }
+          }
 
           return {
             id: cat.categoryId!,
@@ -186,7 +208,7 @@ export default class DREService {
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       const totalNonOperational = dreCategories
-        .filter(cat => cat.type === 'non_operational')
+        .filter(cat => cat.type === 'non_operating')
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational;
@@ -250,7 +272,7 @@ export default class DREService {
         transactions: cat.transactions || 0,
         drilldown: []
       }));
-      const nonOperationalCategories = dreCategories.filter(cat => cat.type === 'non_operational').map(cat => ({
+      const nonOperationalCategories = dreCategories.filter(cat => cat.type === 'non_operating').map(cat => ({
         name: cat.name,
         value: cat.actual,
         percentage: cat.percentage,
@@ -298,20 +320,20 @@ export default class DREService {
           financialCosts: [],
           variableCosts: variableCostCategories.map(cat => ({
             label: cat.name,
-            value: cat.value,
+            value: -cat.value, // Negar valor para mostrar como despesa
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           fixedCosts: fixedCostCategories.map(cat => ({
             label: cat.name,
-            value: cat.value,
+            value: -cat.value, // Negar valor para mostrar como despesa
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           nonOperationalRevenue: [],
           nonOperationalExpenses: nonOperationalCategories.map(cat => ({
             label: cat.name,
-            value: cat.value,
+            value: -cat.value, // Negar valor para mostrar como despesa
             transactions: cat.transactions,
             drilldown: cat.drilldown
           }))

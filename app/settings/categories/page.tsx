@@ -13,9 +13,20 @@ import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
 import { mockCategories, categoryTypes } from '@/lib/mock-categories';
 import { Category, CategoryFormData } from '@/lib/types';
+import { TransactionsAPI } from '@/lib/api/transactions';
 import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+
+type CategoryTransaction = {
+  id: string;
+  description: string | null;
+  amount: number;
+  type: 'credit' | 'debit';
+  transactionDate: string | null;
+  accountName?: string | null;
+  bankName?: string | null;
+};
 
 export default function SettingsCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>(mockCategories);
@@ -25,6 +36,13 @@ export default function SettingsCategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [managingRules, setManagingRules] = useState<Category | null>(null);
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
+  const [categoryTransactions, setCategoryTransactions] = useState<CategoryTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [transactionsLimit] = useState(15);
+  const [transactionsTotal, setTransactionsTotal] = useState(0);
+  const [transactionsTotalPages, setTransactionsTotalPages] = useState(1);
   const { toast } = useToast();
 
   // Filtrar categorias
@@ -108,6 +126,100 @@ export default function SettingsCategoriesPage() {
     const typeConfig = categoryTypes.find(t => t.value === type);
     return typeConfig?.label || type;
   };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const formatDate = (value: string) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('pt-BR');
+  };
+
+  const handleViewCategory = (category: Category) => {
+    setViewingCategory(category);
+    setTransactionsPage(1);
+  };
+
+  const handlePrevTransactionsPage = () => {
+    setTransactionsPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextTransactionsPage = () => {
+    setTransactionsPage((prev) => Math.min(prev + 1, transactionsTotalPages));
+  };
+
+  useEffect(() => {
+    if (!viewingCategory) {
+      setCategoryTransactions([]);
+      setTransactionsError(null);
+      setTransactionsLoading(false);
+      setTransactionsTotal(0);
+      setTransactionsTotalPages(1);
+      return;
+    }
+
+    let isCancelled = false;
+    const fetchTransactions = async () => {
+      setTransactionsLoading(true);
+      setTransactionsError(null);
+
+      try {
+        const response = await TransactionsAPI.getTransactions({
+          categoryId: viewingCategory.id,
+          page: transactionsPage,
+          limit: transactionsLimit,
+        });
+
+        if (!isCancelled) {
+          const normalizedTransactions: CategoryTransaction[] = (response.transactions || []).map((transaction: any) => {
+            const rawAmount = transaction.amount ?? 0;
+            const numericAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
+            const signedAmount = transaction.type === 'debit'
+              ? -Math.abs(numericAmount)
+              : Math.abs(numericAmount);
+
+            return {
+              id: transaction.id,
+              description: transaction.description || transaction.rawDescription || transaction.name || null,
+              amount: signedAmount,
+              type: transaction.type || 'credit',
+              transactionDate: transaction.transactionDate || transaction.date || null,
+              accountName: transaction.accountName,
+              bankName: transaction.bankName,
+            };
+          });
+
+          const pagination = response.pagination || {};
+
+          setCategoryTransactions(normalizedTransactions);
+          setTransactionsTotal(pagination.total || normalizedTransactions.length || 0);
+          setTransactionsTotalPages(pagination.totalPages || 1);
+          if (pagination.page && pagination.page !== transactionsPage) {
+            setTransactionsPage(pagination.page);
+          }
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('❌ Erro ao buscar transações da categoria:', error);
+          setTransactionsError(error instanceof Error ? error.message : 'Erro ao carregar transações');
+        }
+      } finally {
+        if (!isCancelled) {
+          setTransactionsLoading(false);
+        }
+      }
+    };
+
+    fetchTransactions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [viewingCategory, transactionsPage, transactionsLimit]);
 
   return (
     <LayoutWrapper>
@@ -276,7 +388,12 @@ export default function SettingsCategoriesPage() {
                   filteredCategories.map((category) => (
                     <TableRow key={category.id} className={!category.active ? 'opacity-50' : ''}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleViewCategory(category)}
+                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary"
+                          aria-label={`Ver transações da categoria ${category.name}`}
+                        >
                           <div
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: category.color }}
@@ -289,7 +406,7 @@ export default function SettingsCategoriesPage() {
                               </p>
                             )}
                           </div>
-                        </div>
+                        </button>
                       </TableCell>
 
                       <TableCell>
@@ -336,7 +453,7 @@ export default function SettingsCategoriesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setViewingCategory(category)}
+                            onClick={() => handleViewCategory(category)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -418,7 +535,15 @@ export default function SettingsCategoriesPage() {
         </Card>
 
         {/* Dialog de Detalhes */}
-        <Dialog open={!!viewingCategory} onOpenChange={() => setViewingCategory(null)}>
+        <Dialog
+          open={!!viewingCategory}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingCategory(null);
+              setTransactionsPage(1);
+            }
+          }}
+        >
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Detalhes da Categoria</DialogTitle>
@@ -474,6 +599,96 @@ export default function SettingsCategoriesPage() {
                     </div>
                   </div>
                 )}
+
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Transações cadastradas</p>
+                      <p className="text-xs text-muted-foreground">
+                        {transactionsLoading
+                          ? 'Carregando transações...'
+                          : `${transactionsTotal} transaç${transactionsTotal === 1 ? 'ão' : 'ões'} encontradas`}
+                      </p>
+                    </div>
+                    {transactionsTotalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePrevTransactionsPage}
+                          disabled={transactionsPage === 1 || transactionsLoading}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Página {transactionsPage} de {transactionsTotalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleNextTransactionsPage}
+                          disabled={transactionsPage === transactionsTotalPages || transactionsLoading}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-md border">
+                    {transactionsError ? (
+                      <div className="p-4 text-sm text-destructive">
+                        {transactionsError}
+                      </div>
+                    ) : transactionsLoading ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        Carregando transações...
+                      </div>
+                    ) : categoryTransactions.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        Nenhuma transação encontrada para esta categoria.
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Descrição</TableHead>
+                            <TableHead>Conta</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categoryTransactions.map((transaction) => (
+                            <TableRow key={transaction.id}>
+                              <TableCell>{formatDate(transaction.transactionDate || '')}</TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-medium">
+                                    {transaction.description || 'Sem descrição'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground uppercase">
+                                    {transaction.type === 'debit' ? 'Saída' : 'Entrada'}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <p className="text-sm">
+                                  {transaction.accountName || transaction.bankName || '-'}
+                                </p>
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                <span className={transaction.amount >= 0 ? 'text-success' : 'text-destructive'}>
+                                  {formatCurrency(transaction.amount)}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </DialogContent>

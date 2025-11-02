@@ -36,7 +36,7 @@ export function useDREStatement(
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      if (filters.period) params.append('period', filters.period);
+      if (filters.period && filters.period !== 'all') params.append('period', filters.period);
       if (filters.companyId) params.append('companyId', filters.companyId);
       if (filters.accountId) params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
@@ -96,7 +96,7 @@ export function useDREComparison(
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      if (filters.period) params.append('period', filters.period);
+      if (filters.period && filters.period !== 'all') params.append('period', filters.period);
       if (filters.companyId) params.append('companyId', filters.companyId);
       if (filters.accountId) params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
@@ -159,7 +159,7 @@ export function useCashFlowReport(
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      if (filters.period) params.append('period', filters.period);
+      if (filters.period && filters.period !== 'all') params.append('period', filters.period);
       if (filters.companyId) params.append('companyId', filters.companyId);
       if (filters.accountId) params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
@@ -221,7 +221,7 @@ export function useFinancialInsights(
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      if (filters.period) params.append('period', filters.period);
+      if (filters.period && filters.period !== 'all') params.append('period', filters.period);
       if (filters.companyId) params.append('companyId', filters.companyId);
       if (filters.accountId) params.append('accountId', filters.accountId);
       if (filters.category) params.append('category', filters.category);

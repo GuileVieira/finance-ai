@@ -49,7 +49,7 @@ export function useAllCategories(companyId: string) {
         'revenue': 1,
         'fixed_cost': 2,
         'variable_cost': 3,
-        'non_operational': 4
+        'non_operating': 4
       };
 
       return processedCategories.sort((a, b) => {
@@ -128,7 +128,7 @@ export function useAllCategories(companyId: string) {
       'revenue': 'Receitas',
       'fixed_cost': 'Custos Fixos',
       'variable_cost': 'Custos Variáveis',
-      'non_operational': 'Não Operacionais',
+      'non_operating': 'Não Operacionais',
       'other': 'Outras'
     };
 

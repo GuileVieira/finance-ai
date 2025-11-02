@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { CategoryCard } from '@/components/categories/category-card';
 import { AutoRulesTable } from '@/components/categories/auto-rules-table';
@@ -10,6 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Toaster } from '@/components/ui/toaster';
 import { Plus, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TransactionsAPI } from '@/lib/api/transactions';
+import { CategoryWithStats } from '@/lib/api/categories';
 import {
   useCategoriesWithTransactions,
   useCategoryRules,
@@ -33,7 +37,7 @@ const categoryTypes = [
   { value: 'revenue', label: 'Receitas' },
   { value: 'variable_cost', label: 'Custos Variáveis' },
   { value: 'fixed_cost', label: 'Custos Fixos' },
-  { value: 'non_operational', label: 'Não Operacionais' },
+  { value: 'non_operating', label: 'Não Operacionais' },
 ];
 
 export default function CategoriesPage() {
@@ -41,6 +45,22 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<CategoryRule | undefined>();
+  const [viewingCategory, setViewingCategory] = useState<CategoryWithStats | null>(null);
+  const [categoryTransactions, setCategoryTransactions] = useState<Array<{
+    id: string;
+    description: string | null;
+    amount: number;
+    type: 'credit' | 'debit';
+    transactionDate: string | null;
+    accountName?: string | null;
+    bankName?: string | null;
+  }>>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [transactionsTotal, setTransactionsTotal] = useState(0);
+  const [transactionsTotalPages, setTransactionsTotalPages] = useState(1);
+  const transactionsLimit = 15;
   const { toast } = useToast();
 
   // Buscar categorias com transações usando TanStack Query
@@ -176,6 +196,103 @@ export default function CategoriesPage() {
     });
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const formatDate = (value: string | null) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('pt-BR');
+  };
+
+  const handleViewCategory = (category: CategoryWithStats) => {
+    setViewingCategory(category);
+    setTransactionsPage(1);
+  };
+
+  const handlePrevTransactionsPage = () => {
+    setTransactionsPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextTransactionsPage = () => {
+    setTransactionsPage((prev) => Math.min(prev + 1, transactionsTotalPages));
+  };
+
+  useEffect(() => {
+    if (!viewingCategory) {
+      setCategoryTransactions([]);
+      setTransactionsError(null);
+      setTransactionsLoading(false);
+      setTransactionsTotal(0);
+      setTransactionsTotalPages(1);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchTransactions = async () => {
+      setTransactionsLoading(true);
+      setTransactionsError(null);
+
+      try {
+        const response = await TransactionsAPI.getTransactions({
+          categoryId: viewingCategory.id,
+          page: transactionsPage,
+          limit: transactionsLimit,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        const normalized = (response.transactions || []).map((transaction: any) => {
+          const rawAmount = transaction.amount ?? 0;
+          const numericAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
+          const signedAmount = transaction.type === 'debit'
+            ? -Math.abs(numericAmount)
+            : Math.abs(numericAmount);
+
+          return {
+            id: transaction.id,
+            description: transaction.description || transaction.rawDescription || transaction.name || null,
+            amount: signedAmount,
+            type: transaction.type || 'credit',
+            transactionDate: transaction.transactionDate || transaction.date || null,
+            accountName: transaction.accountName,
+            bankName: transaction.bankName,
+          };
+        });
+
+        const pagination = response.pagination || {};
+
+        setCategoryTransactions(normalized);
+        setTransactionsTotal(pagination.total || normalized.length || 0);
+        setTransactionsTotalPages(pagination.totalPages || 1);
+        if (pagination.page && pagination.page !== transactionsPage) {
+          setTransactionsPage(pagination.page);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('❌ Erro ao buscar transações da categoria:', error);
+          setTransactionsError(error instanceof Error ? error.message : 'Erro ao carregar transações');
+        }
+      } finally {
+        if (!isCancelled) {
+          setTransactionsLoading(false);
+        }
+      }
+    };
+
+    fetchTransactions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [viewingCategory, transactionsPage, transactionsLimit]);
+
   return (
     <LayoutWrapper>
       <div className="space-y-6">
@@ -236,7 +353,8 @@ export default function CategoriesPage() {
                 <CategoryCard
                   key={category.id}
                   category={category}
-                  showViewButton={false}
+                  showViewButton
+                  onView={() => handleViewCategory(category)}
                   showEditButton={true}
                   loading={categoryOps.isToggling || categoryOps.isDeleting}
                     onRules={() => {
@@ -328,7 +446,7 @@ export default function CategoriesPage() {
               <li>  - Receitas: {categoryOps.summary.categoriesByType.revenue}</li>
               <li>  - Custos Variáveis: {categoryOps.summary.categoriesByType.variable_cost}</li>
               <li>  - Custos Fixos: {categoryOps.summary.categoriesByType.fixed_cost}</li>
-              <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operational}</li>
+              <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operating}</li>
               {categoryOps.summary.mostUsedCategories.length > 0 && (
                 <li>• Categoria mais usada: {categoryOps.summary.mostUsedCategories[0].name} ({categoryOps.summary.mostUsedCategories[0].transactionCount} transações)</li>
               )}
@@ -336,6 +454,123 @@ export default function CategoriesPage() {
           </div>
         )}
       </div>
+
+      <Dialog
+        open={!!viewingCategory}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingCategory(null);
+            setTransactionsPage(1);
+          }
+        }}
+      >
+        <DialogContent className="w-[min(90vw,70rem)] max-w-[70vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Transações da Categoria</DialogTitle>
+          </DialogHeader>
+
+          {viewingCategory && (
+            <div className="space-y-4 pr-1">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">{viewingCategory.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {viewingCategory.transactionCount} transações registradas · {formatCurrency(viewingCategory.totalAmount)} acumulado
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Transações vinculadas</p>
+                    <p className="text-xs text-muted-foreground">
+                      {transactionsLoading
+                        ? 'Carregando transações...'
+                        : `${transactionsTotal} transaç${transactionsTotal === 1 ? 'ão' : 'ões'} encontradas`}
+                    </p>
+                  </div>
+                  {transactionsTotalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevTransactionsPage}
+                        disabled={transactionsPage === 1 || transactionsLoading}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        Página {transactionsPage} de {transactionsTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextTransactionsPage}
+                        disabled={transactionsPage === transactionsTotalPages || transactionsLoading}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-md border">
+                  {transactionsError ? (
+                    <div className="p-4 text-sm text-destructive">
+                      {transactionsError}
+                    </div>
+                  ) : transactionsLoading ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Carregando transações...
+                    </div>
+                  ) : categoryTransactions.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Nenhuma transação encontrada para esta categoria.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Conta</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryTransactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell>{formatDate(transaction.transactionDate)}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">
+                                  {transaction.description || 'Sem descrição'}
+                                </p>
+                                <p className="text-xs text-muted-foreground uppercase">
+                                  {transaction.type === 'debit' ? 'Saída' : 'Entrada'}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">
+                                {transaction.accountName || transaction.bankName || '-'}
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              <span className={transaction.amount >= 0 ? 'text-success' : 'text-destructive'}>
+                                {formatCurrency(transaction.amount)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para Nova Categoria */}
       <CategoryDialog

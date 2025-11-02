@@ -22,10 +22,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MetricCardSkeleton } from '@/components/transactions/metric-card-skeleton';
 import { TableSkeleton } from '@/components/transactions/table-skeleton';
 import { CategoryRuleDialog } from '@/components/transactions/category-rule-dialog';
+import { useAvailablePeriods } from '@/hooks/use-periods';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState({
-    period: '2025-10',
+    period: 'all',
     bank: 'all',
     category: 'all',
     type: 'all',
@@ -42,6 +43,8 @@ export default function TransactionsPage() {
   // Hooks para buscar dados dos filtros
   const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(companyId);
   const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(companyId);
+  const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId });
+  const periods = periodsResponse?.periods ?? [];
 
   // Hook para gerenciar grupos de transações
   const {
@@ -64,6 +67,22 @@ export default function TransactionsPage() {
       setSelectedCategoryId('');
     }
   }, [isGroupMode]);
+
+  useEffect(() => {
+    if (isLoadingPeriods) return;
+
+    if (periods.length === 0) {
+      setFilters(prev => ({ ...prev, period: 'all' }));
+      return;
+    }
+
+    setFilters(prev => {
+      if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
+        return prev;
+      }
+      return { ...prev, period: periods[0].id };
+    });
+  }, [isLoadingPeriods, periods]);
 
   // Estado para edição de transação individual
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
@@ -517,15 +536,20 @@ export default function TransactionsPage() {
                 {/* Período */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Período</label>
-                  <Select value={filters.period} onValueChange={(value) => handleFilterChange('period', value)}>
+                  <Select
+                    value={filters.period}
+                    onValueChange={(value) => handleFilterChange('period', value)}
+                    disabled={isLoadingPeriods}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o período" />
+                      <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2025-10">Outubro/2025</SelectItem>
-                      <SelectItem value="2025-09">Setembro/2025</SelectItem>
-                      <SelectItem value="2025-08">Agosto/2025</SelectItem>
-                      <SelectItem value="2025-07">Julho/2025</SelectItem>
+                      {!isLoadingPeriods && periods.map((period) => (
+                        <SelectItem key={period.id} value={period.id}>
+                          {period.label}
+                        </SelectItem>
+                      ))}
                       <SelectItem value="all">Todos os períodos</SelectItem>
                     </SelectContent>
                   </Select>
