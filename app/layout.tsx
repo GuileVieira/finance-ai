@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider";
 import { MainLayout } from "@/components/layout/main-layout";
+import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
   children,
@@ -30,11 +31,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryClientProviderWrapper>
-          <MainLayout>
-            {children}
-          </MainLayout>
-        </QueryClientProviderWrapper>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryClientProviderWrapper>
+            <MainLayout>
+              {children}
+            </MainLayout>
+          </QueryClientProviderWrapper>
+        </ThemeProvider>
       </body>
     </html>
   );

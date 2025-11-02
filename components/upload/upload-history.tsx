@@ -38,6 +38,33 @@ export function UploadHistory({
     fetchHistory();
   }, [companyId, refreshTrigger]);
 
+  const formatProcessingLog = (log: string | null): string | null => {
+    if (!log) return null;
+
+    try {
+      const data = JSON.parse(log);
+
+      // Se tem as propriedades esperadas do objeto de processamento
+      if (typeof data.successful === 'number' && typeof data.processingTime === 'number') {
+        const timeInSeconds = (data.processingTime / 1000).toFixed(1);
+
+        if (data.failed === 0) {
+          // Sucesso total - retornar null para não mostrar nada
+          return null;
+        } else {
+          // Com falhas
+          return `⚠️ ${data.successful} processadas, ${data.failed} falharam (${timeInSeconds}s)`;
+        }
+      }
+
+      // Se não tem o formato esperado, retornar o JSON como string
+      return log;
+    } catch {
+      // Se não for JSON válido, retornar a mensagem original
+      return log;
+    }
+  };
+
   const fetchHistory = async () => {
     try {
       setLoading(true);
@@ -48,15 +75,18 @@ export function UploadHistory({
         // Mapear para o formato esperado
         const mappedUploads = result.data.uploads.map((upload: Record<string, unknown>) => {
           // processingLog pode ser string, objeto ou null
-          let errorMessage = null;
+          let processingLogStr = null;
           if (upload.processingLog) {
             if (typeof upload.processingLog === 'string') {
-              errorMessage = upload.processingLog;
+              processingLogStr = upload.processingLog;
             } else if (typeof upload.processingLog === 'object') {
-              // Se for objeto, converter para string JSON ou extrair mensagem
-              errorMessage = JSON.stringify(upload.processingLog);
+              // Se for objeto, converter para string JSON
+              processingLogStr = JSON.stringify(upload.processingLog);
             }
           }
+
+          // Formatar o log de processamento para exibição amigável
+          const errorMessage = formatProcessingLog(processingLogStr);
 
           return {
             id: upload.id as string,
