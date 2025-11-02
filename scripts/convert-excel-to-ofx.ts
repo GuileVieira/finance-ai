@@ -485,7 +485,12 @@ ${transactionsOFX}
 // Função principal
 async function main() {
   const extractsDir = '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/docs/examples/raw/extratos';
-  const outputDir = '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance';
+  const outputDir = '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/ofx-extratos-ago2023';
+
+  // Criar pasta de output se não existir
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
 
   console.log('Iniciando conversão de Excel para OFX...\n');
 
@@ -593,7 +598,8 @@ async function main() {
   fs.writeFileSync(path.join(outputDir, 'Santander-Ago2023.ofx'), santanderOFX);
   console.log(`✓ Santander-Ago2023.ofx gerado (${santander.length} transações)`);
 
-  console.log('\n✅ Conversão concluída! 5 arquivos OFX gerados na raiz do projeto.');
+  console.log('\n✅ Conversão concluída! 5 arquivos OFX gerados em: ofx-extratos-ago2023/');
+  console.log(`📊 Total: ${itauAll.length + safra.length + bbAll.length + cef.length + santander.length} transações processadas`);
 }
 
 main().catch(console.error);
