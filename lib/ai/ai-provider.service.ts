@@ -3,6 +3,8 @@
  * Permite alternar facilmente entre provedores via variável de ambiente
  */
 
+import { aiCostLogger, type AiUsageLogInput } from '../services/ai-cost-logger.service';
+
 export type AIProvider = 'openrouter' | 'openai';
 
 export interface AIMessage {
@@ -15,12 +17,26 @@ export interface AICompletionOptions {
   messages: AIMessage[];
   temperature?: number;
   max_tokens?: number;
+  // Contexto para logging de custos
+  logContext?: {
+    userId?: string;
+    companyId?: string;
+    uploadId?: string;
+    batchId?: string;
+    transactionId?: string;
+    operationType?: string;
+  };
 }
 
 export interface AICompletionResponse {
   content: string;
   provider: AIProvider;
   model: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -238,12 +254,67 @@ export class AIProviderService {
 
       const content = result.choices[0]?.message?.content?.trim() || '';
 
+      // Capturar informações de uso (tokens)
+      const usage = result.usage ? {
+        promptTokens: result.usage.prompt_tokens || 0,
+        completionTokens: result.usage.completion_tokens || 0,
+        totalTokens: result.usage.total_tokens || 0
+      } : undefined;
+
+      // Registrar uso de IA (async, não bloqueia)
+      if (usage && usage.totalTokens > 0) {
+        aiCostLogger.logUsage({
+          userId: options.logContext?.userId,
+          companyId: options.logContext?.companyId,
+          uploadId: options.logContext?.uploadId,
+          batchId: options.logContext?.batchId,
+          transactionId: options.logContext?.transactionId,
+          operationType: options.logContext?.operationType || 'completion',
+          provider: this.provider,
+          modelName: formattedModel,
+          inputTokens: usage.promptTokens,
+          outputTokens: usage.completionTokens,
+          source: 'ai',
+          requestData: {
+            messages: options.messages.map(m => ({ role: m.role, content: m.content.substring(0, 200) })),
+            temperature: options.temperature,
+            max_tokens: options.max_tokens
+          },
+          responseData: {
+            content: content.substring(0, 200)
+          }
+        }).catch(err => {
+          console.warn('[AI-PROVIDER] Falha ao registrar log de custo:', err);
+        });
+      }
+
       return {
         content,
         provider: this.provider,
-        model: formattedModel
+        model: formattedModel,
+        usage
       };
     } catch (error) {
+      // Registrar erro também (sem tokens)
+      if (options.logContext) {
+        aiCostLogger.logUsage({
+          userId: options.logContext?.userId,
+          companyId: options.logContext?.companyId,
+          uploadId: options.logContext?.uploadId,
+          batchId: options.logContext?.batchId,
+          transactionId: options.logContext?.transactionId,
+          operationType: options.logContext?.operationType || 'completion',
+          provider: this.provider,
+          modelName: formattedModel,
+          inputTokens: 0,
+          outputTokens: 0,
+          source: 'ai',
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }).catch(() => {
+          // Silently fail logging
+        });
+      }
+
       throw new Error(
         `Erro ao chamar ${this.provider}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
       );

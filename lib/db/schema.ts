@@ -195,6 +195,57 @@ export const categoryRules = pgTable('financeai_category_rules', {
   activeIdx: index('idx_category_rules_active').on(table.active)
 }));
 
+// Preços dos modelos de IA
+export const aiModelPricing = pgTable('financeai_ai_model_pricing', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  provider: varchar('provider', { length: 50 }).notNull(), // openrouter, openai, anthropic
+  modelName: varchar('model_name', { length: 100 }).notNull(), // google/gemini-2.0-flash-exp, gpt-4o-mini
+  inputPricePer1kTokens: decimal('input_price_per_1k_tokens', { precision: 10, scale: 6 }).notNull(),
+  outputPricePer1kTokens: decimal('output_price_per_1k_tokens', { precision: 10, scale: 6 }).notNull(),
+  active: boolean('active').default(true),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  providerModelIdx: index('idx_ai_pricing_provider_model').on(table.provider, table.modelName),
+  activeIdx: index('idx_ai_pricing_active').on(table.active)
+}));
+
+// Logs de uso de IA (detalhado por chamada)
+export const aiUsageLogs = pgTable('financeai_ai_usage_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'set null' }),
+  uploadId: uuid('upload_id').references(() => uploads.id, { onDelete: 'set null' }),
+  batchId: uuid('batch_id').references(() => processingBatches.id, { onDelete: 'set null' }),
+  transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  operationType: varchar('operation_type', { length: 50 }).notNull(), // categorize, batch_categorize, analyze
+  provider: varchar('provider', { length: 50 }).notNull(),
+  modelName: varchar('model_name', { length: 100 }).notNull(),
+  inputTokens: integer('input_tokens').notNull(),
+  outputTokens: integer('output_tokens').notNull(),
+  totalTokens: integer('total_tokens').notNull(),
+  costUsd: decimal('cost_usd', { precision: 10, scale: 6 }).notNull(),
+  processingTimeMs: integer('processing_time_ms'),
+  source: varchar('source', { length: 20 }).notNull(), // history, cache, ai
+  requestData: json('request_data'), // Dados da requisição (prompt, etc)
+  responseData: json('response_data'), // Dados da resposta (categoria, confidence, etc)
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow()
+}, (table) => ({
+  userIdIdx: index('idx_ai_logs_user_id').on(table.userId),
+  companyIdIdx: index('idx_ai_logs_company_id').on(table.companyId),
+  uploadIdIdx: index('idx_ai_logs_upload_id').on(table.uploadId),
+  batchIdIdx: index('idx_ai_logs_batch_id').on(table.batchId),
+  createdAtIdx: index('idx_ai_logs_created_at').on(table.createdAt.desc()),
+  providerModelIdx: index('idx_ai_logs_provider_model').on(table.provider, table.modelName),
+  sourceIdx: index('idx_ai_logs_source').on(table.source),
+  operationTypeIdx: index('idx_ai_logs_operation_type').on(table.operationType),
+  // Índices compostos para análises
+  companyDateIdx: index('idx_ai_logs_company_date').on(table.companyId, table.createdAt.desc()),
+  providerDateIdx: index('idx_ai_logs_provider_date').on(table.provider, table.createdAt.desc())
+}));
+
 // Export types
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -219,3 +270,9 @@ export type NewUser = typeof users.$inferInsert;
 
 export type CategoryRule = typeof categoryRules.$inferSelect;
 export type NewCategoryRule = typeof categoryRules.$inferInsert;
+
+export type AiModelPricing = typeof aiModelPricing.$inferSelect;
+export type NewAiModelPricing = typeof aiModelPricing.$inferInsert;
+
+export type AiUsageLog = typeof aiUsageLogs.$inferSelect;
+export type NewAiUsageLog = typeof aiUsageLogs.$inferInsert;

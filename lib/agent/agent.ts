@@ -28,6 +28,16 @@ const aiConfig = {
   max_tokens: parseInt(process.env.AI_MAX_TOKENS || '2000')
 };
 
+// Contexto global para logging (thread-local storage simulation)
+let currentLogContext: {
+  userId?: string;
+  companyId?: string;
+  uploadId?: string;
+  batchId?: string;
+  transactionId?: string;
+  operationType?: string;
+} | undefined;
+
 // Função para chamar modelos via AI Provider Service
 async function callLLM(model: string, messages: Array<{role: string, content: string}>): Promise<string> {
   try {
@@ -38,7 +48,8 @@ async function callLLM(model: string, messages: Array<{role: string, content: st
         content: m.content
       })),
       temperature: aiConfig.temperature,
-      max_tokens: aiConfig.max_tokens
+      max_tokens: aiConfig.max_tokens,
+      logContext: currentLogContext // Passar contexto para logging
     });
     return response.content;
   } catch (error) {
@@ -541,9 +552,22 @@ Classifique esta transação seguindo o formato JSON especificado.`;
   async classifyTransaction(
     description: string,
     amount: number,
-    transactionId: string
+    transactionId: string,
+    logContext?: {
+      userId?: string;
+      companyId?: string;
+      uploadId?: string;
+      batchId?: string;
+    }
   ): Promise<ClassificationResult> {
     const startTime = Date.now();
+
+    // Definir contexto para logging
+    currentLogContext = logContext ? {
+      ...logContext,
+      transactionId,
+      operationType: 'categorize'
+    } : undefined;
 
     try {
       const initialState: AgentStateType = {
@@ -597,7 +621,13 @@ Classifique esta transação seguindo o formato JSON especificado.`;
 
   // Método para classificar em lote
   async classifyBatch(
-    request: BatchClassificationRequest
+    request: BatchClassificationRequest,
+    logContext?: {
+      userId?: string;
+      companyId?: string;
+      uploadId?: string;
+      batchId?: string;
+    }
   ): Promise<BatchClassificationResponse> {
     const startTime = Date.now();
     const results: ClassificationResult[] = [];
@@ -609,7 +639,8 @@ Classifique esta transação seguindo o formato JSON especificado.`;
       const result = await this.classifyTransaction(
         transaction.description,
         transaction.amount,
-        transaction.id
+        transaction.id,
+        logContext // Passar contexto para cada classificação
       );
 
       results.push(result);
@@ -620,6 +651,8 @@ Classifique esta transação seguindo o formato JSON especificado.`;
     }
 
     const processingTime = Date.now() - startTime;
+    // Nota: o custo real está sendo registrado automaticamente no banco
+    // Este é apenas uma estimativa rápida para retorno imediato
     const costEstimate = fromAI * 0.001; // Estimativa de custo por chamada IA
 
     return {
