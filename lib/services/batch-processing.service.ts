@@ -309,6 +309,7 @@ export class BatchProcessingService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companyId: this.companyId,
           description: transaction.description,
           amount: transaction.amount,
           transactionType: transaction.amount >= 0 ? 'credit' : 'debit'
@@ -321,18 +322,20 @@ export class BatchProcessingService {
           const bestSuggestion = suggestResult.data.suggestions[0];
 
           if (bestSuggestion.confidence > 0.7) {
+            console.log(`✅ Regra aplicada: ${bestSuggestion.categoryName} (${Math.round(bestSuggestion.confidence * 100)}% confiança)`);
+
             return {
               categoryId: bestSuggestion.categoryId,
               categoryName: bestSuggestion.categoryName,
               confidence: bestSuggestion.confidence,
-              reasoning: bestSuggestion.reasoning,
+              reasoning: bestSuggestion.reasoning || `Correspondeu à regra: ${bestSuggestion.rulePattern || 'padrão'}`,
               source: 'rule'
             };
           }
         }
       }
     } catch (error) {
-      console.log('⚠️ Falha ao verificar regras, usando IA...');
+      console.log('⚠️ Falha ao verificar regras, usando IA...', error);
     }
 
     // Usar IA como fallback

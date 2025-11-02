@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { categoryRules, categories, transactions } from '@/lib/db/schema';
-import { eq, and, ilike, desc } from 'drizzle-orm';
+import { eq, and, ilike, desc, sql } from 'drizzle-orm';
+import CategoryRulesService from '@/lib/services/category-rules.service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,83 +19,48 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Buscando sugestões para descrição: "${description}"`);
 
-    // Normalizar descrição para busca
-    const normalizedDescription = description.toLowerCase().trim();
+    const suggestions = [];
 
-    // Buscar regras que correspondem à descrição
-    const matchingRules = await db
-      .select({
-        id: categoryRules.id,
-        rulePattern: categoryRules.rulePattern,
-        confidence: categoryRules.confidenceScore,
-        categoryId: categories.id,
-        categoryName: categories.name,
-        categoryType: categories.type,
-        usageCount: categoryRules.usageCount,
-      })
-      .from(categoryRules)
-      .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
-      .where(and(
-        eq(categoryRules.companyId, companyId),
-        eq(categoryRules.active, true),
-        ilike(categoryRules.rulePattern, `%${normalizedDescription}%`)
-      ))
-      .orderBy(desc(categoryRules.usageCount), desc(categoryRules.confidenceScore))
-      .limit(5); // Limitar a 5 sugestões
+    // Usar o CategoryRulesService para aplicar regras corretamente
+    const ruleMatch = await CategoryRulesService.applyRulesToTransaction(description, companyId);
 
-    console.log(`✅ Encontradas ${matchingRules.length} regras correspondentes`);
+    if (ruleMatch) {
+      console.log(`✅ Regra encontrada: ${ruleMatch.categoryName} (${ruleMatch.confidence}% confiança)`);
 
-    // Calcular scores de matching
-    const suggestions = matchingRules.map(rule => {
-      const pattern = rule.rulePattern.toLowerCase();
-      const desc = normalizedDescription;
+      // Incrementar contador de uso da regra
+      await db
+        .update(categoryRules)
+        .set({
+          usageCount: sql`${categoryRules.usageCount} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(categoryRules.id, ruleMatch.ruleId));
 
-      // Score baseado na correspondência exata
-      let score = 0;
-
-      // Se o padrão está contido na descrição
-      if (desc.includes(pattern)) {
-        score += 0.5;
-      }
-
-      // Se a descrição contém o padrão
-      if (pattern.includes(desc)) {
-        score += 0.3;
-      }
-
-      // Palavras em comum
-      const descWords = desc.split(/\s+/);
-      const patternWords = pattern.split(/\s+/);
-      const commonWords = descWords.filter(word => patternWords.includes(word));
-      const commonWordsRatio = commonWords.length / Math.max(descWords.length, patternWords.length);
-      score += commonWordsRatio * 0.2;
-
-      // Aplicar confiança da regra
-      const finalScore = score * parseFloat(rule.confidence);
-
-      return {
-        categoryId: rule.categoryId,
-        categoryName: rule.categoryName,
-        categoryType: rule.categoryType,
-        confidence: Math.min(finalScore, 1.0),
+      suggestions.push({
+        categoryId: ruleMatch.categoryId,
+        categoryName: ruleMatch.categoryName,
+        categoryType: ruleMatch.categoryType,
+        confidence: ruleMatch.confidence / 100, // Converter para 0-1
         source: 'rule',
-        ruleId: rule.id,
-        rulePattern: rule.rulePattern,
-        usageCount: rule.usageCount,
-        reasoning: `Correspondência com regra: "${rule.rulePattern}" (${commonWords.length} palavras em comum)`
-      };
-    });
+        ruleId: ruleMatch.ruleId,
+        rulePattern: ruleMatch.rulePattern,
+        ruleType: ruleMatch.ruleType,
+        reasoning: ruleMatch.reasoning || `Correspondência com regra: "${ruleMatch.rulePattern}"`
+      });
+    }
 
     // Se não encontrou regras, buscar transações similares
     if (suggestions.length === 0) {
       console.log(`🔍 Nenhuma regra encontrada, buscando transações similares...`);
+
+      const normalizedDescription = description.toLowerCase().trim();
 
       const similarTransactions = await db
         .select({
           categoryId: categories.id,
           categoryName: categories.name,
           categoryType: categories.type,
-          count: db.raw('COUNT(*)::int').as('count'),
+          count: sql<number>`COUNT(*)::int`.as('count'),
         })
         .from(transactions)
         .innerJoin(categories, eq(transactions.categoryId, categories.id))
@@ -103,10 +69,10 @@ export async function POST(request: NextRequest) {
           ilike(transactions.description, `%${normalizedDescription}%`)
         ))
         .groupBy(categories.id, categories.name, categories.type)
-        .orderBy(desc('count'))
+        .orderBy(desc(sql`count`))
         .limit(3);
 
-      similarTransactions.forEach((trans: any) => {
+      similarTransactions.forEach((trans) => {
         suggestions.push({
           categoryId: trans.categoryId,
           categoryName: trans.categoryName,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Category, AutoRule } from '@/lib/types';
-import { Plus, Edit, Trash2, TestTube, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, TestTube, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CategoryRulesManagerProps {
@@ -25,19 +25,22 @@ interface RuleFormData {
   active: boolean;
 }
 
+interface CategoryRule {
+  id: string;
+  categoryId: string;
+  companyId: string | null;
+  rulePattern: string;
+  ruleType: 'exact' | 'contains' | 'regex';
+  confidenceScore: string;
+  active: boolean;
+  usageCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export function CategoryRulesManager({ category, onClose }: CategoryRulesManagerProps) {
-  const [rules, setRules] = useState<AutoRule[]>([
-    // Regras mock baseadas na categoria
-    {
-      id: '1',
-      category: category.name,
-      pattern: category.name.toUpperCase(),
-      type: 'contains',
-      accuracy: 95,
-      status: 'active',
-      confidence_score: 0.95
-    }
-  ]);
+  const [rules, setRules] = useState<AutoRule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutoRule | null>(null);
@@ -45,86 +48,212 @@ export function CategoryRulesManager({ category, onClose }: CategoryRulesManager
   const [testResult, setTestResult] = useState<{ matched: boolean; confidence: number } | null>(null);
   const { toast } = useToast();
 
+  // Buscar regras da API
+  const fetchRules = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/categories/rules?categoryId=${category.id}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Converter para formato AutoRule
+        const autoRules: AutoRule[] = result.data.map((rule: CategoryRule) => ({
+          id: rule.id,
+          category: category.name,
+          pattern: rule.rulePattern,
+          type: rule.ruleType,
+          confidence_score: parseFloat(rule.confidenceScore),
+          status: rule.active ? 'active' : 'inactive',
+          accuracy: Math.round(parseFloat(rule.confidenceScore) * 100)
+        }));
+        setRules(autoRules);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar regras:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as regras',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRules();
+  }, [category.id]);
+
   // Criar nova regra
-  const handleCreateRule = (data: RuleFormData) => {
-    const newRule: AutoRule = {
-      id: Date.now().toString(),
-      category: category.name,
-      pattern: data.pattern,
-      type: data.rule_type,
-      confidence_score: data.confidence_score,
-      status: data.active ? 'active' : 'inactive',
-      accuracy: Math.round(data.confidence_score * 100)
-    };
+  const handleCreateRule = async (data: RuleFormData) => {
+    try {
+      const response = await fetch('/api/categories/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: category.id,
+          rulePattern: data.pattern,
+          ruleType: data.rule_type,
+          confidenceScore: data.confidence_score,
+          active: data.active
+        })
+      });
 
-    setRules(prev => [...prev, newRule]);
-    setIsCreateDialogOpen(false);
+      const result = await response.json();
 
-    toast({
-      title: 'Regra Criada',
-      description: `Nova regra para ${category.name} foi adicionada!`,
-    });
+      if (result.success) {
+        toast({
+          title: 'Regra Criada',
+          description: `Nova regra para ${category.name} foi adicionada!`,
+        });
+        setIsCreateDialogOpen(false);
+        fetchRules(); // Recarregar regras
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Erro ao criar regra:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar a regra',
+        variant: 'destructive'
+      });
+    }
   };
 
   // Editar regra
-  const handleEditRule = (data: RuleFormData) => {
+  const handleEditRule = async (data: RuleFormData) => {
     if (!editingRule) return;
 
-    setRules(prev => prev.map(rule =>
-      rule.id === editingRule.id
-        ? {
-            ...rule,
-            pattern: data.pattern,
-            type: data.rule_type,
-            confidence_score: data.confidence_score,
-            status: data.active ? 'active' : 'inactive',
-            accuracy: Math.round(data.confidence_score * 100)
-          }
-        : rule
-    ));
+    try {
+      const response = await fetch(`/api/categories/rules/${editingRule.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rulePattern: data.pattern,
+          ruleType: data.rule_type,
+          confidenceScore: data.confidence_score,
+          active: data.active
+        })
+      });
 
-    setEditingRule(null);
+      const result = await response.json();
 
-    toast({
-      title: 'Regra Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+      if (result.success) {
+        toast({
+          title: 'Regra Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+        setEditingRule(null);
+        fetchRules(); // Recarregar regras
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar regra:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar a regra',
+        variant: 'destructive'
+      });
+    }
   };
 
   // Excluir regra
-  const handleDeleteRule = (ruleId: string) => {
-    setRules(prev => prev.filter(rule => rule.id !== ruleId));
+  const handleDeleteRule = async (ruleId: string) => {
+    try {
+      const response = await fetch(`/api/categories/rules/${ruleId}`, {
+        method: 'DELETE'
+      });
 
-    toast({
-      title: 'Regra Excluída',
-      description: 'A regra foi removida com sucesso!',
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Regra Excluída',
+          description: 'A regra foi removida com sucesso!',
+        });
+        fetchRules(); // Recarregar regras
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Erro ao excluir regra:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a regra',
+        variant: 'destructive'
+      });
+    }
   };
 
   // Toggle status da regra
-  const handleToggleRule = (ruleId: string) => {
-    setRules(prev => prev.map(rule =>
-      rule.id === ruleId
-        ? {
-            ...rule,
-            status: rule.status === 'active' ? 'inactive' : 'active'
-          }
-        : rule
-    ));
+  const handleToggleRule = async (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    try {
+      const response = await fetch(`/api/categories/rules/${ruleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          active: rule.status !== 'active'
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        fetchRules(); // Recarregar regras
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Erro ao alternar status:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar o status da regra',
+        variant: 'destructive'
+      });
+    }
   };
 
   // Testar padrão
-  const handleTestPattern = () => {
+  const handleTestPattern = async () => {
     if (!testPattern) return;
 
-    // Simular teste de padrão
-    const matched = testPattern.toLowerCase().includes(category.name.toLowerCase());
-    const confidence = matched ? 0.85 + Math.random() * 0.15 : Math.random() * 0.3;
+    try {
+      // Usar API para testar o padrão
+      const response = await fetch('/api/categories/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: category.companyId,
+          description: testPattern
+        })
+      });
 
-    setTestResult({
-      matched,
-      confidence: Math.round(confidence * 100)
-    });
+      const result = await response.json();
+
+      if (result.success && result.data.suggestions.length > 0) {
+        const bestMatch = result.data.suggestions[0];
+        setTestResult({
+          matched: bestMatch.categoryId === category.id,
+          confidence: Math.round(bestMatch.confidence * 100)
+        });
+      } else {
+        setTestResult({
+          matched: false,
+          confidence: 0
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao testar padrão:', error);
+      setTestResult({
+        matched: false,
+        confidence: 0
+      });
+    }
   };
 
   const getRuleTypeLabel = (type: string) => {
@@ -225,7 +354,12 @@ export function CategoryRulesManager({ category, onClose }: CategoryRulesManager
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {rules.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Carregando regras...</span>
+            </div>
+          ) : rules.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 Nenhuma regra configurada para esta categoria.
