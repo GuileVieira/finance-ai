@@ -322,6 +322,7 @@ async function main() {
     console.log('\n🧹 Iniciando limpeza...');
 
     // Remover transações primeiro (se aplicável)
+    let deleteTransactions = null;
     if (!flags.uploadsOnly) {
       console.log('💳 Removendo transações...');
 
@@ -330,7 +331,7 @@ async function main() {
         : '';
       const transParams = options.company ? [options.company] : [];
 
-      const deleteTransactions = await client.query(
+      deleteTransactions = await client.query(
         `DELETE FROM financeai_transactions ${transWhere}`,
         transParams
       );

@@ -2,6 +2,8 @@ import { db } from '@/lib/db/connection';
 import { uploads, processingBatches, transactions, categories } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { NewTransaction, NewProcessingBatch, ProcessingBatch } from '@/lib/db/schema';
+import _ from 'lodash';
+import categoryCacheService from '@/lib/services/category-cache.service';
 
 export interface BatchProcessingConfig {
   batchSize: number;
@@ -39,6 +41,9 @@ export class BatchProcessingService {
     retryDelay: 1000,
     enableCheckpoints: true
   };
+
+  // Limite de processamento paralelo (10 transações simultâneas)
+  private readonly PARALLEL_LIMIT = 10;
 
   private constructor() {}
 
@@ -141,54 +146,73 @@ export class BatchProcessingService {
       );
 
     try {
-      // Processar cada transação do batch
-      for (let i = 0; i < batchTransactions.length; i++) {
-        const transaction = batchTransactions[i];
-        const globalIndex = startIndex + i;
+      // 🚀 OTIMIZAÇÃO: Processamento paralelo em chunks
+      // Divide transações em grupos de PARALLEL_LIMIT para processar simultaneamente
+      const chunks = _.chunk(batchTransactions, this.PARALLEL_LIMIT);
 
-        try {
-          // Classificar transação
-          const classificationResult = await this.classifyTransaction(transaction, context);
+      console.log(`⚡ [PARALLEL] Processando ${batchTransactions.length} transações em ${chunks.length} chunks paralelos (${this.PARALLEL_LIMIT} por vez)`);
 
-          // Preparar dados para inserção
-          const transactionData: NewTransaction = {
-            accountId,
-            categoryId: classificationResult.categoryId,
-            uploadId,
-            description: transaction.description,
-            name: transaction.name,
-            memo: transaction.memo,
-            amount: transaction.amount.toString(),
-            type: transaction.amount >= 0 ? 'credit' : 'debit',
-            transactionDate: new Date(transaction.date),
-            rawDescription: transaction.description,
-            metadata: {
-              fitid: transaction.fitid,
-              originalAmount: transaction.amount,
-              batchNumber,
-              globalIndex
-            },
-            manuallyCategorized: false,
-            verified: false,
-            confidence: classificationResult.confidence.toString(),
-            reasoning: classificationResult.reasoning
-          };
+      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+        const chunk = chunks[chunkIndex];
 
-          // Inserir transação
-          await db.insert(transactions).values(transactionData);
-          success++;
+        // Processar todas transações do chunk em paralelo
+        const chunkResults = await Promise.allSettled(
+          chunk.map(async (transaction, idx) => {
+            const globalIndex = startIndex + (chunkIndex * this.PARALLEL_LIMIT) + idx;
 
-          // Atualizar progresso do upload a cada 5 transações
-          if (success % 5 === 0) {
-            await this.updateUploadProgress(uploadId, globalIndex + 1, batchNumber);
+            // Classificar transação
+            const classificationResult = await this.classifyTransaction(transaction, context);
+
+            // Preparar dados para inserção
+            const transactionData: NewTransaction = {
+              accountId,
+              categoryId: classificationResult.categoryId,
+              uploadId,
+              description: transaction.description,
+              name: transaction.name,
+              memo: transaction.memo,
+              amount: transaction.amount.toString(),
+              type: transaction.amount >= 0 ? 'credit' : 'debit',
+              transactionDate: new Date(transaction.date),
+              rawDescription: transaction.description,
+              metadata: {
+                fitid: transaction.fitid,
+                originalAmount: transaction.amount,
+                batchNumber,
+                globalIndex
+              },
+              manuallyCategorized: false,
+              verified: false,
+              confidence: classificationResult.confidence.toString(),
+              reasoning: classificationResult.reasoning
+            };
+
+            // Inserir transação
+            await db.insert(transactions).values(transactionData);
+
+            return { success: true, globalIndex };
+          })
+        );
+
+        // Processar resultados do chunk
+        chunkResults.forEach((result, idx) => {
+          const globalIndex = startIndex + (chunkIndex * this.PARALLEL_LIMIT) + idx;
+
+          if (result.status === 'fulfilled') {
+            success++;
+          } else {
+            failed++;
+            const errorMsg = `Erro na transação ${globalIndex}: ${result.reason?.message || 'Erro desconhecido'}`;
+            errors.push(errorMsg);
+            console.error(`❌ [BATCH-ERROR] ${errorMsg}`);
           }
+        });
 
-        } catch (error) {
-          failed++;
-          const errorMsg = `Erro na transação ${globalIndex}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
-          errors.push(errorMsg);
-          console.error(`❌ [BATCH-ERROR] ${errorMsg}`);
-        }
+        // Atualizar progresso após cada chunk
+        const processedSoFar = startIndex + (chunkIndex + 1) * this.PARALLEL_LIMIT;
+        await this.updateUploadProgress(uploadId, Math.min(processedSoFar, startIndex + batchTransactions.length), batchNumber);
+
+        console.log(`✅ [PARALLEL-CHUNK] Chunk ${chunkIndex + 1}/${chunks.length} concluído: ${chunk.length} transações (${success} sucesso, ${failed} falhas)`);
       }
 
       // Atualizar batch como concluído
@@ -255,6 +279,30 @@ export class BatchProcessingService {
     reasoning: string;
     source: string;
   }> {
+    // 💾 OTIMIZAÇÃO: Verificar cache ANTES de qualquer API call
+    const cachedCategory = categoryCacheService.findInCache(transaction.description);
+
+    if (cachedCategory) {
+      // Buscar categoria no banco
+      const [foundCategory] = await db.select()
+        .from(categories)
+        .where(and(
+          eq(categories.name, cachedCategory),
+          eq(categories.active, true)
+        ))
+        .limit(1);
+
+      if (foundCategory) {
+        return {
+          categoryId: foundCategory.id,
+          categoryName: foundCategory.name,
+          confidence: 0.95,
+          reasoning: 'Reutilizado de transação similar (cache)',
+          source: 'cache'
+        };
+      }
+    }
+
     // Primeiro tentar regras existentes
     try {
       const suggestResponse = await fetch('http://localhost:3000/api/categories/suggest', {
@@ -356,13 +404,24 @@ export class BatchProcessingService {
             }
           }
 
-          return {
+          const result = {
             categoryId: foundCategory?.id || null,
             categoryName: foundCategory?.name || categoryNameFromAI,
             confidence: classifyResult.data.confidence || 0,
             reasoning: classifyResult.data.reasoning || '',
             source: 'ai'
           };
+
+          // 💾 OTIMIZAÇÃO: Adicionar ao cache se tiver alta confiança
+          if (result.confidence >= 0.8 && foundCategory) {
+            categoryCacheService.addToCache(
+              transaction.description,
+              foundCategory.name,
+              result.confidence
+            );
+          }
+
+          return result;
         }
       }
     } catch (error) {
@@ -484,6 +543,9 @@ export class BatchProcessingService {
       .where(eq(uploads.id, uploadId));
 
     console.log(`🎉 [UPLOAD-COMPLETE] Upload ${uploadId} concluído:`, stats);
+
+    // 📊 Log estatísticas do cache
+    categoryCacheService.logStats();
   }
 
   /**

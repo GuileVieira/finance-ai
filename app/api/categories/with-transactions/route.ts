@@ -61,11 +61,17 @@ export async function GET(request: NextRequest) {
       cat.transactionCount && cat.transactionCount > 0
     );
 
+    // Calcular o total geral de todas as categorias
+    const grandTotal = categoriesWithTransactions.reduce((total, cat) => {
+      return total + Math.abs(cat.totalAmount || 0);
+    }, 0);
+
     // Formatar resultado para o formato esperado
     const formattedCategories: CategoryWithStats[] = categoriesWithTransactions.map(cat => {
       const transactionCount = cat.transactionCount || 0;
       const totalAmount = Math.abs(cat.totalAmount || 0);
       const averageAmount = transactionCount > 0 ? totalAmount / transactionCount : 0;
+      const percentage = grandTotal > 0 ? (totalAmount / grandTotal) * 100 : 0;
 
       return {
         id: cat.id,
@@ -84,7 +90,7 @@ export async function GET(request: NextRequest) {
         updatedAt: cat.updatedAt,
         transactionCount,
         totalAmount,
-        percentage: 0, // Será calculado no frontend se necessário
+        percentage,
         averageAmount,
       };
     });
