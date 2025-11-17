@@ -329,7 +329,8 @@ export async function POST(request: NextRequest) {
         defaultAccount.id,
         {
           fileName: file.name,
-          bankName: parseResult.bankInfo?.bankName
+          bankName: parseResult.bankInfo?.bankName,
+          companyId: defaultCompany.id  // ⬅️ ADICIONADO: necessário para categorização
         }
       ).catch(error => {
         console.error('❌ Erro no processamento assíncrono:', error);

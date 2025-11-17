@@ -142,7 +142,7 @@ export const transactions = pgTable('financeai_transactions', {
   metadata: json('metadata'),
   manuallyCategorized: boolean('manually_categorized').default(false),
   verified: boolean('verified').default(false),
-  confidence: decimal('confidence', { precision: 3, scale: 2 }).default('0.00'),
+  confidence: decimal('confidence', { precision: 5, scale: 2 }).default('0.00'), // 0.00 a 100.00
   reasoning: text('reasoning'),
   // Novos campos para rastreamento de categorização
   categorizationSource: varchar('categorization_source', { length: 20 }), // cache, rule, history, ai, manual

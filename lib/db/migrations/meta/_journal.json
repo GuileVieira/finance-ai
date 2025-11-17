@@ -15,6 +15,13 @@
       "when": 1761346555008,
       "tag": "0001_strong_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763347512623,
+      "tag": "0002_dry_captain_cross",
+      "breakpoints": true
     }
   ]
 }
