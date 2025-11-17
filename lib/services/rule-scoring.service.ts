@@ -5,7 +5,7 @@
  * Combina múltiplos fatores: tipo de match, confidence score e histórico de uso.
  */
 
-import { CategoryRule } from '@/lib/db/schema';
+import type { CategoryRule } from '@/lib/db/schema';
 
 export interface ScoringBreakdown {
   matchTypeScore: number;     // 0-1 baseado no tipo (exact=1.0, contains=0.85, regex=0.75)

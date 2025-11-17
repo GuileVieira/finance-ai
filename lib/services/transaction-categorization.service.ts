@@ -11,9 +11,13 @@ import { db } from '@/lib/db/drizzle';
 import { categoryRules, transactions, categories } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import categoryCacheService from './category-cache.service';
-import { RuleScoringService, TransactionContext, ScoredRule } from './rule-scoring.service';
+import { RuleScoringService, ScoredRule } from './rule-scoring.service';
+import type { TransactionContext } from './rule-scoring.service';
 import { RuleGenerationService } from './rule-generation.service';
 import type { CategoryRule } from '@/lib/db/schema';
+
+// Re-exportar TransactionContext para outros módulos
+export type { TransactionContext };
 
 export interface CategorizationResult {
   categoryId: string;
@@ -24,7 +28,12 @@ export interface CategorizationResult {
   reasoning?: string;
   metadata?: {
     matchedText?: string;
-    scoringBreakdown?: Record<string, unknown>;
+    scoringBreakdown?: {
+      matchTypeScore: number;
+      confidenceScore: number;
+      usageBonus: number;
+      finalScore: number;
+    };
     similarTransactionId?: string;
     aiModel?: string;
     attemptedSources?: string[]; // Quais fontes foram tentadas
