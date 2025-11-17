@@ -144,6 +144,9 @@ export const transactions = pgTable('financeai_transactions', {
   verified: boolean('verified').default(false),
   confidence: decimal('confidence', { precision: 3, scale: 2 }).default('0.00'),
   reasoning: text('reasoning'),
+  // Novos campos para rastreamento de categorização
+  categorizationSource: varchar('categorization_source', { length: 20 }), // cache, rule, history, ai, manual
+  ruleId: uuid('rule_id').references(() => categoryRules.id, { onDelete: 'set null' }), // Se foi categorizado por regra
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
@@ -155,6 +158,8 @@ export const transactions = pgTable('financeai_transactions', {
   verifiedIdx: index('idx_transactions_verified').on(table.verified),
   nameIdx: index('idx_transactions_name').on(table.name), // Índice para busca por nome
   memoIdx: index('idx_transactions_memo').on(table.memo), // Índice para busca por memo
+  ruleIdIdx: index('idx_transactions_rule_id').on(table.ruleId), // Índice para rastreamento por regra
+  categorizationSourceIdx: index('idx_transactions_categorization_source').on(table.categorizationSource),
   // Índices compostos para performance de consultas analíticas
   dateTypeIdx: index('idx_transactions_date_type').on(table.transactionDate, table.type),
   dateAmountIdx: index('idx_transactions_date_amount').on(table.transactionDate.desc()),
@@ -187,12 +192,18 @@ export const categoryRules = pgTable('financeai_category_rules', {
   active: boolean('active').default(true),
   usageCount: integer('usage_count').default(0),
   examples: json('examples'), // Array de exemplos de transações
+  // Novos campos para sistema de scoring e rastreamento
+  lastUsedAt: timestamp('last_used_at'), // Última vez que a regra foi usada
+  sourceType: varchar('source_type', { length: 20 }).default('manual'), // manual, ai, imported
+  matchFields: json('match_fields'), // Array de campos onde buscar: ['description', 'memo', 'name']
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
   categoryIdIdx: index('idx_category_rules_category_id').on(table.categoryId),
   companyIdIdx: index('idx_category_rules_company_id').on(table.companyId),
-  activeIdx: index('idx_category_rules_active').on(table.active)
+  activeIdx: index('idx_category_rules_active').on(table.active),
+  sourceTypeIdx: index('idx_category_rules_source_type').on(table.sourceType),
+  lastUsedAtIdx: index('idx_category_rules_last_used_at').on(table.lastUsedAt)
 }));
 
 // Preços dos modelos de IA
