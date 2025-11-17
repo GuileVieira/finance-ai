@@ -57,7 +57,7 @@ export default function DashboardPage() {
       }
       return { ...prev, period: periods[0].id };
     });
-  }, [isLoadingPeriods, periods]);
+  }, [isLoadingPeriods, periods.length, periods[0]?.id]);
 
   // Usar hook do TanStack Query para buscar dados do dashboard
   const {
