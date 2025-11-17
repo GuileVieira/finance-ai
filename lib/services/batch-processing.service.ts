@@ -4,6 +4,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import { NewTransaction, NewProcessingBatch, ProcessingBatch } from '@/lib/db/schema';
 import _ from 'lodash';
 import categoryCacheService from '@/lib/services/category-cache.service';
+import { TransactionCategorizationService } from '@/lib/services/transaction-categorization.service';
+import { aiCategorizationAdapter } from '@/lib/services/ai-categorization-adapter.service';
 
 export interface BatchProcessingConfig {
   batchSize: number;
@@ -45,7 +47,13 @@ export class BatchProcessingService {
   // Limite de processamento paralelo (10 transações simultâneas)
   private readonly PARALLEL_LIMIT = 10;
 
-  private constructor() {}
+  // CompanyId para o processamento atual
+  private companyId: string = '';
+
+  private constructor() {
+    // Configurar serviço de IA
+    TransactionCategorizationService.setAIService(aiCategorizationAdapter);
+  }
 
   public static getInstance(): BatchProcessingService {
     if (!BatchProcessingService.instance) {
@@ -104,6 +112,13 @@ export class BatchProcessingService {
   }
 
   /**
+   * Configurar companyId para o processamento
+   */
+  setCompanyId(companyId: string): void {
+    this.companyId = companyId;
+  }
+
+  /**
    * Processar um lote de transações
    */
   async processBatch(
@@ -114,6 +129,7 @@ export class BatchProcessingService {
     context: {
       fileName?: string;
       bankName?: string;
+      companyId?: string;
     },
     batchNumber: number,
     startIndex: number
@@ -160,8 +176,13 @@ export class BatchProcessingService {
           chunk.map(async (transaction, idx) => {
             const globalIndex = startIndex + (chunkIndex * this.PARALLEL_LIMIT) + idx;
 
-            // Classificar transação
-            const classificationResult = await this.classifyTransaction(transaction, context);
+            // Classificar transação usando novo sistema unificado
+            const companyIdToUse = context.companyId || this.companyId;
+            if (!companyIdToUse) {
+              throw new Error('companyId is required for categorization');
+            }
+
+            const classificationResult = await this.classifyTransaction(transaction, companyIdToUse);
 
             // Preparar dados para inserção
             const transactionData: NewTransaction = {
@@ -184,7 +205,10 @@ export class BatchProcessingService {
               manuallyCategorized: false,
               verified: false,
               confidence: classificationResult.confidence.toString(),
-              reasoning: classificationResult.reasoning
+              reasoning: classificationResult.reasoning,
+              // Novos campos para rastreamento
+              categorizationSource: classificationResult.source,
+              ruleId: classificationResult.ruleId || null
             };
 
             // Inserir transação
@@ -267,187 +291,69 @@ export class BatchProcessingService {
   }
 
   /**
-   * Classificar uma transação individual
+   * Classificar uma transação individual usando o novo sistema unificado
    */
   private async classifyTransaction(
     transaction: TransactionData,
-    context: { fileName?: string; bankName?: string }
+    companyId: string
   ): Promise<{
     categoryId: string | null;
     categoryName: string;
     confidence: number;
     reasoning: string;
     source: string;
+    ruleId?: string;
   }> {
-    // 💾 OTIMIZAÇÃO: Verificar cache ANTES de qualquer API call
-    const cachedCategory = categoryCacheService.findInCache(transaction.description);
+    try {
+      // Usar TransactionCategorizationService unificado
+      const result = await TransactionCategorizationService.categorize(
+        {
+          description: transaction.description,
+          memo: transaction.memo,
+          name: transaction.name,
+          amount: transaction.amount
+        },
+        {
+          companyId,
+          confidenceThreshold: 70,
+          historyDaysLimit: 90
+        }
+      );
 
-    if (cachedCategory) {
-      // Buscar categoria no banco
-      const [foundCategory] = await db.select()
+      console.log(
+        `✅ [CATEGORIZE] "${transaction.description}" → ${result.categoryName} ` +
+        `(${result.confidence}% via ${result.source})`
+      );
+
+      return {
+        categoryId: result.categoryId,
+        categoryName: result.categoryName,
+        confidence: result.confidence,
+        reasoning: result.reasoning || '',
+        source: result.source,
+        ruleId: result.ruleId
+      };
+
+    } catch (error) {
+      // Fallback para categoria "Não Classificado"
+      console.error('❌ Erro na classificação:', error);
+
+      const [fallbackCategory] = await db.select()
         .from(categories)
         .where(and(
-          eq(categories.name, cachedCategory),
+          eq(categories.name, 'Não Classificado'),
           eq(categories.active, true)
         ))
         .limit(1);
 
-      if (foundCategory) {
-        return {
-          categoryId: foundCategory.id,
-          categoryName: foundCategory.name,
-          confidence: 0.95,
-          reasoning: 'Reutilizado de transação similar (cache)',
-          source: 'cache'
-        };
-      }
+      return {
+        categoryId: fallbackCategory?.id || null,
+        categoryName: fallbackCategory?.name || 'Não classificado',
+        confidence: 0,
+        reasoning: 'Falha na classificação - usando categoria fallback',
+        source: 'error'
+      };
     }
-
-    // Primeiro tentar regras existentes
-    try {
-      const suggestResponse = await fetch('http://localhost:3000/api/categories/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: this.companyId,
-          description: transaction.description,
-          amount: transaction.amount,
-          transactionType: transaction.amount >= 0 ? 'credit' : 'debit'
-        })
-      });
-
-      if (suggestResponse.ok) {
-        const suggestResult = await suggestResponse.json();
-        if (suggestResult.success && suggestResult.data.suggestions.length > 0) {
-          const bestSuggestion = suggestResult.data.suggestions[0];
-
-          if (bestSuggestion.confidence > 0.7) {
-            console.log(`✅ Regra aplicada: ${bestSuggestion.categoryName} (${Math.round(bestSuggestion.confidence * 100)}% confiança)`);
-
-            return {
-              categoryId: bestSuggestion.categoryId,
-              categoryName: bestSuggestion.categoryName,
-              confidence: bestSuggestion.confidence,
-              reasoning: bestSuggestion.reasoning || `Correspondeu à regra: ${bestSuggestion.rulePattern || 'padrão'}`,
-              source: 'rule'
-            };
-          }
-        }
-      }
-    } catch (error) {
-      console.log('⚠️ Falha ao verificar regras, usando IA...', error);
-    }
-
-    // Usar IA como fallback
-    try {
-      const classifyResponse = await fetch('http://localhost:3000/api/ai/work-categorize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: transaction.description,
-          amount: transaction.amount,
-          memo: transaction.memo,
-          fileName: context.fileName,
-          bankName: context.bankName,
-          date: transaction.date
-        })
-      });
-
-      if (classifyResponse.ok) {
-        const classifyResult = await classifyResponse.json();
-        if (classifyResult.success) {
-          const categoryNameFromAI = classifyResult.data.category;
-
-          // Função auxiliar para normalizar strings (remover acentos, lowercase, trim)
-          const normalize = (str: string) => {
-            return str
-              .toLowerCase()
-              .trim()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, ''); // Remove acentos
-          };
-
-          // Buscar categoria no banco com match exato primeiro
-          let [foundCategory] = await db.select()
-            .from(categories)
-            .where(and(
-              eq(categories.name, categoryNameFromAI),
-              eq(categories.active, true)
-            ))
-            .limit(1);
-
-          // Se não encontrou com match exato, tentar busca normalizada
-          if (!foundCategory) {
-            console.log(`⚠️ Categoria "${categoryNameFromAI}" não encontrada com match exato, tentando busca normalizada...`);
-
-            const allCategories = await db.select()
-              .from(categories)
-              .where(eq(categories.active, true));
-
-            const normalizedAIName = normalize(categoryNameFromAI);
-            foundCategory = allCategories.find(cat =>
-              normalize(cat.name) === normalizedAIName
-            );
-
-            if (foundCategory) {
-              console.log(`✅ Categoria encontrada via busca normalizada: "${foundCategory.name}"`);
-            } else {
-              console.warn(`⚠️ Categoria "${categoryNameFromAI}" não encontrada no banco. Usando fallback "Não Classificado".`);
-
-              // Buscar categoria "Não Classificado" como fallback
-              const [fallbackCategory] = await db.select()
-                .from(categories)
-                .where(and(
-                  eq(categories.name, 'Não Classificado'),
-                  eq(categories.active, true)
-                ))
-                .limit(1);
-
-              foundCategory = fallbackCategory;
-            }
-          }
-
-          const result = {
-            categoryId: foundCategory?.id || null,
-            categoryName: foundCategory?.name || categoryNameFromAI,
-            confidence: classifyResult.data.confidence || 0,
-            reasoning: classifyResult.data.reasoning || '',
-            source: 'ai'
-          };
-
-          // 💾 OTIMIZAÇÃO: Adicionar ao cache se tiver alta confiança
-          if (result.confidence >= 0.8 && foundCategory) {
-            categoryCacheService.addToCache(
-              transaction.description,
-              foundCategory.name,
-              result.confidence
-            );
-          }
-
-          return result;
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro na classificação por IA:', error);
-    }
-
-    // Fallback final - buscar categoria "Não Classificado"
-    console.log('🔄 Buscando categoria fallback "Não Classificado"...');
-    const [fallbackCategory] = await db.select()
-      .from(categories)
-      .where(and(
-        eq(categories.name, 'Não Classificado'),
-        eq(categories.active, true)
-      ))
-      .limit(1);
-
-    return {
-      categoryId: fallbackCategory?.id || null,
-      categoryName: fallbackCategory?.name || 'Não classificado',
-      confidence: 0,
-      reasoning: 'Falha na classificação - usando categoria fallback',
-      source: 'error'
-    };
   }
 
   /**

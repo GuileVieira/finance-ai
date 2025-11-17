@@ -34,7 +34,7 @@ export class AsyncUploadProcessorService {
     uploadId: string,
     fileBuffer: Buffer,
     accountId: string,
-    metadata: { fileName: string; bankName?: string }
+    metadata: { fileName: string; bankName?: string; companyId: string }
   ): Promise<void> {
     // Se já está processando, não fazer nada
     if (this.processingQueue.has(uploadId)) {
@@ -71,7 +71,7 @@ export class AsyncUploadProcessorService {
     uploadId: string,
     fileBuffer: Buffer,
     accountId: string,
-    metadata: { fileName: string; bankName?: string }
+    metadata: { fileName: string; bankName?: string; companyId: string }
   ): Promise<void> {
     const startTime = Date.now();
 
