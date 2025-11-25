@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { useCategories } from '@/hooks/use-categories';
 
 // Usando a interface correta da API
@@ -46,6 +47,30 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
     isActive: true,
     includeStats: false
   });
+
+  // Atualizar formData quando initialData mudar ou dialog abrir
+  useEffect(() => {
+    if (open && initialData) {
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        pattern: initialData.pattern || '',
+        categoryId: initialData.categoryId || '',
+        priority: initialData.priority || 5,
+        isActive: initialData.isActive ?? true,
+      });
+    } else if (open && !initialData) {
+      // Reset para valores padrão quando criar nova regra
+      setFormData({
+        name: '',
+        description: '',
+        pattern: '',
+        categoryId: '',
+        priority: 5,
+        isActive: true,
+      });
+    }
+  }, [open, initialData]);
 
   // Transformar categorias para o formato do Combobox
   const categoryOptions = categories.map((category) => ({
@@ -117,7 +142,7 @@ export function CategoryRuleDialog({ open, onOpenChange, onSave, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[730px]">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Editar Regra Automática' : 'Nova Regra Automática'}

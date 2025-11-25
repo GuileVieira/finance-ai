@@ -175,9 +175,12 @@ export default class InsightsService {
     const { metrics, categoryAnalysis, topExpenses, trends } = data;
 
     // Insight 1: Saúde financeira geral
-    const profitMargin = metrics.totalIncome > 0
+    const profitMarginRaw = metrics.totalIncome > 0
       ? ((metrics.totalIncome - metrics.totalExpenses) / metrics.totalIncome) * 100
       : 0;
+
+    // Limitar margem de lucro a -100% mínimo (você não pode perder mais de 100% do que ganhou)
+    const profitMargin = Math.max(-100, profitMarginRaw);
 
     if (profitMargin < 10) {
       insights.push({
@@ -215,8 +218,10 @@ export default class InsightsService {
     // Insight 2: Análise de categorias
     if (categoryAnalysis.length > 0) {
       const topCategory = categoryAnalysis[0];
-      const categoryPercentage = metrics.totalIncome > 0
-        ? (topCategory.totalAmount / metrics.totalIncome) * 100
+
+      // Calcular percentual correto: despesas da categoria / total de despesas
+      const categoryPercentage = metrics.totalExpenses > 0
+        ? (topCategory.totalAmount / metrics.totalExpenses) * 100
         : 0;
 
       if (categoryPercentage > 40 && topCategory.categoryType !== 'revenue') {

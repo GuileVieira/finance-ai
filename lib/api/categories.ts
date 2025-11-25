@@ -34,6 +34,22 @@ export interface CategoryRule {
   updatedAt: string;
 }
 
+export interface CategoryRuleDB {
+  id: string;
+  rulePattern: string;
+  ruleType: string;
+  categoryId: string;
+  categoryName: string;
+  companyId?: string;
+  confidenceScore: string;
+  active: boolean;
+  usageCount: number;
+  priority?: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type CategoryType = 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
 
 export interface CategoryFilters {
@@ -207,10 +223,15 @@ export class CategoriesAPI {
   /**
    * Buscar regras de categorização
    */
-  static async getCategoryRules(filters: { categoryId?: string; isActive?: boolean } = {}): Promise<CategoryRule[]> {
+  static async getCategoryRules(filters: { categoryId?: string; isActive?: boolean } = {}): Promise<CategoryRuleDB[]> {
     const params = new URLSearchParams();
 
-    Object.entries(filters).forEach(([key, value]) => {
+    // Transform isActive to active for backend
+    const backendFilters: Record<string, string> = {};
+    if (filters.categoryId) backendFilters.categoryId = filters.categoryId;
+    if (filters.isActive !== undefined) backendFilters.active = String(filters.isActive);
+
+    Object.entries(backendFilters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         params.append(key, String(value));
       }
@@ -224,6 +245,8 @@ export class CategoriesAPI {
     }
 
     const data = await response.json();
+    // Return database format as-is (needed by AutoRulesTable)
+    // Transformation happens in the page when passing to edit dialog
     return data.data;
   }
 
@@ -231,12 +254,23 @@ export class CategoriesAPI {
    * Criar regra de categorização
    */
   static async createCategoryRule(ruleData: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<CategoryRule> {
+    // Transform from dialog format to database format
+    const dbFormat = {
+      rulePattern: ruleData.pattern,
+      ruleType: 'contains', // Default type
+      categoryId: ruleData.categoryId,
+      confidenceScore: 0.95, // Default confidence
+      active: ruleData.isActive,
+      description: ruleData.name,
+      priority: ruleData.priority
+    };
+
     const response = await fetch(getApiUrl(`${API_BASE}/categories/rules`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(ruleData),
+      body: JSON.stringify(dbFormat),
     });
 
     if (!response.ok) {
@@ -251,12 +285,31 @@ export class CategoriesAPI {
    * Atualizar regra de categorização
    */
   static async updateCategoryRule(id: string, ruleData: Partial<Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>>): Promise<CategoryRule> {
+    // Transform from dialog format to database format
+    const dbFormat: Record<string, unknown> = {};
+
+    if (ruleData.pattern !== undefined) {
+      dbFormat.rulePattern = ruleData.pattern;
+    }
+    if (ruleData.isActive !== undefined) {
+      dbFormat.active = ruleData.isActive;
+    }
+    if (ruleData.name !== undefined) {
+      dbFormat.description = ruleData.name;
+    }
+    if (ruleData.priority !== undefined) {
+      dbFormat.priority = ruleData.priority;
+    }
+    if (ruleData.categoryId !== undefined) {
+      dbFormat.categoryId = ruleData.categoryId;
+    }
+
     const response = await fetch(getApiUrl(`${API_BASE}/categories/rules/${id}`), {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(ruleData),
+      body: JSON.stringify(dbFormat),
     });
 
     if (!response.ok) {
@@ -264,7 +317,19 @@ export class CategoriesAPI {
     }
 
     const data = await response.json();
-    return data.data;
+    // Transform response back to dialog format
+    const rule = data.data;
+    return {
+      id: rule.id,
+      name: rule.description || rule.name || `Regra para ${rule.rulePattern}`,
+      description: rule.description,
+      pattern: rule.rulePattern || rule.pattern,
+      categoryId: rule.categoryId,
+      priority: rule.priority || 5,
+      isActive: rule.active ?? rule.isActive,
+      createdAt: rule.createdAt,
+      updatedAt: rule.updatedAt
+    };
   }
 
   /**

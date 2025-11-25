@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TransactionsAPI } from '@/lib/api/transactions';
-import { CategoryWithStats } from '@/lib/api/categories';
+import { CategoryWithStats, CategoryRule, CategoryRuleDB } from '@/lib/api/categories';
 import {
   useCategoriesWithTransactions,
   useCategoryRules,
@@ -29,7 +29,7 @@ import {
   useDeleteCategory,
   useCategoriesOperations
 } from '@/hooks/use-categories';
-import { CategoryType, CategoryRule } from '@/lib/api/categories';
+import { CategoryType } from '@/lib/api/categories';
 
 // Tipos de categorias disponíveis
 const categoryTypes = [
@@ -154,8 +154,20 @@ export default function CategoriesPage() {
     });
   };
 
-  const handleEditRule = (rule: CategoryRule) => {
-    setEditingRule(rule);
+  const handleEditRule = (rule: CategoryRuleDB) => {
+    // Transform database format to dialog format
+    const dialogRule: CategoryRule = {
+      id: rule.id,
+      name: rule.description || `Regra para ${rule.rulePattern}`,
+      description: rule.description,
+      pattern: rule.rulePattern,
+      categoryId: rule.categoryId,
+      priority: rule.priority || 5,
+      isActive: rule.active,
+      createdAt: rule.createdAt,
+      updatedAt: rule.updatedAt
+    };
+    setEditingRule(dialogRule);
     setIsRuleDialogOpen(true);
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { CategoriesAPI, Category, CategoryWithStats, CategoryRule, CategoryFilters, CategorySummary, CreateCategoryData, UpdateCategoryData } from '@/lib/api/categories';
+import { CategoriesAPI, Category, CategoryWithStats, CategoryRule, CategoryRuleDB, CategoryFilters, CategorySummary, CreateCategoryData, UpdateCategoryData } from '@/lib/api/categories';
 
 // Query keys
 export const categoryKeys = {
@@ -61,7 +61,7 @@ export function useCategoriesSummary(filters: CategoryFilters = {}, options?: Om
 }
 
 // Hook para buscar regras de categorização
-export function useCategoryRules(filters: { categoryId?: string; isActive?: boolean } = {}, options?: Omit<UseQueryOptions<CategoryRule[], Error>, 'queryKey' | 'queryFn'>) {
+export function useCategoryRules(filters: { categoryId?: string; isActive?: boolean } = {}, options?: Omit<UseQueryOptions<CategoryRuleDB[], Error>, 'queryKey' | 'queryFn'>) {
   return useQuery({
     queryKey: categoryKeys.rules(filters),
     queryFn: () => CategoriesAPI.getCategoryRules(filters),
