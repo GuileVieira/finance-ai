@@ -12,6 +12,20 @@ export interface DREFilters {
   endDate?: string;
 }
 
+// Padrões para detecção automática de categorias especiais
+const TAX_PATTERNS = ['imposto', 'iss', 'pis', 'cofins', 'icms', 'ipi', 'irpj', 'csll', 'inss', 'tributo', 'taxa municipal', 'taxa estadual'];
+const FINANCIAL_COST_PATTERNS = ['juros', 'taxa bancária', 'tarifa', 'iof', 'multa', 'encargos', 'despesa bancária', 'taxas bancárias', 'tarifas bancárias'];
+const FINANCIAL_REVENUE_PATTERNS = ['rendimento', 'aplicação', 'juros recebidos', 'receita financeira', 'rendimentos'];
+
+const isTaxCategory = (name: string): boolean =>
+  TAX_PATTERNS.some(p => name.toLowerCase().includes(p));
+
+const isFinancialCost = (name: string): boolean =>
+  FINANCIAL_COST_PATTERNS.some(p => name.toLowerCase().includes(p));
+
+const isFinancialRevenue = (name: string): boolean =>
+  FINANCIAL_REVENUE_PATTERNS.some(p => name.toLowerCase().includes(p));
+
 export default class DREService {
   /**
    * Obter período anterior para comparação
@@ -194,41 +208,67 @@ export default class DREService {
         });
       }
 
-      // Calcular totais gerais
-      const totalRevenue = dreCategories
-        .filter(cat => cat.type === 'revenue')
+      // Calcular totais gerais - RECEITA BRUTA (todas as receitas operacionais)
+      const grossRevenue = dreCategories
+        .filter(cat => cat.type === 'revenue' && !isFinancialRevenue(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
+      // Separar IMPOSTOS detectados automaticamente por nome
+      const taxes = dreCategories
+        .filter(cat => isTaxCategory(cat.name))
+        .reduce((sum, cat) => sum + cat.actual, 0);
+
+      // RECEITA LÍQUIDA = Receita Bruta - Impostos
+      const netRevenue = grossRevenue - taxes;
+
+      // Custos variáveis SEM custos financeiros
       const totalVariableCosts = dreCategories
-        .filter(cat => cat.type === 'variable_cost')
+        .filter(cat => cat.type === 'variable_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
+      // Custos fixos SEM custos financeiros
       const totalFixedCosts = dreCategories
-        .filter(cat => cat.type === 'fixed_cost')
+        .filter(cat => cat.type === 'fixed_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
+      // Custos financeiros (juros, taxas bancárias, IOF, etc) - deduzidos APÓS resultado operacional
+      const financialCosts = dreCategories
+        .filter(cat => isFinancialCost(cat.name))
+        .reduce((sum, cat) => sum + cat.actual, 0);
+
+      // Receitas financeiras (rendimentos, aplicações)
+      const financialRevenue = dreCategories
+        .filter(cat => isFinancialRevenue(cat.name))
+        .reduce((sum, cat) => sum + cat.actual, 0);
+
+      // Despesas não operacionais (excluindo custos financeiros já separados)
       const totalNonOperational = dreCategories
-        .filter(cat => cat.type === 'non_operating')
+        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational;
-      const operatingIncome = totalRevenue - totalVariableCosts - totalFixedCosts;
-      const netIncome = operatingIncome - totalNonOperational;
+      const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational + financialCosts;
 
-      // Calcular percentuais
+      // MARGEM DE CONTRIBUIÇÃO = Receita Líquida - Custos Variáveis
+      const contributionMargin = netRevenue - totalVariableCosts;
+      const contributionMarginPercentage = netRevenue > 0
+        ? (contributionMargin / netRevenue) * 100
+        : 0;
+
+      // RESULTADO OPERACIONAL = Margem de Contribuição - Custos Fixos
+      const operatingIncome = contributionMargin - totalFixedCosts;
+
+      // RESULTADO FINANCEIRO = Receitas Financeiras - Custos Financeiros
+      const financialResult = financialRevenue - financialCosts;
+
+      // RESULTADO LÍQUIDO = Resultado Operacional + Resultado Financeiro - Despesas Não Operacionais
+      const netIncome = operatingIncome + financialResult - totalNonOperational;
+
+      // Calcular percentuais (análise vertical sobre receita bruta)
       dreCategories.forEach(cat => {
-        if (cat.type === 'revenue' && totalRevenue > 0) {
-          cat.percentage = (cat.actual / totalRevenue) * 100;
-        } else if (cat.type !== 'revenue' && totalRevenue > 0) {
-          cat.percentage = (cat.actual / totalRevenue) * 100;
+        if (grossRevenue > 0) {
+          cat.percentage = (cat.actual / grossRevenue) * 100;
         }
       });
-
-      // Calcular margem de contribuição
-      const contributionMargin = totalRevenue - totalVariableCosts;
-      const contributionMarginPercentage = totalRevenue > 0
-        ? (contributionMargin / totalRevenue) * 100
-        : 0;
 
       // Obter período formatado
       const periodLabel = this.formatPeriodLabel(filters.period || 'current');
@@ -285,11 +325,11 @@ export default class DREService {
       return {
         period: periodLabel,
 
-        // Estrutura esperada pelo componente
-        grossRevenue: totalRevenue,
-        netRevenue: totalRevenue, // Simplificado - não há deduções no momento
-        taxes: 0, // TODO: Implementar cálculo de impostos
-        financialCosts: 0, // TODO: Implementar cálculo de custos financeiros
+        // Estrutura esperada pelo componente - CORRIGIDA
+        grossRevenue: grossRevenue,
+        netRevenue: netRevenue, // Receita Bruta - Impostos
+        taxes: taxes, // Impostos detectados automaticamente
+        financialCosts: financialCosts, // Custos financeiros detectados
         variableCosts: totalVariableCosts,
         fixedCosts: totalFixedCosts,
         contributionMargin: {
@@ -299,10 +339,11 @@ export default class DREService {
         operationalResult: operatingIncome,
         nonOperationalExpenses: totalNonOperational,
         nonOperational: {
-          revenue: 0, // TODO: Separar receitas não operacionais
+          revenue: financialRevenue, // Receitas financeiras
           expenses: totalNonOperational,
-          netResult: -totalNonOperational
+          netResult: financialResult - totalNonOperational
         },
+        financialResult: financialResult, // Resultado financeiro (receitas - custos financeiros)
         netResult: netIncome,
 
         // Categorias mapeadas
@@ -340,7 +381,7 @@ export default class DREService {
         },
 
         // Manter compatibilidade com estrutura anterior
-        totalRevenue,
+        totalRevenue: grossRevenue,
         totalVariableCosts,
         totalFixedCosts,
         totalNonOperational,

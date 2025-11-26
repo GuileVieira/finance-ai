@@ -15,7 +15,7 @@ import { CategoryRulesManager } from '@/components/categories/category-rules-man
 import { categoryTypes } from '@/lib/mock-categories';
 import type { Category, CategoryFormData } from '@/lib/types';
 import { TransactionsAPI } from '@/lib/api/transactions';
-import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, ArrowLeft, Activity, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -180,6 +180,26 @@ export default function SettingsCategoriesPage() {
     return typeConfig?.label || type;
   };
 
+  // Padrões para sugerir tipo correto
+  const TAX_PATTERNS = ['imposto', 'iss', 'pis', 'cofins', 'icms', 'ipi', 'irpj', 'csll', 'inss', 'tributo'];
+  const REVENUE_PATTERNS = ['venda', 'receita', 'faturamento', 'recebimento'];
+  const FIXED_COST_PATTERNS = ['aluguel', 'salario', 'salário', 'folha', 'energia', 'agua', 'água', 'internet', 'telefone'];
+  const VARIABLE_COST_PATTERNS = ['material', 'insumo', 'mercadoria', 'frete', 'comissão', 'comissao'];
+
+  const getSuggestedType = (name: string): string | null => {
+    const lowerName = name.toLowerCase();
+    if (TAX_PATTERNS.some(p => lowerName.includes(p))) return 'variable_cost'; // Impostos são deduções sobre receita
+    if (REVENUE_PATTERNS.some(p => lowerName.includes(p))) return 'revenue';
+    if (FIXED_COST_PATTERNS.some(p => lowerName.includes(p))) return 'fixed_cost';
+    if (VARIABLE_COST_PATTERNS.some(p => lowerName.includes(p))) return 'variable_cost';
+    return null;
+  };
+
+  const hasTypeMismatch = (category: Category): boolean => {
+    const suggested = getSuggestedType(category.name);
+    return suggested !== null && suggested !== category.type;
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -293,6 +313,13 @@ export default function SettingsCategoriesPage() {
             </p>
           </div>
 
+          <Link href="/settings/categories/rules-health">
+            <Button variant="outline">
+              <Activity className="h-4 w-4 mr-2" />
+              Saúde das Regras
+            </Button>
+          </Link>
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -349,7 +376,7 @@ export default function SettingsCategoriesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-2xl font-bold">
-                    {categories.reduce((sum, cat) => sum + cat.transactions, 0)}
+                    {categories.reduce((sum, cat) => sum + (cat.transactions || 0), 0)}
                   </p>
                   <p className="text-sm text-muted-foreground">Transações</p>
                 </div>
@@ -471,15 +498,28 @@ export default function SettingsCategoriesPage() {
                       </TableCell>
 
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          style={{
-                            backgroundColor: `${getTypeColor(category.type)}20`,
-                            color: getTypeColor(category.type),
-                          }}
-                        >
-                          {getTypeLabel(category.type)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            style={{
+                              backgroundColor: `${getTypeColor(category.type)}20`,
+                              color: getTypeColor(category.type),
+                            }}
+                          >
+                            {getTypeLabel(category.type)}
+                          </Badge>
+                          {hasTypeMismatch(category) && (
+                            <div className="group relative">
+                              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                              <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-50 w-48 p-2 bg-popover border rounded-md shadow-md text-xs">
+                                <p className="font-medium text-yellow-600">Tipo pode estar incorreto</p>
+                                <p className="text-muted-foreground">
+                                  Sugestão: {getTypeLabel(getSuggestedType(category.name) || '')}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
 
                       <TableCell>
@@ -496,9 +536,9 @@ export default function SettingsCategoriesPage() {
 
                       <TableCell>
                         <div className="text-sm">
-                          <p className="font-medium">{category.transactions}</p>
+                          <p className="font-medium">{category.transactions || 0}</p>
                           <p className="text-muted-foreground">
-                            {category.percentage}% do total
+                            {category.percentage || 0}% do total
                           </p>
                         </div>
                       </TableCell>
@@ -605,12 +645,12 @@ export default function SettingsCategoriesPage() {
             }
           }}
         >
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>Detalhes da Categoria</DialogTitle>
             </DialogHeader>
             {viewingCategory && (
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto flex-1 pr-2">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-full"

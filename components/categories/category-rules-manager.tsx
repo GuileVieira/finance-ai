@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Category, AutoRule } from '@/lib/types';
-import { Plus, Edit, Trash2, TestTube, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, TestTube, CheckCircle, XCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface CategoryRulesManagerProps {
@@ -38,15 +38,32 @@ interface CategoryRule {
   updatedAt: Date;
 }
 
-export function CategoryRulesManager({ category, onClose }: CategoryRulesManagerProps) {
+export function CategoryRulesManager({ category }: CategoryRulesManagerProps) {
   const [rules, setRules] = useState<AutoRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AutoRule | null>(null);
   const [testPattern, setTestPattern] = useState('');
   const [testResult, setTestResult] = useState<{ matched: boolean; confidence: number } | null>(null);
   const { toast } = useToast();
+
+  // Buscar companyId
+  useEffect(() => {
+    async function fetchCompanyId() {
+      try {
+        const response = await fetch('/api/companies');
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          setCompanyId(result.data[0].id);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar empresa:', error);
+      }
+    }
+    fetchCompanyId();
+  }, []);
 
   // Buscar regras da API
   const fetchRules = async () => {
@@ -102,20 +119,38 @@ export function CategoryRulesManager({ category, onClose }: CategoryRulesManager
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: 'Regra Criada',
-          description: `Nova regra para ${category.name} foi adicionada!`,
-        });
+        // Mostrar warnings se houver
+        if (result.warnings && result.warnings.length > 0) {
+          toast({
+            title: 'Regra Criada (com alertas)',
+            description: result.warnings[0],
+            variant: 'default'
+          });
+        } else {
+          toast({
+            title: 'Regra Criada',
+            description: `Nova regra para ${category.name} foi adicionada!`,
+          });
+        }
         setIsCreateDialogOpen(false);
         fetchRules(); // Recarregar regras
       } else {
-        throw new Error(result.error);
+        // Verificar se é erro de duplicata
+        if (result.isDuplicate) {
+          toast({
+            title: 'Regra Duplicada',
+            description: result.message || 'Já existe uma regra com este padrão',
+            variant: 'destructive'
+          });
+        } else {
+          throw new Error(result.error || result.message);
+        }
       }
     } catch (error) {
       console.error('Erro ao criar regra:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível criar a regra',
+        description: error instanceof Error ? error.message : 'Não foi possível criar a regra',
         variant: 'destructive'
       });
     }
@@ -299,6 +334,8 @@ export function CategoryRulesManager({ category, onClose }: CategoryRulesManager
               <DialogTitle>Nova Regra de Categorização</DialogTitle>
             </DialogHeader>
             <RuleForm
+              categoryId={category.id}
+              companyId={companyId || undefined}
               onSave={handleCreateRule}
               onCancel={() => setIsCreateDialogOpen(false)}
             />
@@ -509,24 +546,82 @@ export function CategoryRulesManager({ category, onClose }: CategoryRulesManager
 // Componente de formulário de regras
 interface RuleFormProps {
   initialData?: Partial<RuleFormData>;
+  categoryId?: string;
+  companyId?: string;
   onSave: (data: RuleFormData) => void;
   onCancel: () => void;
 }
 
-function RuleForm({ initialData, onSave, onCancel }: RuleFormProps) {
+interface ValidationResult {
+  canCreate: boolean;
+  hasExactDuplicate: boolean;
+  hasSimilarRules: boolean;
+  hasCrossConflict: boolean;
+  warnings: string[];
+  similarRules: Array<{
+    id: string;
+    rulePattern: string;
+    categoryName: string;
+    similarity: number;
+    isConflict: boolean;
+  }>;
+}
+
+function RuleForm({ initialData, categoryId, companyId, onSave, onCancel }: RuleFormProps) {
   const [formData, setFormData] = useState<RuleFormData>({
     pattern: initialData?.pattern || '',
     rule_type: initialData?.rule_type || 'contains',
     confidence_score: initialData?.confidence_score || 0.8,
     active: initialData?.active ?? true
   });
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Validar padrão com debounce
+  useEffect(() => {
+    if (!formData.pattern || formData.pattern.length < 3 || !categoryId) {
+      setValidation(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsValidating(true);
+      try {
+        const response = await fetch('/api/categories/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryId,
+            companyId,
+            rulePattern: formData.pattern,
+            ruleType: formData.rule_type,
+            validateOnly: true
+          })
+        });
+
+        const result = await response.json();
+        if (result.validation) {
+          setValidation(result.validation);
+        }
+      } catch (error) {
+        console.error('Erro ao validar:', error);
+      } finally {
+        setIsValidating(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.pattern, categoryId, companyId, formData.rule_type]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (validation?.hasExactDuplicate) {
+      return; // Não permitir submit se for duplicata
+    }
     onSave(formData);
   };
 
-  const handleInputChange = (field: keyof RuleFormData, value: any) => {
+  const handleInputChange = (field: keyof RuleFormData, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -535,17 +630,64 @@ function RuleForm({ initialData, onSave, onCancel }: RuleFormProps) {
       {/* Padrão */}
       <div className="space-y-2">
         <Label htmlFor="pattern">Padrão *</Label>
-        <Input
-          id="pattern"
-          value={formData.pattern}
-          onChange={(e) => handleInputChange('pattern', e.target.value)}
-          placeholder="Ex: SALARIOS ou VENDAS"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="pattern"
+            value={formData.pattern}
+            onChange={(e) => handleInputChange('pattern', e.target.value)}
+            placeholder="Ex: SALARIOS ou VENDAS"
+            required
+            className={validation?.hasExactDuplicate ? 'border-red-500' : validation?.hasCrossConflict ? 'border-yellow-500' : ''}
+          />
+          {isValidating && (
+            <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
           Texto que será buscado na descrição das transações
         </p>
       </div>
+
+      {/* Alertas de validação */}
+      {validation && (validation.hasExactDuplicate || validation.hasCrossConflict || validation.hasSimilarRules) && (
+        <div className={`p-3 rounded-lg border ${validation.hasExactDuplicate ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900' : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'}`}>
+          <div className="flex items-start gap-2">
+            {validation.hasExactDuplicate ? (
+              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <p className={`text-sm font-medium ${validation.hasExactDuplicate ? 'text-red-700 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                {validation.hasExactDuplicate ? 'Regra duplicada' : 'Regras similares encontradas'}
+              </p>
+              {validation.warnings.length > 0 && (
+                <ul className="text-xs mt-1 space-y-1">
+                  {validation.warnings.map((warning, i) => (
+                    <li key={i} className="text-muted-foreground">{warning}</li>
+                  ))}
+                </ul>
+              )}
+              {validation.similarRules.length > 0 && !validation.hasExactDuplicate && (
+                <div className="mt-2 space-y-1">
+                  {validation.similarRules.slice(0, 3).map((rule) => (
+                    <div key={rule.id} className="flex items-center gap-2 text-xs">
+                      <code className="bg-muted px-1 rounded">{rule.rulePattern}</code>
+                      <span className="text-muted-foreground">→</span>
+                      <span className={rule.isConflict ? 'text-red-600' : 'text-muted-foreground'}>
+                        {rule.categoryName}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {Math.round(rule.similarity * 100)}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tipo de Regra */}
       <div className="space-y-2">
@@ -602,8 +744,18 @@ function RuleForm({ initialData, onSave, onCancel }: RuleFormProps) {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit">
-          {initialData?.pattern ? 'Salvar Alterações' : 'Criar Regra'}
+        <Button
+          type="submit"
+          disabled={validation?.hasExactDuplicate || isValidating}
+        >
+          {isValidating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Validando...
+            </>
+          ) : (
+            initialData?.pattern ? 'Salvar Alterações' : 'Criar Regra'
+          )}
         </Button>
       </div>
     </form>

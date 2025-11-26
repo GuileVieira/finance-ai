@@ -160,8 +160,8 @@ export default class CashFlowService {
       const firstDay = cashFlowDays[0];
       const lastDay = cashFlowDays[cashFlowDays.length - 1];
 
-      const periodOpeningBalance = firstDay?.openingBalance || 0;
-      const closingBalance = lastDay?.closingBalance || 0;
+      const periodOpeningBalance = firstDay?.openingBalance || openingBalance;
+      const closingBalance = lastDay?.closingBalance || openingBalance;
 
       // Encontrar melhor e pior dia
       const bestDay = cashFlowDays.reduce((best, current) =>
@@ -175,6 +175,11 @@ export default class CashFlowService {
       // Formatar período
       const periodLabel = this.formatPeriodLabel(startDate, endDate);
 
+      // Calcular número REAL de dias no período (não apenas dias com transações)
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      const daysInPeriod = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
       return {
         period: periodLabel,
         openingBalance: periodOpeningBalance,
@@ -182,8 +187,9 @@ export default class CashFlowService {
         totalIncome,
         totalExpenses,
         netCashFlow,
-        averageDailyIncome: cashFlowDays.length > 0 ? totalIncome / cashFlowDays.length : 0,
-        averageDailyExpenses: cashFlowDays.length > 0 ? totalExpenses / cashFlowDays.length : 0,
+        // CORREÇÃO: média diária usa TODOS os dias do período, não apenas dias com transações
+        averageDailyIncome: daysInPeriod > 0 ? totalIncome / daysInPeriod : 0,
+        averageDailyExpenses: daysInPeriod > 0 ? totalExpenses / daysInPeriod : 0,
         cashFlowDays,
         bestDay: {
           date: bestDay.date,

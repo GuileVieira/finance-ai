@@ -47,30 +47,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rule = await CategoryRulesService.createRule({
+    // Se solicitada apenas validação (sem criar)
+    if (body.validateOnly) {
+      const validation = await CategoryRulesService.validateRuleCreation(
+        body.rulePattern,
+        body.categoryId,
+        body.companyId
+      );
+
+      return NextResponse.json({
+        success: true,
+        data: null,
+        validation,
+        message: validation.canCreate
+          ? 'Regra pode ser criada'
+          : 'Existem problemas com esta regra'
+      });
+    }
+
+    // Criar regra com validação automática
+    const result = await CategoryRulesService.createRule({
       rulePattern: body.rulePattern,
       ruleType: body.ruleType,
       categoryId: body.categoryId,
       companyId: body.companyId,
       confidenceScore: body.confidenceScore,
-      active: body.active
+      active: body.active,
+      skipValidation: body.skipValidation
     });
 
     return NextResponse.json({
       success: true,
-      data: rule,
+      data: result.rule,
+      validation: result.validation,
+      warnings: result.validation?.warnings || [],
       message: 'Category rule created successfully'
     }, { status: 201 });
 
   } catch (error) {
     console.error('[CATEGORIES-RULES-API] Error creating category rule:', error);
+
+    // Verificar se é erro de duplicata
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isDuplicate = errorMessage.includes('duplicada') || errorMessage.includes('duplicate');
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create category rule',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: isDuplicate ? 'Regra duplicada' : 'Failed to create category rule',
+        message: errorMessage,
+        isDuplicate
       },
-      { status: 500 }
+      { status: isDuplicate ? 409 : 500 }
     );
   }
 }

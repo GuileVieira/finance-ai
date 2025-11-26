@@ -96,27 +96,31 @@ export default function CategoryAnalysis({
 
   const getCategoryTypeLabel = (type: DRECategory['type']) => {
     switch (type) {
-      case 'variable':
+      case 'variable_cost':
         return 'Custo Variável';
-      case 'fixed':
+      case 'fixed_cost':
         return 'Custo Fixo';
       case 'non_operating':
         return 'Não Operacional';
+      case 'revenue':
+        return 'Receita';
       default:
-        return 'Desconhecido';
+        return type || 'Desconhecido';
     }
   };
 
   const getCategoryTypeColor = (type: DRECategory['type']) => {
     switch (type) {
-      case 'variable':
+      case 'variable_cost':
         return 'bg-warning/10 text-warning';
-      case 'fixed':
+      case 'fixed_cost':
         return 'bg-danger/10 text-danger';
       case 'non_operating':
         return 'bg-muted-foreground/10 text-muted-foreground';
-      default:
+      case 'revenue':
         return 'bg-success/10 text-success';
+      default:
+        return 'bg-muted/10 text-muted-foreground';
     }
   };
 

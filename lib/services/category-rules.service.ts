@@ -7,7 +7,11 @@ export interface RuleMatch {
   ruleName: string;
   categoryId: string;
   categoryName: string;
+  categoryType: string;
   confidence: number;
+  rulePattern: string;
+  ruleType: string;
+  reasoning?: string;
 }
 
 export class CategoryRulesService {
@@ -22,10 +26,23 @@ export class CategoryRulesService {
 
   /**
    * Aplicar regras de categorização em uma transação
+   * @param transactionDescription - Descrição da transação
+   * @param companyId - ID da empresa (OBRIGATÓRIO para filtrar regras corretas)
    */
-  static async applyRulesToTransaction(transactionDescription: string): Promise<RuleMatch | null> {
+  static async applyRulesToTransaction(
+    transactionDescription: string,
+    companyId?: string
+  ): Promise<RuleMatch | null> {
     try {
       this.checkDatabaseConnection();
+
+      // Construir condições de filtro
+      const conditions = [eq(categoryRules.active, true)];
+
+      // IMPORTANTE: Filtrar por empresa para evitar cross-contamination
+      if (companyId) {
+        conditions.push(eq(categoryRules.companyId, companyId));
+      }
 
       // Buscar regras ativas ordenadas por confidenceScore (maior primeiro)
       const activeRules = await db
@@ -36,10 +53,11 @@ export class CategoryRulesService {
           categoryId: categoryRules.categoryId,
           confidenceScore: categoryRules.confidenceScore,
           categoryName: categories.name,
+          categoryType: categories.type,
         })
         .from(categoryRules)
         .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
-        .where(eq(categoryRules.active, true))
+        .where(and(...conditions))
         .orderBy(desc(categoryRules.confidenceScore));
 
       // Converter descrição para minúsculas para comparação
@@ -48,17 +66,23 @@ export class CategoryRulesService {
       // Testar cada regra em ordem de confiança
       for (const rule of activeRules) {
         if (this.testRule(rule.rulePattern, rule.ruleType, normalizedDescription)) {
+          const confidence = this.calculateConfidence(
+            parseFloat(rule.confidenceScore),
+            rule.rulePattern,
+            normalizedDescription,
+            rule.ruleType
+          );
+
           return {
             ruleId: rule.id,
-            ruleName: `Regra ${rule.id}`, // Como não existe campo name, usamos ID
+            ruleName: `Regra ${rule.id}`,
             categoryId: rule.categoryId,
             categoryName: rule.categoryName,
-            confidence: this.calculateConfidence(
-              parseFloat(rule.confidenceScore),
-              rule.rulePattern,
-              normalizedDescription,
-              rule.ruleType
-            )
+            categoryType: rule.categoryType || 'unknown',
+            confidence,
+            rulePattern: rule.rulePattern,
+            ruleType: rule.ruleType,
+            reasoning: `Correspondência com regra "${rule.rulePattern}" (tipo: ${rule.ruleType})`
           };
         }
       }
@@ -73,15 +97,20 @@ export class CategoryRulesService {
 
   /**
    * Aplicar regras em múltiplas transações
+   * @param transactions - Array de transações com id e description
+   * @param companyId - ID da empresa (OBRIGATÓRIO para filtrar regras corretas)
    */
-  static async applyRulesToTransactions(transactions: Array<{ id: string; description: string }>): Promise<Array<{ transactionId: string; match: RuleMatch | null }>> {
+  static async applyRulesToTransactions(
+    transactions: Array<{ id: string; description: string }>,
+    companyId?: string
+  ): Promise<Array<{ transactionId: string; match: RuleMatch | null }>> {
     try {
       this.checkDatabaseConnection();
 
       const results = [];
 
       for (const transaction of transactions) {
-        const match = await this.applyRulesToTransaction(transaction.description);
+        const match = await this.applyRulesToTransaction(transaction.description, companyId);
         results.push({
           transactionId: transaction.id,
           match
@@ -280,16 +309,28 @@ export class CategoryRulesService {
 
   /**
    * Encontrar regras conflitantes (mesmo padrão ou similar)
+   * @param companyId - ID da empresa para filtrar regras
    */
-  static async findConflictingRules(): Promise<Array<{ rule1: any; rule2: any; similarity: number }>> {
+  static async findConflictingRules(companyId?: string): Promise<Array<{
+    rule1: { id: string; rulePattern: string; categoryId: string };
+    rule2: { id: string; rulePattern: string; categoryId: string };
+    similarity: number;
+    isCrossCategory: boolean;
+  }>> {
     try {
       this.checkDatabaseConnection();
+
+      // Construir condições
+      const conditions = [eq(categoryRules.active, true)];
+      if (companyId) {
+        conditions.push(eq(categoryRules.companyId, companyId));
+      }
 
       // Buscar todas as regras ativas
       const allRules = await db
         .select()
         .from(categoryRules)
-        .where(eq(categoryRules.active, true));
+        .where(and(...conditions));
 
       const conflicts = [];
 
@@ -304,9 +345,11 @@ export class CategoryRulesService {
 
           if (similarity > 0.8) { // 80% de similaridade considera conflito
             conflicts.push({
-              rule1,
-              rule2,
-              similarity
+              rule1: { id: rule1.id, rulePattern: rule1.rulePattern, categoryId: rule1.categoryId },
+              rule2: { id: rule2.id, rulePattern: rule2.rulePattern, categoryId: rule2.categoryId },
+              similarity,
+              // Conflito cross-category é mais grave (mesmo pattern → categorias diferentes)
+              isCrossCategory: rule1.categoryId !== rule2.categoryId
             });
           }
         }
@@ -317,6 +360,82 @@ export class CategoryRulesService {
     } catch (error) {
       console.error('Error finding conflicting rules:', error);
       throw new Error('Failed to find conflicting rules');
+    }
+  }
+
+  /**
+   * Encontrar e desativar regras órfãs (categoria foi deletada)
+   * @param companyId - ID da empresa
+   */
+  static async findOrphanRules(companyId?: string): Promise<Array<{ id: string; rulePattern: string; categoryId: string }>> {
+    try {
+      this.checkDatabaseConnection();
+
+      // Construir condições
+      const conditions = [eq(categoryRules.active, true)];
+      if (companyId) {
+        conditions.push(eq(categoryRules.companyId, companyId));
+      }
+
+      // Buscar regras com LEFT JOIN para identificar órfãs
+      const rulesWithCategories = await db
+        .select({
+          ruleId: categoryRules.id,
+          rulePattern: categoryRules.rulePattern,
+          categoryId: categoryRules.categoryId,
+          categoryName: categories.name,
+        })
+        .from(categoryRules)
+        .leftJoin(categories, eq(categoryRules.categoryId, categories.id))
+        .where(and(...conditions));
+
+      // Filtrar regras sem categoria (órfãs)
+      const orphanRules = rulesWithCategories
+        .filter(r => !r.categoryName)
+        .map(r => ({
+          id: r.ruleId,
+          rulePattern: r.rulePattern,
+          categoryId: r.categoryId
+        }));
+
+      return orphanRules;
+
+    } catch (error) {
+      console.error('Error finding orphan rules:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Desativar regras órfãs (categoria foi deletada)
+   * @param companyId - ID da empresa
+   */
+  static async deactivateOrphanRules(companyId?: string): Promise<number> {
+    try {
+      const orphanRules = await this.findOrphanRules(companyId);
+
+      if (orphanRules.length === 0) {
+        return 0;
+      }
+
+      // Desativar cada regra órfã
+      for (const rule of orphanRules) {
+        await db
+          .update(categoryRules)
+          .set({
+            active: false,
+            status: 'inactive',
+            updatedAt: new Date()
+          })
+          .where(eq(categoryRules.id, rule.id));
+      }
+
+      console.log(`🧹 [ORPHAN-CLEANUP] Desativadas ${orphanRules.length} regras órfãs`);
+      return orphanRules.length;
+
+    } catch (error) {
+      console.error('Error deactivating orphan rules:', error);
+      return 0;
     }
   }
 
@@ -411,6 +530,165 @@ export class CategoryRulesService {
   }
 
   /**
+   * Encontrar regras similares a um padrão
+   * Útil para validar antes de criar uma nova regra
+   * @param pattern - Padrão a verificar
+   * @param companyId - ID da empresa
+   * @param threshold - Limiar de similaridade (0-1, default 0.7)
+   * @param excludeRuleId - ID de regra para excluir (útil ao editar)
+   */
+  static async findSimilarRules(
+    pattern: string,
+    companyId?: string,
+    threshold: number = 0.7,
+    excludeRuleId?: string
+  ): Promise<Array<{
+    id: string;
+    rulePattern: string;
+    categoryId: string;
+    categoryName: string;
+    similarity: number;
+    isExact: boolean;
+    isSameCategory: boolean;
+  }>> {
+    try {
+      this.checkDatabaseConnection();
+
+      // Construir condições
+      const conditions = [eq(categoryRules.active, true)];
+      if (companyId) {
+        conditions.push(eq(categoryRules.companyId, companyId));
+      }
+
+      const allRules = await db
+        .select({
+          id: categoryRules.id,
+          rulePattern: categoryRules.rulePattern,
+          categoryId: categoryRules.categoryId,
+          categoryName: categories.name,
+        })
+        .from(categoryRules)
+        .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
+        .where(and(...conditions));
+
+      const normalizedPattern = pattern.toLowerCase().trim();
+      const similarRules = [];
+
+      for (const rule of allRules) {
+        // Pular a regra sendo editada
+        if (excludeRuleId && rule.id === excludeRuleId) continue;
+
+        const normalizedRulePattern = rule.rulePattern.toLowerCase().trim();
+
+        // Verificar match exato
+        const isExact = normalizedPattern === normalizedRulePattern;
+
+        // Calcular similaridade
+        const similarity = this.calculatePatternSimilarity(normalizedPattern, normalizedRulePattern);
+
+        if (isExact || similarity >= threshold) {
+          similarRules.push({
+            id: rule.id,
+            rulePattern: rule.rulePattern,
+            categoryId: rule.categoryId,
+            categoryName: rule.categoryName,
+            similarity: Math.round(similarity * 100) / 100,
+            isExact,
+            isSameCategory: false // Será preenchido pelo chamador
+          });
+        }
+      }
+
+      // Ordenar por similaridade (maior primeiro)
+      return similarRules.sort((a, b) => b.similarity - a.similarity);
+
+    } catch (error) {
+      console.error('Error finding similar rules:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Validar se pode criar uma regra (verifica duplicatas e conflitos)
+   * @returns Objeto com validação e alertas
+   */
+  static async validateRuleCreation(
+    pattern: string,
+    categoryId: string,
+    companyId?: string,
+    excludeRuleId?: string
+  ): Promise<{
+    canCreate: boolean;
+    hasExactDuplicate: boolean;
+    hasSimilarRules: boolean;
+    hasCrossConflict: boolean;
+    warnings: string[];
+    similarRules: Array<{
+      id: string;
+      rulePattern: string;
+      categoryName: string;
+      similarity: number;
+      isConflict: boolean;
+    }>;
+  }> {
+    try {
+      const similarRules = await this.findSimilarRules(pattern, companyId, 0.7, excludeRuleId);
+
+      const warnings: string[] = [];
+      let hasExactDuplicate = false;
+      let hasCrossConflict = false;
+
+      const detailedSimilar = similarRules.map(rule => {
+        const isConflict = rule.categoryId !== categoryId;
+        const isExact = rule.isExact;
+
+        if (isExact) {
+          hasExactDuplicate = true;
+          if (isConflict) {
+            hasCrossConflict = true;
+            warnings.push(`Já existe regra idêntica "${rule.rulePattern}" para categoria "${rule.categoryName}"`);
+          } else {
+            warnings.push(`Regra duplicada: "${rule.rulePattern}" já existe para esta categoria`);
+          }
+        } else if (rule.similarity >= 0.9) {
+          if (isConflict) {
+            hasCrossConflict = true;
+            warnings.push(`Regra muito similar "${rule.rulePattern}" (${Math.round(rule.similarity * 100)}%) aponta para "${rule.categoryName}"`);
+          }
+        }
+
+        return {
+          id: rule.id,
+          rulePattern: rule.rulePattern,
+          categoryName: rule.categoryName,
+          similarity: rule.similarity,
+          isConflict
+        };
+      });
+
+      return {
+        canCreate: !hasExactDuplicate, // Não permitir duplicatas exatas
+        hasExactDuplicate,
+        hasSimilarRules: similarRules.length > 0,
+        hasCrossConflict,
+        warnings,
+        similarRules: detailedSimilar
+      };
+
+    } catch (error) {
+      console.error('Error validating rule creation:', error);
+      return {
+        canCreate: true, // Em caso de erro, permitir (fail-safe)
+        hasExactDuplicate: false,
+        hasSimilarRules: false,
+        hasCrossConflict: false,
+        warnings: [],
+        similarRules: []
+      };
+    }
+  }
+
+  /**
    * Criar nova regra de categorização
    */
   static async createRule(ruleData: {
@@ -420,9 +698,25 @@ export class CategoryRulesService {
     companyId?: string;
     confidenceScore?: number;
     active?: boolean;
-  }): Promise<any> {
+    skipValidation?: boolean;
+  }): Promise<{ rule: ReturnType<typeof db.insert> extends Promise<infer T> ? T : never; validation?: Awaited<ReturnType<typeof CategoryRulesService.validateRuleCreation>> }> {
     try {
       this.checkDatabaseConnection();
+
+      // Validar antes de criar (a menos que seja explicitamente pulado)
+      let validation;
+      if (!ruleData.skipValidation) {
+        validation = await this.validateRuleCreation(
+          ruleData.rulePattern,
+          ruleData.categoryId,
+          ruleData.companyId
+        );
+
+        // Bloquear se for duplicata exata
+        if (validation.hasExactDuplicate) {
+          throw new Error(`Regra duplicada: já existe uma regra com o padrão "${ruleData.rulePattern}"`);
+        }
+      }
 
       const [newRule] = await db
         .insert(categoryRules)
@@ -439,11 +733,11 @@ export class CategoryRulesService {
         })
         .returning();
 
-      return newRule;
+      return { rule: newRule, validation };
 
     } catch (error) {
       console.error('Error creating category rule:', error);
-      throw new Error('Failed to create category rule');
+      throw error instanceof Error ? error : new Error('Failed to create category rule');
     }
   }
 

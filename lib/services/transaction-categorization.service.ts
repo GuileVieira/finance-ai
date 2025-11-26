@@ -582,32 +582,42 @@ export class TransactionCategorizationService {
     clustersProcessed: number;
     rulesCreated: number;
     rulesDeactivated: number;
+    orphanRulesDeactivated: number;
   }> {
     try {
+      // Importar dinamicamente para evitar dependência circular
+      const { CategoryRulesService } = await import('./category-rules.service');
+
       // 1. Processar clusters pendentes
       const clusterResult = await TransactionClusteringService.processPendingClusters(companyId);
 
       // 2. Desativar regras com baixo desempenho
       const deactivatedCount = await RuleLifecycleService.deactivateLowPerformingRules(companyId);
 
+      // 3. Desativar regras órfãs (categoria deletada)
+      const orphanCount = await CategoryRulesService.deactivateOrphanRules(companyId);
+
       console.log(
         `🔧 [MAINTENANCE] Company ${companyId}: ` +
         `${clusterResult.processed} clusters processed, ` +
         `${clusterResult.rulesCreated} rules created, ` +
-        `${deactivatedCount} rules deactivated`
+        `${deactivatedCount} low-performing rules deactivated, ` +
+        `${orphanCount} orphan rules deactivated`
       );
 
       return {
         clustersProcessed: clusterResult.processed,
         rulesCreated: clusterResult.rulesCreated,
-        rulesDeactivated: deactivatedCount
+        rulesDeactivated: deactivatedCount,
+        orphanRulesDeactivated: orphanCount
       };
     } catch (error) {
       console.error('[MAINTENANCE-ERROR]', error);
       return {
         clustersProcessed: 0,
         rulesCreated: 0,
-        rulesDeactivated: 0
+        rulesDeactivated: 0,
+        orphanRulesDeactivated: 0
       };
     }
   }

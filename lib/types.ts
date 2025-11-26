@@ -78,6 +78,12 @@ export interface DREStatement {
   };
   operationalResult: number;
   nonOperationalExpenses: number;
+  nonOperational: {
+    revenue: number;
+    expenses: number;
+    netResult: number;
+  };
+  financialResult: number; // Resultado financeiro (receitas - custos financeiros)
   netResult: number;
 
   // Campos antigos (mantidos para compatibilidade)
@@ -90,6 +96,15 @@ export interface DREStatement {
   netIncome: number;
 
   categories: DRECategory[];
+  lineDetails?: {
+    grossRevenue: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    taxes: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    financialCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    variableCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    fixedCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    nonOperationalRevenue: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    nonOperationalExpenses: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+  };
   generatedAt: string;
 }
 
