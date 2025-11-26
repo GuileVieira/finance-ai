@@ -110,24 +110,20 @@ export default class DashboardService {
       // Buscar comparações com o período anterior
       const comparisons = await this.calculateAllComparisons(filters);
 
-      // Converter valores de centavos para reais se necessário
-      const convertFromCents = (value: number | null | undefined): number => {
+      // Garante que o valor tenha no máximo 2 casas decimais
+      const formatToTwoDecimals = (value: number | null | undefined): number => {
         if (!value) return 0;
-        // Se o valor for maior que 1000 e não tiver casas decimais, provavelmente está em centavos
-        if (value > 1000 && Number.isInteger(value)) {
-          return value / 100;
-        }
-        return value;
+        return Math.round(value * 100) / 100;
       };
 
       return {
-        totalIncome: convertFromCents(metrics.totalIncome),
-        totalExpenses: convertFromCents(metrics.totalExpenses),
-        netBalance: convertFromCents(netBalance),
+        totalIncome: formatToTwoDecimals(metrics.totalIncome),
+        totalExpenses: formatToTwoDecimals(metrics.totalExpenses),
+        netBalance: formatToTwoDecimals(netBalance),
         transactionCount: metrics.transactionCount || 0,
         incomeCount: metrics.incomeCount || 0,
         expenseCount: metrics.expenseCount || 0,
-        averageTicket: convertFromCents(metrics.averageTicket),
+        averageTicket: formatToTwoDecimals(metrics.averageTicket),
         growthRate: comparisons.growthRate,
         expensesGrowthRate: comparisons.expensesGrowthRate,
         balanceGrowthRate: comparisons.balanceGrowthRate,

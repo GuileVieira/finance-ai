@@ -157,8 +157,8 @@ export default function DREStatementComponent({
                               {new Date(transaction.date).toLocaleDateString('pt-BR')}
                             </div>
                           </div>
-                          <span className={transaction.amount >= 0 ? 'text-success' : 'text-destructive'}>
-                            {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                          <span className={`${transaction.type === 'income' ? 'text-success' : 'text-destructive'} whitespace-nowrap`}>
+                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </span>
                         </div>
                       ))}
@@ -422,7 +422,7 @@ export default function DREStatementComponent({
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {formatPercentage(category.percentage)} do total
+                      {formatPercentage(category.percentage)} da receita
                     </div>
                   </div>
 
@@ -443,8 +443,8 @@ export default function DREStatementComponent({
                                 {new Date(transaction.date).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            <span className={transaction.amount >= 0 ? 'text-success' : 'text-danger'}>
-                              {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                            <span className={`${transaction.type === 'income' ? 'text-success' : 'text-destructive'} whitespace-nowrap`}>
+                              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                             </span>
                           </div>
                         ))}

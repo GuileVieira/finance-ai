@@ -48,9 +48,10 @@ export default class InsightsService {
    * Converter período para datas
    */
   static convertPeriodToDates(period: string): { startDate: string; endDate: string } {
+    const now = new Date();
+    
     if (!period || period === 'current') {
       // Mês atual
-      const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
       const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
@@ -59,13 +60,34 @@ export default class InsightsService {
       return { startDate, endDate };
     }
 
-    // Formato YYYY-MM
-    const [year, month] = period.split('-').map(Number);
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+    if (period === 'all') {
+      // Últimos 12 meses como default para "todos" ou todo o histórico
+      // Para simplificar, pegamos desde o início do ano passado
+      const year = now.getFullYear() - 1;
+      return { 
+        startDate: `${year}-01-01`, 
+        endDate: `${now.getFullYear()}-12-31` 
+      };
+    }
 
-    return { startDate, endDate };
+    // Formato YYYY-MM
+    try {
+      const [year, month] = period.split('-').map(Number);
+      if (!year || !month) throw new Error('Invalid format');
+      
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+      return { startDate, endDate };
+    } catch (e) {
+      // Fallback para mês atual
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+      return { startDate, endDate };
+    }
   }
 
   /**
@@ -95,7 +117,7 @@ export default class InsightsService {
       const whereClause = and(...whereConditions);
 
       // Buscar dados para análise
-      const analysisData = await this.getAnalysisData(whereClause);
+      const analysisData = await this.getAnalysisData(whereClause, filters);
 
       // Gerar insights baseados na análise
       const insights = await this.generateInsights(analysisData, filters);
@@ -135,7 +157,7 @@ export default class InsightsService {
   /**
    * Buscar dados para análise
    */
-  private static async getAnalysisData(whereClause: any) {
+  private static async getAnalysisData(whereClause: any, filters?: InsightsFilters) {
     // Métricas gerais
     const metrics = await db
       .select({
@@ -181,7 +203,7 @@ export default class InsightsService {
       .limit(5);
 
     // Tendências (comparação com período anterior)
-    const trends = await this.getTrendData(whereClause);
+    const trends = await this.getTrendData(filters);
 
     return {
       metrics: metrics[0] || {
@@ -211,7 +233,7 @@ export default class InsightsService {
     // Limitar margem de lucro a -100% mínimo (você não pode perder mais de 100% do que ganhou)
     const profitMargin = Math.max(-100, profitMarginRaw);
 
-    if (profitMargin < 10) {
+    if (metrics.totalIncome > 0 && profitMargin < 10) {
       insights.push({
         id: 'profit-margin-low',
         type: 'alert',
@@ -227,7 +249,7 @@ export default class InsightsService {
         ],
         createdAt: new Date().toISOString()
       });
-    } else if (profitMargin > 30) {
+    } else if (metrics.totalIncome > 0 && profitMargin > 30) {
       insights.push({
         id: 'profit-margin-good',
         type: 'positive',
@@ -315,7 +337,7 @@ export default class InsightsService {
     }
 
     // Insight 5: Tendências
-    if (trends.growthRate !== undefined) {
+    if (trends.growthRate !== undefined && trends.growthRate !== 0) {
       if (trends.growthRate > 20) {
         insights.push({
           id: 'high-growth',
@@ -412,13 +434,77 @@ export default class InsightsService {
   /**
    * Obter dados de tendência
    */
-  private static async getTrendData(currentWhereClause: any) {
+  private static async getTrendData(filters: InsightsFilters = {}) {
     try {
-      // Para simplificar, vamos retornar dados básicos
-      // Em uma implementação completa, você compararia com o período anterior
+      // Se não tiver período definido ou for 'all', não faz sentido calcular tendência mês a mês
+      if (!filters.period || filters.period === 'all') {
+        return { growthRate: 0, periodOverPeriod: 0 };
+      }
+
+      const currentPeriod = this.convertPeriodToDates(filters.period);
+      
+      // Calcular período anterior (mês anterior)
+      const currentDate = new Date(currentPeriod.startDate);
+      const prevDate = new Date(currentDate);
+      prevDate.setMonth(currentDate.getMonth() - 1);
+      
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = prevDate.getMonth() + 1;
+      const prevPeriodStr = `${prevYear}-${prevMonth.toString().padStart(2, '0')}`;
+      const prevPeriod = this.convertPeriodToDates(prevPeriodStr);
+
+      // Filtros base comuns
+      const baseConditions: any[] = [];
+      if (filters.accountId && filters.accountId !== 'all') {
+        baseConditions.push(eq(transactions.accountId, filters.accountId));
+      }
+      if (filters.companyId && filters.companyId !== 'all') {
+        baseConditions.push(eq(accounts.companyId, filters.companyId));
+      }
+
+      // Receita Atual
+      const currentConditions = [
+        ...baseConditions,
+        gte(transactions.transactionDate, currentPeriod.startDate),
+        lte(transactions.transactionDate, currentPeriod.endDate),
+        eq(transactions.type, 'credit')
+      ];
+
+      const currentIncomeResult = await db
+        .select({ total: sum(transactions.amount).mapWith(Number) })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(and(...currentConditions));
+      
+      const currentIncome = currentIncomeResult[0]?.total || 0;
+
+      // Receita Anterior
+      const prevConditions = [
+        ...baseConditions,
+        gte(transactions.transactionDate, prevPeriod.startDate),
+        lte(transactions.transactionDate, prevPeriod.endDate),
+        eq(transactions.type, 'credit')
+      ];
+
+      const prevIncomeResult = await db
+        .select({ total: sum(transactions.amount).mapWith(Number) })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(and(...prevConditions));
+      
+      const prevIncome = prevIncomeResult[0]?.total || 0;
+
+      // Calcular crescimento
+      let growthRate = 0;
+      if (prevIncome > 0) {
+        growthRate = ((currentIncome - prevIncome) / prevIncome) * 100;
+      } else if (currentIncome > 0) {
+        growthRate = 100; // Crescimento infinito (de 0 para algo)
+      }
+
       return {
-        growthRate: 0, // Seria calculado comparando com período anterior
-        periodOverPeriod: 0
+        growthRate,
+        periodOverPeriod: growthRate // Usando o mesmo valor por enquanto
       };
     } catch (error) {
       console.error('Error getting trend data:', error);
@@ -437,10 +523,16 @@ export default class InsightsService {
       return `${months[now.getMonth()]} ${now.getFullYear()}`;
     }
 
-    const [year, month] = period.split('-').map(Number);
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    if (period === 'all') return 'Todo o Período';
+
+    try {
+      const [year, month] = period.split('-').map(Number);
+      const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    return `${months[month - 1]} ${year}`;
+      return `${months[month - 1]} ${year}`;
+    } catch {
+      return period;
+    }
   }
 
   /**
@@ -621,7 +713,32 @@ export default class InsightsService {
    */
   static async getSimpleInsights(filters: InsightsFilters = {}): Promise<SimpleInsightsResponse> {
     try {
-      // Verificar se há dados
+      // Verificar se há dados e gerar insights estendidos
+      let extendedInsights: Insight[] = [];
+      
+      if (filters.period && filters.period !== 'all') {
+        try {
+          const { startDate, endDate } = this.convertPeriodToDates(filters.period);
+          const whereConditions = [
+            gte(transactions.transactionDate, startDate),
+            lte(transactions.transactionDate, endDate)
+          ];
+
+          if (filters.accountId && filters.accountId !== 'all') {
+            whereConditions.push(eq(transactions.accountId, filters.accountId));
+          }
+          
+          if (filters.companyId && filters.companyId !== 'all') {
+            whereConditions.push(eq(accounts.companyId, filters.companyId));
+          }
+
+          const analysisData = await this.getAnalysisData(and(...whereConditions), filters);
+          extendedInsights = await this.generateInsights(analysisData, filters);
+        } catch (err) {
+          console.warn('Failed to generate extended insights for simple view', err);
+        }
+      }
+
       const accuracy = await this.getAccuracyRate(filters);
 
       if (accuracy.totalTransactions === 0) {
@@ -637,26 +754,40 @@ export default class InsightsService {
 
       const insights: string[] = [];
 
-      // Insight 1: Acurácia da categorização
-      if (accuracy.totalCategorized > 0) {
-        insights.push(`${accuracy.averageAccuracy.toFixed(0)}% de acurácia na categorização automática`);
+      // Priorizar insights gerados (Alertas e Oportunidades)
+      extendedInsights.forEach(insight => {
+        // Adicionar emoji baseado no tipo
+        const prefix = insight.type === 'alert' ? '⚠️ ' : 
+                       insight.type === 'positive' ? '✅ ' : '💡 ';
+        insights.push(`${prefix}${insight.title}: ${insight.description}`);
+      });
+
+      // Se tivermos poucos insights gerados, complementar com os básicos
+      if (insights.length < 5) {
+        // Insight 1: Acurácia da categorização
+        if (accuracy.totalCategorized > 0) {
+          insights.push(`🎯 ${accuracy.averageAccuracy.toFixed(0)}% de acurácia na categorização automática`);
+        }
+
+        // Insight 2: Categorias em uso
+        if (categoryStats.usedCategories > 0) {
+          insights.push(`📂 Categorias financeiras: ${categoryStats.usedCategories}/${categoryStats.activeCategories} em uso`);
+        }
+
+        // Insight 3: Categoria principal de custos
+        if (topCategory) {
+          const typeLabel = this.getCategoryTypeLabel(topCategory.type);
+          insights.push(`💰 ${topCategory.categoryName} representa ${topCategory.percentage}% ${typeLabel}`);
+        }
       }
 
-      // Insight 2: Categorias em uso
-      if (categoryStats.usedCategories > 0) {
-        insights.push(`Categorias financeiras: ${categoryStats.usedCategories}/${categoryStats.activeCategories} em uso`);
-      }
-
-      // Insight 3: Categoria principal de custos
-      if (topCategory) {
-        const typeLabel = this.getCategoryTypeLabel(topCategory.type);
-        insights.push(`${topCategory.categoryName} representa ${topCategory.percentage}% ${typeLabel}`);
-      }
+      // Limitar a 5 insights para não poluir a UI
+      const limitedInsights = insights.slice(0, 5);
 
       return {
-        insights,
-        isEmpty: insights.length === 0,
-        emptyMessage: insights.length === 0 ? 'Categorize transações para ver insights' : undefined,
+        insights: limitedInsights,
+        isEmpty: limitedInsights.length === 0,
+        emptyMessage: limitedInsights.length === 0 ? 'Categorize transações para ver insights' : undefined,
         stats: {
           accuracy,
           categories: categoryStats,
