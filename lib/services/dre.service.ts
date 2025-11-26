@@ -1,8 +1,18 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts } from '@/lib/db/schema';
 import { DREStatement, DRECategory } from '@/lib/types';
-import { eq, and, gte, lte, sum, count } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+
+interface DrilldownTransaction {
+  id: string;
+  date: string;
+  description: string;
+  category: string;
+  amount: number;
+  type: 'income' | 'expense';
+  bank?: string;
+}
 
 export interface DREFilters {
   period?: string;
@@ -263,7 +273,8 @@ export default class DREService {
       // RESULTADO LÍQUIDO = Resultado Operacional + Resultado Financeiro - Despesas Não Operacionais
       const netIncome = operatingIncome + financialResult - totalNonOperational;
 
-      // Calcular percentuais (análise vertical sobre receita bruta)
+      // Calcular percentuais usando Análise Vertical (padrão contábil)
+      // Cada categoria é expressa como % da Receita Bruta
       dreCategories.forEach(cat => {
         if (grossRevenue > 0) {
           cat.percentage = (cat.actual / grossRevenue) * 100;
@@ -273,6 +284,27 @@ export default class DREService {
       // Obter período formatado
       const periodLabel = this.formatPeriodLabel(filters.period || 'current');
 
+      // Buscar transações de cada categoria em paralelo para o drilldown
+      const categoryTransactionsPromises = dreCategories.map(async (cat) => {
+        const categoryId = cat.id.startsWith('uncategorized') ? null : cat.id;
+        const txns = await this.getTransactionsByCategoryId(
+          categoryId,
+          startDate,
+          endDate,
+          filters.accountId,
+          filters.companyId
+        );
+        return { categoryId: cat.id, transactions: txns };
+      });
+
+      const categoryTransactionsResults = await Promise.all(categoryTransactionsPromises);
+
+      // Criar mapa de transações por categoria
+      const transactionsByCategory = new Map<string, DrilldownTransaction[]>();
+      categoryTransactionsResults.forEach(result => {
+        transactionsByCategory.set(result.categoryId, result.transactions);
+      });
+
       // Mapear categorias para o formato esperado pelo componente
       const mappedCategories = dreCategories.map(cat => ({
         name: cat.name,
@@ -281,45 +313,49 @@ export default class DREService {
         color: cat.color,
         icon: cat.icon,
         transactions: cat.transactions || 0,
-        drilldown: [] // TODO: Implementar drilldown com transações
+        drilldown: transactionsByCategory.get(cat.id) || []
       }));
 
       // Separar categorias por tipo para detalhamento
       const revenueCategories = dreCategories.filter(cat => cat.type === 'revenue').map(cat => ({
         name: cat.name,
+        id: cat.id,
         value: cat.actual,
         percentage: cat.percentage,
         color: cat.color,
         icon: cat.icon,
         transactions: cat.transactions || 0,
-        drilldown: []
+        drilldown: transactionsByCategory.get(cat.id) || []
       }));
       const variableCostCategories = dreCategories.filter(cat => cat.type === 'variable_cost').map(cat => ({
         name: cat.name,
+        id: cat.id,
         value: cat.actual,
         percentage: cat.percentage,
         color: cat.color,
         icon: cat.icon,
         transactions: cat.transactions || 0,
-        drilldown: []
+        drilldown: transactionsByCategory.get(cat.id) || []
       }));
       const fixedCostCategories = dreCategories.filter(cat => cat.type === 'fixed_cost').map(cat => ({
         name: cat.name,
+        id: cat.id,
         value: cat.actual,
         percentage: cat.percentage,
         color: cat.color,
         icon: cat.icon,
         transactions: cat.transactions || 0,
-        drilldown: []
+        drilldown: transactionsByCategory.get(cat.id) || []
       }));
       const nonOperationalCategories = dreCategories.filter(cat => cat.type === 'non_operating').map(cat => ({
         name: cat.name,
+        id: cat.id,
         value: cat.actual,
         percentage: cat.percentage,
         color: cat.color,
         icon: cat.icon,
         transactions: cat.transactions || 0,
-        drilldown: []
+        drilldown: transactionsByCategory.get(cat.id) || []
       }));
 
       return {
@@ -413,6 +449,68 @@ export default class DREService {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return `${months[month - 1]} ${year}`;
+  }
+
+  /**
+   * Buscar transações por categoria para drilldown
+   */
+  static async getTransactionsByCategoryId(
+    categoryId: string | null,
+    startDate: string,
+    endDate: string,
+    accountId?: string,
+    companyId?: string
+  ): Promise<DrilldownTransaction[]> {
+    const whereConditions = [];
+
+    // Filtro por categoria (null = não categorizadas)
+    if (categoryId === null || categoryId === 'uncategorized-revenue' || categoryId === 'uncategorized-expense') {
+      whereConditions.push(isNull(transactions.categoryId));
+    } else {
+      whereConditions.push(eq(transactions.categoryId, categoryId));
+    }
+
+    // Filtros de data
+    whereConditions.push(gte(transactions.transactionDate, startDate));
+    whereConditions.push(lte(transactions.transactionDate, endDate));
+
+    // Filtros opcionais
+    if (accountId && accountId !== 'all') {
+      whereConditions.push(eq(transactions.accountId, accountId));
+    }
+
+    if (companyId && companyId !== 'all') {
+      whereConditions.push(eq(accounts.companyId, companyId));
+    }
+
+    const whereClause = and(...whereConditions);
+
+    const transactionList = await db
+      .select({
+        id: transactions.id,
+        date: transactions.transactionDate,
+        description: transactions.description,
+        categoryName: categories.name,
+        amount: transactions.amount,
+        type: transactions.type,
+        bankName: accounts.name,
+      })
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+      .where(whereClause)
+      .orderBy(sql`${transactions.transactionDate} DESC`)
+      .limit(50); // Limitar a 50 transações para performance
+
+    return transactionList.map(t => ({
+      id: t.id,
+      date: t.date || '',
+      description: t.description || 'Sem descrição',
+      category: t.categoryName || 'Sem categoria',
+      amount: Math.abs(Number(t.amount)),
+      type: t.type === 'credit' ? 'income' : 'expense',
+      bank: t.bankName || undefined,
+    }));
   }
 
   /**
