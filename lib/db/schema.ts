@@ -187,15 +187,24 @@ export const categoryRules = pgTable('financeai_category_rules', {
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }),
   companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   rulePattern: varchar('rule_pattern', { length: 500 }).notNull(),
-  ruleType: varchar('rule_type', { length: 20 }).notNull(), // contains, regex, exact
+  ruleType: varchar('rule_type', { length: 20 }).notNull(), // contains, regex, exact, wildcard, tokens, fuzzy
   confidenceScore: decimal('confidence_score', { precision: 3, scale: 2 }).default('0.80'),
   active: boolean('active').default(true),
   usageCount: integer('usage_count').default(0),
   examples: json('examples'), // Array de exemplos de transações
-  // Novos campos para sistema de scoring e rastreamento
+  // Campos para sistema de scoring e rastreamento
   lastUsedAt: timestamp('last_used_at'), // Última vez que a regra foi usada
   sourceType: varchar('source_type', { length: 20 }).default('manual'), // manual, ai, imported
   matchFields: json('match_fields'), // Array de campos onde buscar: ['description', 'memo', 'name']
+  // NOVOS CAMPOS - Sistema de Ciclo de Vida v2.0
+  status: varchar('status', { length: 20 }).default('active'), // candidate, active, refined, consolidated, inactive
+  validationCount: integer('validation_count').default(0), // Usos corretos validados
+  negativeCount: integer('negative_count').default(0), // Usos incorretos/correções
+  validationThreshold: integer('validation_threshold').default(3), // Quantos usos para promover
+  patternStrategy: varchar('pattern_strategy', { length: 30 }), // entity_only, prefix_entity, multi_keyword, etc
+  parentRuleId: uuid('parent_rule_id'), // Se foi mesclada de outra regra
+  patternVariants: json('pattern_variants'), // Array de patterns alternativos descobertos
+  metadata: json('rule_metadata'), // Estatísticas, histórico de refinamentos
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
@@ -203,7 +212,47 @@ export const categoryRules = pgTable('financeai_category_rules', {
   companyIdIdx: index('idx_category_rules_company_id').on(table.companyId),
   activeIdx: index('idx_category_rules_active').on(table.active),
   sourceTypeIdx: index('idx_category_rules_source_type').on(table.sourceType),
-  lastUsedAtIdx: index('idx_category_rules_last_used_at').on(table.lastUsedAt)
+  lastUsedAtIdx: index('idx_category_rules_last_used_at').on(table.lastUsedAt),
+  statusIdx: index('idx_category_rules_status').on(table.status)
+}));
+
+// Feedback de regras - registra validações positivas/negativas
+export const ruleFeedback = pgTable('financeai_rule_feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ruleId: uuid('rule_id').references(() => categoryRules.id, { onDelete: 'cascade' }),
+  transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'set null' }),
+  feedbackType: varchar('feedback_type', { length: 20 }).notNull(), // positive, negative, correction
+  oldCategoryId: uuid('old_category_id').references(() => categories.id, { onDelete: 'set null' }),
+  newCategoryId: uuid('new_category_id').references(() => categories.id, { onDelete: 'set null' }),
+  description: text('description'), // Descrição da transação para referência
+  createdAt: timestamp('created_at').defaultNow()
+}, (table) => ({
+  ruleIdIdx: index('idx_rule_feedback_rule_id').on(table.ruleId),
+  transactionIdIdx: index('idx_rule_feedback_transaction_id').on(table.transactionId),
+  feedbackTypeIdx: index('idx_rule_feedback_type').on(table.feedbackType),
+  createdAtIdx: index('idx_rule_feedback_created_at').on(table.createdAt)
+}));
+
+// Clusters de transações - agrupa transações similares para geração de regras
+export const transactionClusters = pgTable('financeai_transaction_clusters', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  centroidDescription: text('centroid_description').notNull(), // Descrição representativa
+  commonPattern: varchar('common_pattern', { length: 500 }), // Pattern extraído do cluster
+  transactionCount: integer('transaction_count').default(0),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
+  categoryName: varchar('category_name', { length: 100 }),
+  confidence: decimal('confidence', { precision: 3, scale: 2 }).default('0.00'),
+  status: varchar('status', { length: 20 }).default('pending'), // pending, processed, archived
+  transactionIds: json('transaction_ids'), // Array de IDs de transações no cluster
+  commonTokens: json('common_tokens'), // Tokens comuns encontrados
+  createdAt: timestamp('created_at').defaultNow(),
+  processedAt: timestamp('processed_at')
+}, (table) => ({
+  companyIdIdx: index('idx_transaction_clusters_company_id').on(table.companyId),
+  categoryIdIdx: index('idx_transaction_clusters_category_id').on(table.categoryId),
+  statusIdx: index('idx_transaction_clusters_status').on(table.status),
+  createdAtIdx: index('idx_transaction_clusters_created_at').on(table.createdAt)
 }));
 
 // Preços dos modelos de IA
@@ -287,3 +336,9 @@ export type NewAiModelPricing = typeof aiModelPricing.$inferInsert;
 
 export type AiUsageLog = typeof aiUsageLogs.$inferSelect;
 export type NewAiUsageLog = typeof aiUsageLogs.$inferInsert;
+
+export type RuleFeedback = typeof ruleFeedback.$inferSelect;
+export type NewRuleFeedback = typeof ruleFeedback.$inferInsert;
+
+export type TransactionCluster = typeof transactionClusters.$inferSelect;
+export type NewTransactionCluster = typeof transactionClusters.$inferInsert;

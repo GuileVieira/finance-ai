@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePersistentToast } from './use-persistent-toast';
 import ToastManager from '@/lib/toast-manager';
 
@@ -49,6 +50,9 @@ export function useAsyncUpload(options: UseAsyncUploadOptions = {}) {
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Query client para invalidar caches
+  const queryClient = useQueryClient();
 
   // Toast persistente
   const {
@@ -104,6 +108,13 @@ export function useAsyncUpload(options: UseAsyncUploadOptions = {}) {
           // Verificar se completou
           if (currentProgress.status === 'completed') {
             stopPolling();
+
+            // Invalidar caches relacionados
+            console.log('🔄 [CACHE] Invalidando caches após upload completo...');
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions-stats'] });
+
             options.onComplete?.(uploadId);
           } else if (currentProgress.status === 'failed') {
             stopPolling();

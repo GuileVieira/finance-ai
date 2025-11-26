@@ -9,12 +9,28 @@
 
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, transactions, categories } from '@/lib/db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import categoryCacheService from './category-cache.service';
-import { RuleScoringService, ScoredRule } from './rule-scoring.service';
+import { RuleScoringService } from './rule-scoring.service';
 import type { TransactionContext } from './rule-scoring.service';
 import { RuleGenerationService } from './rule-generation.service';
+import { RuleLifecycleService } from './rule-lifecycle.service';
+import { TransactionClusteringService } from './transaction-clustering.service';
 import type { CategoryRule } from '@/lib/db/schema';
+
+// Configuração do sistema de auto-learning
+const AUTO_LEARNING_CONFIG = {
+  // Usar clustering em vez de criar regras diretamente
+  // NOTA: Desabilitado por padrão para criar regras imediatamente
+  // Habilite quando tiver volume maior de transações (100+)
+  useClusteringFirst: false,
+  // Mínimo de transações no cluster para criar regra automaticamente
+  clusterSizeForAutoRule: 2, // Reduzido para ser mais agressivo
+  // Confidence mínima da IA para adicionar ao cluster
+  minConfidenceForClustering: 70,
+  // Processar clusters pendentes periodicamente
+  processClustersBatchSize: 10
+};
 
 // Re-exportar TransactionContext para outros módulos
 export type { TransactionContext };
@@ -263,14 +279,10 @@ export class TransactionCategorizationService {
       return null;
     }
 
-    // Atualizar usageCount e lastUsedAt da regra
-    await db
-      .update(categoryRules)
-      .set({
-        usageCount: sql`${categoryRules.usageCount} + 1`,
-        lastUsedAt: new Date()
-      })
-      .where(eq(categoryRules.id, bestMatch.ruleId));
+    // Registrar uso positivo da regra (atualiza contadores e avalia promoção)
+    RuleLifecycleService.recordPositiveUse(bestMatch.ruleId).catch(err => {
+      console.warn('Failed to record positive rule use:', err);
+    });
 
     return {
       categoryId: bestMatch.categoryId,
@@ -468,7 +480,11 @@ export class TransactionCategorizationService {
   }
 
   /**
-   * CAMADA 5: Auto-aprendizado - Criar regra automática
+   * CAMADA 5: Auto-aprendizado com Clustering Inteligente
+   *
+   * Em vez de criar regras diretamente, agrupa transações similares em clusters.
+   * Quando um cluster atinge tamanho suficiente, uma regra é gerada automaticamente
+   * com base no padrão comum identificado.
    */
   private static async tryAutoLearning(
     description: string,
@@ -478,6 +494,63 @@ export class TransactionCategorizationService {
     reasoning?: string
   ): Promise<void> {
     try {
+      // Verificar se confidence atende o mínimo para clustering
+      if (confidence < AUTO_LEARNING_CONFIG.minConfidenceForClustering) {
+        console.log(
+          `ℹ️ [AUTO-LEARNING-SKIP] Confidence ${confidence}% below threshold for clustering`
+        );
+        return;
+      }
+
+      // Buscar categoryId
+      const [category] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.name, categoryName))
+        .limit(1);
+
+      if (!category) {
+        console.warn(`Category "${categoryName}" not found for auto-learning`);
+        return;
+      }
+
+      // ESTRATÉGIA 1: Clustering (padrão)
+      if (AUTO_LEARNING_CONFIG.useClusteringFirst) {
+        const clusterResult = await TransactionClusteringService.addToCluster(
+          description,
+          category.id,
+          categoryName,
+          companyId
+        );
+
+        if (clusterResult.isNew) {
+          console.log(
+            `📦 [CLUSTERING] New cluster created for "${categoryName}"`
+          );
+        } else {
+          console.log(
+            `📦 [CLUSTERING] Added to cluster (size: ${clusterResult.clusterSize}) for "${categoryName}"`
+          );
+        }
+
+        // Se cluster atingiu tamanho mínimo, processar para gerar regra
+        if (clusterResult.clusterSize >= AUTO_LEARNING_CONFIG.clusterSizeForAutoRule) {
+          // Processar clusters pendentes em background
+          TransactionClusteringService.processPendingClusters(companyId).then(result => {
+            if (result.rulesCreated > 0) {
+              console.log(
+                `🎓 [AUTO-LEARNING] Generated ${result.rulesCreated} rules from clusters`
+              );
+            }
+          }).catch(err => {
+            console.warn('Failed to process pending clusters:', err);
+          });
+        }
+
+        return;
+      }
+
+      // ESTRATÉGIA 2: Criação direta de regra (fallback ou configuração)
       const result = await RuleGenerationService.generateAndCreateRule(
         description,
         categoryName,
@@ -499,6 +572,65 @@ export class TransactionCategorizationService {
       console.error('[AUTO-LEARNING-ERROR]', error);
       // Não lançar erro - auto-learning é opcional
     }
+  }
+
+  /**
+   * Processa clusters pendentes e limpa regras de baixo desempenho
+   * Deve ser chamado periodicamente (cron job ou após batch de uploads)
+   */
+  static async performMaintenance(companyId: string): Promise<{
+    clustersProcessed: number;
+    rulesCreated: number;
+    rulesDeactivated: number;
+  }> {
+    try {
+      // 1. Processar clusters pendentes
+      const clusterResult = await TransactionClusteringService.processPendingClusters(companyId);
+
+      // 2. Desativar regras com baixo desempenho
+      const deactivatedCount = await RuleLifecycleService.deactivateLowPerformingRules(companyId);
+
+      console.log(
+        `🔧 [MAINTENANCE] Company ${companyId}: ` +
+        `${clusterResult.processed} clusters processed, ` +
+        `${clusterResult.rulesCreated} rules created, ` +
+        `${deactivatedCount} rules deactivated`
+      );
+
+      return {
+        clustersProcessed: clusterResult.processed,
+        rulesCreated: clusterResult.rulesCreated,
+        rulesDeactivated: deactivatedCount
+      };
+    } catch (error) {
+      console.error('[MAINTENANCE-ERROR]', error);
+      return {
+        clustersProcessed: 0,
+        rulesCreated: 0,
+        rulesDeactivated: 0
+      };
+    }
+  }
+
+  /**
+   * Estatísticas de saúde do sistema de categorização
+   */
+  static async getSystemHealth(companyId: string): Promise<{
+    rulesHealth: Awaited<ReturnType<typeof RuleLifecycleService.getRulesHealthStats>>;
+    clusterStats: Awaited<ReturnType<typeof TransactionClusteringService.getClusterStats>>;
+    autoRulesStats: Awaited<ReturnType<typeof RuleGenerationService.getAutoRulesStats>>;
+  }> {
+    const [rulesHealth, clusterStats, autoRulesStats] = await Promise.all([
+      RuleLifecycleService.getRulesHealthStats(companyId),
+      TransactionClusteringService.getClusterStats(companyId),
+      RuleGenerationService.getAutoRulesStats(companyId)
+    ]);
+
+    return {
+      rulesHealth,
+      clusterStats,
+      autoRulesStats
+    };
   }
 
   /**

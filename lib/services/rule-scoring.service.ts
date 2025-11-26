@@ -34,12 +34,16 @@ export interface TransactionContext {
 
 /**
  * Pesos para cada tipo de match (0-1)
+ * Novos tipos: wildcard, tokens, fuzzy
  */
-const MATCH_TYPE_WEIGHTS = {
+const MATCH_TYPE_WEIGHTS: Record<string, number> = {
   exact: 1.0,      // Match exato tem peso máximo
   contains: 0.85,  // Contains tem penalidade leve
-  regex: 0.75      // Regex tem penalidade maior (mais genérico)
-} as const;
+  wildcard: 0.80,  // Wildcard - flexível mas preciso
+  tokens: 0.75,    // Tokens - verifica palavras separadas
+  regex: 0.70,     // Regex tem penalidade maior (muito genérico)
+  fuzzy: 0.65      // Fuzzy - menor precisão
+};
 
 /**
  * Configuração do bônus por uso
@@ -102,8 +106,31 @@ export class RuleScoringService {
    * Retorna peso do tipo de match
    */
   private static getMatchTypeWeight(ruleType: string): number {
-    const type = ruleType.toLowerCase() as keyof typeof MATCH_TYPE_WEIGHTS;
-    return MATCH_TYPE_WEIGHTS[type] || 0.5;
+    const type = ruleType.toLowerCase();
+    return MATCH_TYPE_WEIGHTS[type] ?? 0.5;
+  }
+
+  /**
+   * Calcula score de especificidade do pattern (0-1)
+   * Patterns mais específicos = score maior
+   */
+  private static calculateSpecificityScore(pattern: string): number {
+    // Remover wildcards para calcular tamanho real
+    const cleanPattern = pattern.replace(/\*/g, '').trim();
+    const wildcardCount = (pattern.match(/\*/g) || []).length;
+
+    // Base: tamanho do pattern (normalizado para max 30 chars)
+    let score = Math.min(1, cleanPattern.length / 30);
+
+    // Penalizar por cada wildcard
+    score = score * (1 - wildcardCount * 0.1);
+
+    // Bônus para patterns sem wildcards
+    if (wildcardCount === 0) {
+      score = Math.min(1, score + 0.1);
+    }
+
+    return Math.max(0, Math.min(1, score));
   }
 
   /**
@@ -129,6 +156,7 @@ export class RuleScoringService {
 
   /**
    * Testa se uma descrição faz match com uma regra
+   * Suporta: exact, contains, wildcard, tokens, fuzzy, regex
    */
   static testRuleMatch(
     rule: CategoryRule,
@@ -161,21 +189,107 @@ export class RuleScoringService {
             }
             break;
 
+          case 'wildcard':
+            // Converter wildcard para regex
+            const wildcardRegex = pattern
+              .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+              .replace(/\*/g, '.*')
+              .replace(/\?/g, '.');
+            if (new RegExp(wildcardRegex, 'i').test(text)) {
+              return { matched: true, matchedText: text };
+            }
+            break;
+
+          case 'tokens':
+            // Verifica se todos os tokens do pattern existem no texto
+            const patternTokens = pattern.split(/\s+/).filter(t => t.length > 0);
+            const textTokens = new Set(normalized.split(/\s+/).filter(t => t.length > 0));
+            if (patternTokens.every(token => textTokens.has(token))) {
+              return { matched: true, matchedText: text };
+            }
+            break;
+
+          case 'fuzzy':
+            // Matching fuzzy - verifica similaridade
+            if (this.fuzzyMatch(pattern, normalized, 0.85)) {
+              return { matched: true, matchedText: text };
+            }
+            break;
+
           case 'regex':
             const regex = new RegExp(pattern, 'i');
             if (regex.test(normalized)) {
               return { matched: true, matchedText: text };
             }
             break;
+
+          default:
+            // Fallback para contains
+            if (normalized.includes(pattern)) {
+              return { matched: true, matchedText: text };
+            }
         }
       } catch (error) {
-        // Regex inválido - ignorar
-        console.warn(`Invalid regex pattern in rule ${rule.id}:`, pattern);
+        // Regex/pattern inválido - tentar fallback
+        console.warn(`Invalid pattern in rule ${rule.id}:`, pattern);
+        if (normalized.includes(pattern.replace(/[*?]/g, ''))) {
+          return { matched: true, matchedText: text };
+        }
         continue;
       }
     }
 
     return { matched: false, matchedText: '' };
+  }
+
+  /**
+   * Helper para fuzzy matching usando Levenshtein
+   */
+  private static fuzzyMatch(pattern: string, text: string, threshold: number): boolean {
+    // Se contém exatamente, é match
+    if (text.includes(pattern)) return true;
+
+    // Calcular similaridade em janelas de texto
+    const words = text.split(/\s+/);
+    for (let size = 1; size <= Math.min(5, words.length); size++) {
+      for (let i = 0; i <= words.length - size; i++) {
+        const substring = words.slice(i, i + size).join(' ');
+        const similarity = this.calculateSimilarity(pattern, substring);
+        if (similarity >= threshold) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Calcula similaridade entre duas strings (Levenshtein)
+   */
+  private static calculateSimilarity(str1: string, str2: string): number {
+    if (str1 === str2) return 1.0;
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    if (longer.length === 0) return 1.0;
+
+    const matrix: number[][] = [];
+    for (let i = 0; i <= shorter.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= longer.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= shorter.length; i++) {
+      for (let j = 1; j <= longer.length; j++) {
+        if (shorter[i - 1] === longer[j - 1]) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+
+    const distance = matrix[shorter.length][longer.length];
+    return (longer.length - distance) / longer.length;
   }
 
   /**

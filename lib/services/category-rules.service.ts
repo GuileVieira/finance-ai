@@ -56,7 +56,8 @@ export class CategoryRulesService {
             confidence: this.calculateConfidence(
               parseFloat(rule.confidenceScore),
               rule.rulePattern,
-              normalizedDescription
+              normalizedDescription,
+              rule.ruleType
             )
           };
         }
@@ -143,15 +144,37 @@ export class CategoryRulesService {
 
   /**
    * Testar se um padrão corresponde a um texto
+   * Suporta: exact, contains, wildcard, regex
    */
   private static testRule(pattern: string, ruleType: string, text: string): boolean {
     try {
+      const normalizedText = text.toLowerCase();
+      const normalizedPattern = pattern.toLowerCase();
+
       switch (ruleType) {
         case 'exact':
-          return text.toLowerCase() === pattern.toLowerCase();
+          return normalizedText === normalizedPattern;
 
         case 'contains':
-          return text.toLowerCase().includes(pattern.toLowerCase());
+          return normalizedText.includes(normalizedPattern);
+
+        case 'wildcard':
+          // Converter wildcard para regex:
+          // * → .* (zero ou mais caracteres)
+          // ? → . (exatamente um caractere)
+          const wildcardRegex = normalizedPattern
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escapar caracteres regex especiais
+            .replace(/\*/g, '.*')                  // * → .*
+            .replace(/\?/g, '.');                  // ? → .
+          return new RegExp(wildcardRegex, 'i').test(text);
+
+        case 'tokens':
+          // Matching por tokens/palavras
+          return this.testTokenMatch(pattern, text);
+
+        case 'fuzzy':
+          // Matching fuzzy com Levenshtein
+          return this.testFuzzyMatch(pattern, text, 0.85);
 
         case 'regex':
           const regex = new RegExp(pattern, 'i'); // case insensitive
@@ -159,7 +182,7 @@ export class CategoryRulesService {
 
         default:
           // Fallback para 'contains' se tipo não for reconhecido
-          return text.toLowerCase().includes(pattern.toLowerCase());
+          return normalizedText.includes(normalizedPattern);
       }
     } catch {
       // Se falhar, usa contain simples como fallback
@@ -168,19 +191,86 @@ export class CategoryRulesService {
   }
 
   /**
-   * Calcular confiança da correspondência (0-100)
-   * Agora usa o confidenceScore da regra como base
+   * Matching por tokens/palavras
+   * Verifica se todos os tokens do pattern existem no texto
    */
-  private static calculateConfidence(confidenceScore: number, pattern: string, text: string): number {
+  private static testTokenMatch(pattern: string, text: string): boolean {
+    const patternTokens = pattern.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    const textTokens = new Set(text.toLowerCase().split(/\s+/).filter(t => t.length > 0));
+
+    // Todos os tokens do pattern devem existir no texto
+    return patternTokens.every(token => textTokens.has(token));
+  }
+
+  /**
+   * Matching fuzzy usando Levenshtein
+   * Verifica se o pattern é similar o suficiente ao texto
+   */
+  private static testFuzzyMatch(pattern: string, text: string, threshold: number = 0.85): boolean {
+    const normalizedPattern = pattern.toLowerCase();
+    const normalizedText = text.toLowerCase();
+
+    // Se o texto contém o pattern exatamente, é match
+    if (normalizedText.includes(normalizedPattern)) {
+      return true;
+    }
+
+    // Procurar o pattern em substrings do texto
+    const words = normalizedText.split(/\s+/);
+
+    // Verificar similaridade do pattern com combinações de palavras do texto
+    for (let windowSize = 1; windowSize <= Math.min(5, words.length); windowSize++) {
+      for (let i = 0; i <= words.length - windowSize; i++) {
+        const substring = words.slice(i, i + windowSize).join(' ');
+        const similarity = this.calculatePatternSimilarity(normalizedPattern, substring);
+        if (similarity >= threshold) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Calcular confiança da correspondência (0-100)
+   * Considera o tipo de matching para ajustar o score
+   */
+  private static calculateConfidence(
+    confidenceScore: number,
+    pattern: string,
+    text: string,
+    ruleType: string = 'contains'
+  ): number {
     try {
       // Converter confidenceScore do banco (0.80) para percentual (80)
       let baseConfidence = confidenceScore * 100;
 
-      // Ajuste fino baseado no tipo de correspondência
-      if (text.toLowerCase() === pattern.toLowerCase()) {
-        // Correspondência exata ganha um bônus
+      // Ajustes baseados no tipo de matching
+      const normalizedText = text.toLowerCase();
+      const normalizedPattern = pattern.toLowerCase().replace(/\*/g, '');
+
+      // Bônus para correspondência exata
+      if (normalizedText === normalizedPattern) {
         baseConfidence = Math.min(100, baseConfidence + 10);
       }
+      // Bônus menor para contains exato (sem wildcards)
+      else if (ruleType === 'contains' && normalizedText.includes(normalizedPattern)) {
+        baseConfidence = Math.min(100, baseConfidence + 5);
+      }
+
+      // Penalidades por tipo de matching menos preciso
+      const matchTypePenalties: Record<string, number> = {
+        'exact': 0,
+        'contains': 0,
+        'wildcard': -2,   // Wildcard é um pouco menos preciso
+        'tokens': -5,     // Tokens podem perder contexto
+        'fuzzy': -8,      // Fuzzy é o menos preciso
+        'regex': -3       // Regex pode ser muito genérico
+      };
+
+      const penalty = matchTypePenalties[ruleType] || 0;
+      baseConfidence = Math.max(50, baseConfidence + penalty);
 
       return Math.round(baseConfidence);
     } catch {
