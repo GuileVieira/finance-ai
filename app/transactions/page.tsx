@@ -1038,17 +1038,6 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
 
-        {/* Insights */}
-        <Card className="bg-success/10 border-success/20">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-success">💡</span>
-              <p className="text-sm text-success">
-                <strong>Insights:</strong> 94% de acurácia na categorização automática • Salários representam 51.8% dos custos fixos • 47 categorias financeiras mapeadas
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Diálogo de configuração de regras */}

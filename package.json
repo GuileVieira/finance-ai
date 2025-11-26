@@ -20,6 +20,9 @@
     "reset-data:recent": "node scripts/reset-data-simple.js --recent",
     "reset-db": "node scripts/reset-data-db.js",
     "reset-db:dry": "node scripts/reset-data-db.js --dry-run",
+    "reset-rules": "node scripts/reset-rules.js",
+    "reset-rules:dry": "node scripts/reset-rules.js --dry-run",
+    "reset-rules:ai": "node scripts/reset-rules.js --ai-only",
     "clear-categories-cache": "node scripts/clear-categories-cache.js"
   },
   "dependencies": {

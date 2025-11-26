@@ -1,8 +1,37 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts } from '@/lib/db/schema';
-import { Insight } from '@/lib/types';
-import { eq, and, gte, lte, sum, count, avg, desc } from 'drizzle-orm';
+import type { Insight } from '@/lib/types';
+import { eq, and, gte, lte, sum, count, avg, desc, isNotNull, ne } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+
+export interface AccuracyStats {
+  averageAccuracy: number;
+  totalCategorized: number;
+  totalTransactions: number;
+}
+
+export interface CategoryStats {
+  activeCategories: number;
+  usedCategories: number;
+  totalCategories: number;
+}
+
+export interface TopCategoryInfo {
+  categoryName: string;
+  percentage: number;
+  type: string;
+}
+
+export interface SimpleInsightsResponse {
+  insights: string[];
+  isEmpty: boolean;
+  emptyMessage?: string;
+  stats?: {
+    accuracy: AccuracyStats;
+    categories: CategoryStats;
+    topCategory?: TopCategoryInfo;
+  };
+}
 
 export interface InsightsFilters {
   period?: string;
@@ -412,5 +441,248 @@ export default class InsightsService {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return `${months[month - 1]} ${year}`;
+  }
+
+  /**
+   * Calcular taxa de acurácia real baseado no campo confidence das transações
+   */
+  static async getAccuracyRate(filters: InsightsFilters = {}): Promise<AccuracyStats> {
+    try {
+      const whereConditions: Parameters<typeof and>[0][] = [];
+
+      if (filters.period && filters.period !== 'all') {
+        const { startDate, endDate } = this.convertPeriodToDates(filters.period);
+        whereConditions.push(gte(transactions.transactionDate, startDate));
+        whereConditions.push(lte(transactions.transactionDate, endDate));
+      }
+
+      if (filters.accountId && filters.accountId !== 'all') {
+        whereConditions.push(eq(transactions.accountId, filters.accountId));
+      }
+
+      // Total de transações
+      const totalResult = await db
+        .select({ count: count(transactions.id).mapWith(Number) })
+        .from(transactions)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
+
+      const totalTransactions = totalResult[0]?.count || 0;
+
+      // Transações categorizadas com confidence > 0
+      const categorizedConditions = [
+        ...whereConditions,
+        isNotNull(transactions.categoryId),
+        sql`${transactions.confidence} > 0`
+      ];
+
+      const categorizedResult = await db
+        .select({
+          count: count(transactions.id).mapWith(Number),
+          avgConfidence: avg(transactions.confidence).mapWith(Number)
+        })
+        .from(transactions)
+        .where(and(...categorizedConditions));
+
+      const totalCategorized = categorizedResult[0]?.count || 0;
+      const averageAccuracy = categorizedResult[0]?.avgConfidence || 0;
+
+      return {
+        averageAccuracy: Math.round(averageAccuracy * 100) / 100,
+        totalCategorized,
+        totalTransactions
+      };
+    } catch (error) {
+      console.error('Error getting accuracy rate:', error);
+      return { averageAccuracy: 0, totalCategorized: 0, totalTransactions: 0 };
+    }
+  }
+
+  /**
+   * Obter estatísticas de categorias
+   */
+  static async getCategoryStats(filters: InsightsFilters = {}): Promise<CategoryStats> {
+    try {
+      const companyConditions: Parameters<typeof and>[0][] = [];
+
+      if (filters.companyId && filters.companyId !== 'all') {
+        companyConditions.push(eq(categories.companyId, filters.companyId));
+      }
+
+      // Total de categorias
+      const totalResult = await db
+        .select({ count: count(categories.id).mapWith(Number) })
+        .from(categories)
+        .where(companyConditions.length > 0 ? and(...companyConditions) : undefined);
+
+      // Categorias ativas
+      const activeResult = await db
+        .select({ count: count(categories.id).mapWith(Number) })
+        .from(categories)
+        .where(and(
+          ...(companyConditions.length > 0 ? companyConditions : []),
+          eq(categories.active, true)
+        ));
+
+      // Categorias em uso (que têm transações)
+      const transactionConditions: Parameters<typeof and>[0][] = [];
+
+      if (filters.period && filters.period !== 'all') {
+        const { startDate, endDate } = this.convertPeriodToDates(filters.period);
+        transactionConditions.push(gte(transactions.transactionDate, startDate));
+        transactionConditions.push(lte(transactions.transactionDate, endDate));
+      }
+
+      if (filters.accountId && filters.accountId !== 'all') {
+        transactionConditions.push(eq(transactions.accountId, filters.accountId));
+      }
+
+      const usedResult = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${transactions.categoryId})`.mapWith(Number) })
+        .from(transactions)
+        .where(and(
+          isNotNull(transactions.categoryId),
+          ...(transactionConditions.length > 0 ? transactionConditions : [])
+        ));
+
+      return {
+        totalCategories: totalResult[0]?.count || 0,
+        activeCategories: activeResult[0]?.count || 0,
+        usedCategories: usedResult[0]?.count || 0
+      };
+    } catch (error) {
+      console.error('Error getting category stats:', error);
+      return { totalCategories: 0, activeCategories: 0, usedCategories: 0 };
+    }
+  }
+
+  /**
+   * Obter categoria principal de custos
+   */
+  static async getTopCategoryPercentage(filters: InsightsFilters = {}): Promise<TopCategoryInfo | null> {
+    try {
+      const whereConditions: Parameters<typeof and>[0][] = [
+        eq(transactions.type, 'debit'),
+        isNotNull(transactions.categoryId)
+      ];
+
+      if (filters.period && filters.period !== 'all') {
+        const { startDate, endDate } = this.convertPeriodToDates(filters.period);
+        whereConditions.push(gte(transactions.transactionDate, startDate));
+        whereConditions.push(lte(transactions.transactionDate, endDate));
+      }
+
+      if (filters.accountId && filters.accountId !== 'all') {
+        whereConditions.push(eq(transactions.accountId, filters.accountId));
+      }
+
+      // Total de despesas
+      const totalExpensesResult = await db
+        .select({ total: sum(sql`ABS(${transactions.amount})`).mapWith(Number) })
+        .from(transactions)
+        .where(and(...whereConditions));
+
+      const totalExpenses = totalExpensesResult[0]?.total || 0;
+
+      if (totalExpenses === 0) return null;
+
+      // Top categoria por valor
+      const topCategoryResult = await db
+        .select({
+          categoryName: categories.name,
+          categoryType: categories.type,
+          totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number)
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(and(...whereConditions))
+        .groupBy(categories.name, categories.type)
+        .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`))
+        .limit(1);
+
+      if (topCategoryResult.length === 0 || !topCategoryResult[0].categoryName) {
+        return null;
+      }
+
+      const percentage = (topCategoryResult[0].totalAmount / totalExpenses) * 100;
+
+      return {
+        categoryName: topCategoryResult[0].categoryName,
+        percentage: Math.round(percentage * 10) / 10,
+        type: topCategoryResult[0].categoryType || 'unknown'
+      };
+    } catch (error) {
+      console.error('Error getting top category:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Gerar insights simples para dashboard (formato string)
+   */
+  static async getSimpleInsights(filters: InsightsFilters = {}): Promise<SimpleInsightsResponse> {
+    try {
+      // Verificar se há dados
+      const accuracy = await this.getAccuracyRate(filters);
+
+      if (accuracy.totalTransactions === 0) {
+        return {
+          insights: [],
+          isEmpty: true,
+          emptyMessage: 'Importe transações para ver insights financeiros personalizados'
+        };
+      }
+
+      const categoryStats = await this.getCategoryStats(filters);
+      const topCategory = await this.getTopCategoryPercentage(filters);
+
+      const insights: string[] = [];
+
+      // Insight 1: Acurácia da categorização
+      if (accuracy.totalCategorized > 0) {
+        insights.push(`${accuracy.averageAccuracy.toFixed(0)}% de acurácia na categorização automática`);
+      }
+
+      // Insight 2: Categorias em uso
+      if (categoryStats.usedCategories > 0) {
+        insights.push(`Categorias financeiras: ${categoryStats.usedCategories}/${categoryStats.activeCategories} em uso`);
+      }
+
+      // Insight 3: Categoria principal de custos
+      if (topCategory) {
+        const typeLabel = this.getCategoryTypeLabel(topCategory.type);
+        insights.push(`${topCategory.categoryName} representa ${topCategory.percentage}% ${typeLabel}`);
+      }
+
+      return {
+        insights,
+        isEmpty: insights.length === 0,
+        emptyMessage: insights.length === 0 ? 'Categorize transações para ver insights' : undefined,
+        stats: {
+          accuracy,
+          categories: categoryStats,
+          topCategory: topCategory || undefined
+        }
+      };
+    } catch (error) {
+      console.error('Error generating simple insights:', error);
+      return {
+        insights: [],
+        isEmpty: true,
+        emptyMessage: 'Erro ao gerar insights'
+      };
+    }
+  }
+
+  /**
+   * Converter tipo de categoria para label legível
+   */
+  private static getCategoryTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'fixed_cost': 'dos custos fixos',
+      'variable_cost': 'dos custos variáveis',
+      'non_operating': 'das despesas não operacionais',
+      'revenue': 'das receitas'
+    };
+    return labels[type] || 'dos custos';
   }
 }

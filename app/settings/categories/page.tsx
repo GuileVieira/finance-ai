@@ -9,14 +9,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
-import { mockCategories, categoryTypes } from '@/lib/mock-categories';
-import { Category, CategoryFormData } from '@/lib/types';
+import { categoryTypes } from '@/lib/mock-categories';
+import type { Category, CategoryFormData } from '@/lib/types';
 import { TransactionsAPI } from '@/lib/api/transactions';
 import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+
+interface InsightsStats {
+  accuracy: {
+    averageAccuracy: number;
+    totalCategorized: number;
+    totalTransactions: number;
+  };
+  categories: {
+    activeCategories: number;
+    usedCategories: number;
+    totalCategories: number;
+  };
+}
 
 type CategoryTransaction = {
   id: string;
@@ -29,7 +43,10 @@ type CategoryTransaction = {
 };
 
 export default function SettingsCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [stats, setStats] = useState<InsightsStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -44,6 +61,42 @@ export default function SettingsCategoriesPage() {
   const [transactionsTotal, setTransactionsTotal] = useState(0);
   const [transactionsTotalPages, setTransactionsTotalPages] = useState(1);
   const { toast } = useToast();
+
+  // Carregar categorias da API
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await fetch('/api/categories');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setCategories(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    }
+    fetchCategories();
+  }, []);
+
+  // Carregar estatísticas
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/dashboard/insights');
+        const result = await response.json();
+        if (result.success && result.data.stats) {
+          setStats(result.data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
   // Filtrar categorias
   const filteredCategories = categories.filter(category => {
@@ -311,7 +364,15 @@ export default function SettingsCategoriesPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">94%</p>
+                  {loadingStats ? (
+                    <Skeleton className="h-8 w-16 mb-1" />
+                  ) : stats?.accuracy.totalCategorized && stats.accuracy.totalCategorized > 0 ? (
+                    <p className="text-2xl font-bold">
+                      {stats.accuracy.averageAccuracy.toFixed(0)}%
+                    </p>
+                  ) : (
+                    <p className="text-2xl font-bold text-muted-foreground">--</p>
+                  )}
                   <p className="text-sm text-muted-foreground">Acurácia</p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">

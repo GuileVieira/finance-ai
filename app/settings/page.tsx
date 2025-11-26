@@ -1,11 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Settings, Users, Building2, CreditCard, Tags, Upload, FileText, Shield, Bell } from 'lucide-react';
+
+interface InsightsStats {
+  accuracy: {
+    averageAccuracy: number;
+    totalCategorized: number;
+    totalTransactions: number;
+  };
+  categories: {
+    activeCategories: number;
+    usedCategories: number;
+    totalCategories: number;
+  };
+}
 
 const menuItems = [
   {
@@ -13,7 +27,7 @@ const menuItems = [
     label: 'Categorias',
     icon: Tags,
     description: 'Gerenciar categorias financeiras',
-    badge: '12'
+    badge: null // Será carregado dinamicamente
   },
   {
     id: 'accounts',
@@ -68,6 +82,25 @@ const menuItems = [
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('categories');
+  const [stats, setStats] = useState<InsightsStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/dashboard/insights');
+        const result = await response.json();
+        if (result.success && result.data.stats) {
+          setStats(result.data.stats);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
   const handleNavigation = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -144,7 +177,13 @@ export default function SettingsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-2xl font-bold">12</p>
+                          {loadingStats ? (
+                            <Skeleton className="h-8 w-12 mb-1" />
+                          ) : (
+                            <p className="text-2xl font-bold">
+                              {stats?.categories.activeCategories ?? '--'}
+                            </p>
+                          )}
                           <p className="text-sm text-muted-foreground">Categorias Ativas</p>
                         </div>
                         <Tags className="h-8 w-8 text-muted-foreground" />
@@ -156,7 +195,15 @@ export default function SettingsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-2xl font-bold">94%</p>
+                          {loadingStats ? (
+                            <Skeleton className="h-8 w-16 mb-1" />
+                          ) : stats?.accuracy.totalCategorized && stats.accuracy.totalCategorized > 0 ? (
+                            <p className="text-2xl font-bold">
+                              {stats.accuracy.averageAccuracy.toFixed(0)}%
+                            </p>
+                          ) : (
+                            <p className="text-2xl font-bold text-muted-foreground">--</p>
+                          )}
                           <p className="text-sm text-muted-foreground">Acurácia Média</p>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">

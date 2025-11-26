@@ -22,6 +22,7 @@ export class FileStorageService {
   private static instance: FileStorageService;
   private readonly storageBasePath: string;
   private supabaseClient: SupabaseClient | null = null;
+  private supabaseAdminClient: SupabaseClient | null = null;
   private provider: StorageProvider;
   private readonly bucketName = 'ofx-files';
 
@@ -31,11 +32,19 @@ export class FileStorageService {
     // Determinar provider baseado nas variáveis de ambiente
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (supabaseUrl && supabaseKey && supabaseKey !== 'your_supabase_anon_key_here') {
       this.provider = 'supabase';
       this.supabaseClient = createClient(supabaseUrl, supabaseKey);
-      console.log('🚀 Storage provider: Supabase');
+
+      // Cliente admin para criar buckets (requer service_role key)
+      if (serviceRoleKey) {
+        this.supabaseAdminClient = createClient(supabaseUrl, serviceRoleKey);
+        console.log('🚀 Storage provider: Supabase (com admin)');
+      } else {
+        console.log('🚀 Storage provider: Supabase (sem admin - bucket deve existir)');
+      }
     } else {
       this.provider = 'filesystem';
       console.log('📁 Storage provider: Filesystem');
@@ -190,20 +199,39 @@ export class FileStorageService {
 
   /**
    * Garante que o bucket do Supabase existe
+   * Usa o admin client (service_role) se disponível, pois anon key não pode criar buckets
    */
   private async ensureBucketExists(): Promise<void> {
-    if (!this.supabaseClient) return;
+    // Preferir admin client para criar bucket (tem permissão)
+    const client = this.supabaseAdminClient || this.supabaseClient;
+    if (!client) return;
 
     try {
-      const { data: buckets } = await this.supabaseClient.storage.listBuckets();
+      const { data: buckets, error: listError } = await client.storage.listBuckets();
+
+      if (listError) {
+        console.warn('⚠️ Erro ao listar buckets:', listError.message);
+        return;
+      }
+
       const bucketExists = buckets?.some(b => b.name === this.bucketName);
 
       if (!bucketExists) {
-        await this.supabaseClient.storage.createBucket(this.bucketName, {
-          public: false,
+        if (!this.supabaseAdminClient) {
+          console.warn('⚠️ Bucket não existe e service_role key não configurada. Crie o bucket manualmente no Supabase.');
+          return;
+        }
+
+        const { error: createError } = await this.supabaseAdminClient.storage.createBucket(this.bucketName, {
+          public: true,
           fileSizeLimit: 52428800 // 50MB
         });
-        console.log(`✅ Bucket '${this.bucketName}' criado no Supabase`);
+
+        if (createError) {
+          console.error('❌ Erro ao criar bucket:', createError.message);
+        } else {
+          console.log(`✅ Bucket '${this.bucketName}' criado no Supabase (público)`);
+        }
       }
     } catch (error) {
       console.error('⚠️ Erro ao verificar/criar bucket:', error);

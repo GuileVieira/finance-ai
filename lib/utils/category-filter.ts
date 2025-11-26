@@ -64,7 +64,7 @@ export function filterCategoriesByPattern(
 ): Category[] {
 
   // Primeiro aplica filtro por tipo
-  let filtered = filterCategoriesByTransactionType(transactionType, allCategories);
+  const filtered = filterCategoriesByTransactionType(transactionType, allCategories);
 
   // Padrões comuns que podem reduzir ainda mais
   const descUpper = description.toUpperCase();

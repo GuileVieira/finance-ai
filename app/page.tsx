@@ -1,17 +1,26 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { ArrowRight, BarChart3, TrendingUp, Users, FileText, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
+interface LandingStats {
+  accuracy: number;
+  categories: number;
+  hasData: boolean;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { isLoggedIn, isLoading } = useAuth();
+  const [stats, setStats] = useState<LandingStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     // Redirecionar para dashboard se já estiver logado
@@ -19,6 +28,32 @@ export default function HomePage() {
       router.push('/dashboard');
     }
   }, [isLoggedIn, isLoading, router]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/dashboard/insights');
+        const result = await response.json();
+        if (result.success && result.data.stats) {
+          const { accuracy, categories } = result.data.stats;
+          setStats({
+            accuracy: accuracy.averageAccuracy || 0,
+            categories: categories.activeCategories || 0,
+            hasData: accuracy.totalTransactions > 0
+          });
+        } else {
+          // Sem dados, mostrar valores padrão
+          setStats({ accuracy: 0, categories: 0, hasData: false });
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        setStats({ accuracy: 0, categories: 0, hasData: false });
+      } finally {
+        setLoadingStats(false);
+      }
+    }
+    fetchStats();
+  }, []);
 
   return (
     <LayoutWrapper requireAuth={false}>
@@ -53,11 +88,21 @@ export default function HomePage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">94%</div>
+                {loadingStats ? (
+                  <Skeleton className="h-9 w-16 mx-auto mb-2" />
+                ) : stats?.hasData ? (
+                  <div className="text-3xl font-bold text-primary mb-2">{stats.accuracy.toFixed(0)}%</div>
+                ) : (
+                  <div className="text-3xl font-bold text-muted-foreground mb-2">--</div>
+                )}
                 <div className="text-sm text-gray-600">Acurácia na Categorização</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">53</div>
+                {loadingStats ? (
+                  <Skeleton className="h-9 w-12 mx-auto mb-2" />
+                ) : (
+                  <div className="text-3xl font-bold text-primary mb-2">{stats?.categories || '--'}</div>
+                )}
                 <div className="text-sm text-gray-600">Categorias Financeiras</div>
               </div>
               <div className="text-center">
@@ -103,7 +148,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Categorização automática com 94% de acurácia baseada em IA e dados reais de empresas brasileiras.
+                  Categorização automática baseada em IA e dados reais de empresas brasileiras.
                 </p>
               </CardContent>
             </Card>
@@ -115,7 +160,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  53 categorias financeiras com regras automáticas inteligentes configuráveis para seu negócio.
+                  Categorias financeiras com regras automáticas inteligentes configuráveis para seu negócio.
                 </p>
               </CardContent>
             </Card>
