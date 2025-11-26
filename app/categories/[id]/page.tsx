@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { Button } from '@/components/ui/button';
@@ -12,32 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
-import { mockCategories, mockTransactions, categoryTypes } from '@/lib/mock-categories';
+import { categoryTypes } from '@/lib/mock-categories';
 import { Category, Transaction } from '@/lib/types';
 import { useCategory } from '@/hooks/use-categories';
-import { ArrowLeft, Edit, Settings, Search, Filter, Download, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Edit, Settings, Search, Filter, Download, Calendar, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-
-// Mock transactions por categoria
-const generateMockTransactions = (categoryId: string): Transaction[] => {
-  const category = mockCategories.find(cat => cat.id === categoryId);
-  if (!category) return [];
-
-  return Array.from({ length: Math.min(category.transactions, 20) }, (_, index) => ({
-    id: `${categoryId}-${index}`,
-    description: `${category.examples?.[0] || 'Transação'} ${index + 1}`,
-    amount: category.type === 'revenue'
-      ? Math.floor(Math.random() * 5000) + 1000
-      : Math.floor(Math.random() * 3000) + 500,
-    type: category.type === 'revenue' ? 'credit' : 'debit',
-    date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    category: category.name,
-    balance_after: Math.floor(Math.random() * 50000) + 10000,
-    account: 'Conta Principal',
-    status: 'completed'
-  }));
-};
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -49,13 +29,47 @@ export default function CategoryDetailPage() {
   const [filterPeriod, setFilterPeriod] = useState<string>('90');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
   const { toast } = useToast();
 
   // Buscar categoria real usando o hook
   const { data: category, isLoading, error } = useCategory(categoryId);
 
-  // Gerar transações mockadas apenas se a categoria existir (fallback)
-  const transactions = category ? generateMockTransactions(categoryId) : [];
+  // Buscar transações da categoria
+  const fetchTransactions = useCallback(async () => {
+    if (!categoryId) return;
+
+    try {
+      setLoadingTransactions(true);
+      const response = await fetch(`/api/transactions?categoryId=${categoryId}&limit=50`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Mapear dados da API para o formato do frontend
+        const mappedTransactions: Transaction[] = result.data.map((tx: Record<string, unknown>) => ({
+          id: tx.id as string,
+          description: tx.description as string,
+          amount: Math.abs(tx.amount as number),
+          type: (tx.amount as number) >= 0 ? 'credit' : 'debit',
+          date: tx.date as string,
+          category: tx.categoryName as string || 'Sem categoria',
+          balance_after: tx.balanceAfter as number || 0,
+          account: tx.accountName as string || 'Conta',
+          status: 'completed' as const,
+        }));
+        setTransactions(mappedTransactions);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar transações:', err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, [categoryId]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   // Tratamentos de loading e erro
   if (isLoading) {
@@ -105,13 +119,40 @@ export default function CategoryDetailPage() {
   const totalCredits = creditTransactions.reduce((sum, t) => sum + t.amount, 0);
   const totalDebits = debitTransactions.reduce((sum, t) => sum + t.amount, 0);
 
-  const handleUpdateCategory = (updatedCategory: Category) => {
-    setCategory(updatedCategory);
-    setIsEditDialogOpen(false);
-    toast({
-      title: 'Categoria Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+  const handleUpdateCategory = async (data: Record<string, unknown>) => {
+    try {
+      const response = await fetch(`/api/categories?id=${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          type: data.type,
+          colorHex: data.color,
+          description: data.description,
+          isActive: data.active,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsEditDialogOpen(false);
+        // Recarregar página para atualizar dados do hook
+        router.refresh();
+        toast({
+          title: 'Categoria Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao atualizar');
+      }
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro ao atualizar categoria',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getTypeColor = (type: string) => {

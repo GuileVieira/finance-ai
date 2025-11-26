@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { Button } from '@/components/ui/button';
@@ -9,43 +9,30 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CompanyForm } from '@/components/companies/company-form';
-import { mockCompanies } from '@/lib/mock-companies';
 import { Company, CompanyFormData } from '@/lib/types/companies';
-import { getIndustryLabel, getRevenueRangeLabel, formatCNPJ } from '@/lib/types/companies';
-import { ArrowLeft, Edit, Building2, Mail, Phone, MapPin, Calendar, TrendingUp, DollarSign, Users, FileText, CreditCard } from 'lucide-react';
+import { getIndustryLabel, formatCNPJ } from '@/lib/types/companies';
+import { ArrowLeft, Edit, Building2, Mail, Phone, MapPin, Calendar, TrendingUp, DollarSign, Users, FileText, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
-// Mock dados relacionados à empresa
-const generateCompanyStats = (companyId: string) => {
-  return {
-    totalAccounts: Math.floor(Math.random() * 5) + 1,
-    totalTransactions: Math.floor(Math.random() * 1000) + 500,
-    totalCategories: Math.floor(Math.random() * 20) + 10,
-    totalUsers: Math.floor(Math.random() * 10) + 1,
-    monthlyTransactions: Math.floor(Math.random() * 100) + 50,
-    totalBalance: Math.floor(Math.random() * 500000) + 100000,
-    lastTransaction: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
-  };
-};
+interface CompanyStats {
+  totalAccounts: number;
+  totalTransactions: number;
+  totalCategories: number;
+  totalUsers: number;
+  monthlyTransactions: number;
+  totalBalance: number;
+  lastTransaction: Date | null;
+}
 
-const generateRelatedAccounts = (companyId: string) => {
-  const accounts = [];
-  const bankNames = ['Banco do Brasil', 'Itaú', 'Bradesco', 'NuBank'];
-
-  for (let i = 0; i < 3; i++) {
-    accounts.push({
-      id: `acc-${companyId}-${i}`,
-      name: `Conta ${i + 1}`,
-      bank_name: bankNames[i],
-      account_type: i === 0 ? 'checking' : i === 1 ? 'savings' : 'investment',
-      balance: Math.floor(Math.random() * 100000) + 10000,
-      last_sync: new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000)
-    });
-  }
-
-  return accounts;
-};
+interface AccountData {
+  id: string;
+  name: string;
+  bankName: string;
+  accountType: string;
+  openingBalance: number;
+  lastSyncAt: string | null;
+}
 
 export default function CompanyDetailPage() {
   const params = useParams();
@@ -53,43 +40,148 @@ export default function CompanyDetailPage() {
   const companyId = params.id as string;
 
   const [company, setCompany] = useState<Company | null>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [stats, setStats] = useState<CompanyStats | null>(null);
+  const [accounts, setAccounts] = useState<AccountData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const foundCompany = mockCompanies.find(comp => comp.id === companyId);
-    if (foundCompany) {
-      setCompany(foundCompany);
-      setStats(generateCompanyStats(companyId));
-      setAccounts(generateRelatedAccounts(companyId));
-    } else {
-      router.push('/settings/companies');
-    }
-  }, [companyId, router]);
+  // Buscar dados da empresa da API
+  const fetchCompanyData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/companies/${companyId}`);
+      const result = await response.json();
 
-  if (!company || !stats) {
+      if (!result.success) {
+        toast({
+          title: 'Erro',
+          description: result.error || 'Empresa não encontrada',
+          variant: 'destructive',
+        });
+        router.push('/settings/companies');
+        return;
+      }
+
+      // Mapear dados da empresa
+      const companyData = result.data.company;
+      setCompany({
+        id: companyData.id,
+        name: companyData.name,
+        corporate_name: companyData.corporateName || companyData.name,
+        cnpj: companyData.cnpj,
+        email: companyData.email,
+        phone: companyData.phone,
+        address: companyData.address,
+        city: companyData.city,
+        state: companyData.state,
+        zip_code: companyData.zipCode,
+        industry: companyData.industry || 'other',
+        monthly_revenue_range: companyData.monthlyRevenueRange,
+        active: companyData.active,
+        logo_url: companyData.logoUrl,
+        created_at: companyData.createdAt,
+        updated_at: companyData.updatedAt,
+      });
+
+      // Mapear contas
+      const mappedAccounts: AccountData[] = result.data.accounts.map((acc: Record<string, unknown>) => ({
+        id: acc.id as string,
+        name: acc.name as string,
+        bankName: acc.bankName as string || 'Banco',
+        accountType: acc.accountType as string || 'checking',
+        openingBalance: acc.openingBalance as number || 0,
+        lastSyncAt: acc.lastSyncAt as string | null,
+      }));
+      setAccounts(mappedAccounts);
+
+      // Calcular estatísticas baseado nos dados reais
+      setStats({
+        totalAccounts: mappedAccounts.length,
+        totalTransactions: 0, // TODO: buscar da API de transações se necessário
+        totalCategories: 0,
+        totalUsers: 1,
+        monthlyTransactions: 0,
+        totalBalance: mappedAccounts.reduce((sum, acc) => sum + acc.openingBalance, 0),
+        lastTransaction: null,
+      });
+
+    } catch (error) {
+      console.error('Erro ao buscar empresa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados da empresa',
+        variant: 'destructive',
+      });
+      router.push('/settings/companies');
+    } finally {
+      setLoading(false);
+    }
+  }, [companyId, router, toast]);
+
+  useEffect(() => {
+    fetchCompanyData();
+  }, [fetchCompanyData]);
+
+  if (loading) {
     return (
       <LayoutWrapper>
         <div className="flex items-center justify-center h-96">
-          <p>Carregando...</p>
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Carregando...</span>
         </div>
       </LayoutWrapper>
     );
   }
 
-  const handleUpdateCompany = (updatedCompany: CompanyFormData) => {
-    setCompany({
-      ...company,
-      ...updatedCompany,
-      updated_at: new Date().toISOString()
-    });
-    setIsEditDialogOpen(false);
-    toast({
-      title: 'Empresa Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+  if (!company || !stats) {
+    return (
+      <LayoutWrapper>
+        <div className="flex items-center justify-center h-96">
+          <p>Empresa não encontrada</p>
+        </div>
+      </LayoutWrapper>
+    );
+  }
+
+  const handleUpdateCompany = async (updatedData: CompanyFormData) => {
+    try {
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: updatedData.name,
+          corporateName: updatedData.corporate_name,
+          email: updatedData.email,
+          phone: updatedData.phone,
+          address: updatedData.address,
+          city: updatedData.city,
+          state: updatedData.state,
+          zipCode: updatedData.zip_code,
+          industry: updatedData.industry,
+          active: updatedData.active,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchCompanyData(); // Recarregar dados
+        setIsEditDialogOpen(false);
+        toast({
+          title: 'Empresa Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao atualizar');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao atualizar empresa',
+        variant: 'destructive',
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -383,19 +475,19 @@ export default function CompanyDetailPage() {
                         {account.name}
                       </TableCell>
                       <TableCell>
-                        {account.bank_name}
+                        {account.bankName}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {account.account_type === 'checking' ? 'Corrente' :
-                           account.account_type === 'savings' ? 'Poupança' : 'Investimento'}
+                          {account.accountType === 'checking' ? 'Corrente' :
+                           account.accountType === 'savings' ? 'Poupança' : 'Investimento'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(account.balance)}
+                        {formatCurrency(account.openingBalance)}
                       </TableCell>
                       <TableCell>
-                        {formatDate(account.last_sync.toISOString())}
+                        {account.lastSyncAt ? formatDate(account.lastSyncAt) : 'Nunca'}
                       </TableCell>
                     </TableRow>
                   ))
@@ -426,7 +518,7 @@ export default function CompanyDetailPage() {
                   <span className="text-sm">Última transação</span>
                 </div>
                 <span className="font-medium">
-                  {formatDate(stats.lastTransaction.toISOString())}
+                  {stats.lastTransaction ? formatDate(stats.lastTransaction.toISOString()) : 'Nenhuma'}
                 </span>
               </div>
 

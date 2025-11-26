@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,13 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
-import { mockCategories, categoryTypes } from '@/lib/mock-categories';
+import { categoryTypes } from '@/lib/mock-categories';
 import { Category, CategoryFormData } from '@/lib/types';
-import { Plus, Edit, Trash2, Settings, Search, Filter, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CategoriesManagePage() {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -25,6 +26,46 @@ export default function CategoriesManagePage() {
   const [managingRules, setManagingRules] = useState<Category | null>(null);
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
   const { toast } = useToast();
+
+  // Buscar categorias da API
+  const fetchCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/categories?includeStats=true');
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Mapear campos da API para o formato do frontend
+        const mappedCategories: Category[] = result.data.map((cat: Record<string, unknown>) => ({
+          id: cat.id as string,
+          name: cat.name as string,
+          type: cat.type as string,
+          color: cat.colorHex as string || '#6B7280',
+          icon: cat.icon as string || '📊',
+          description: cat.description as string || '',
+          amount: cat.totalAmount as number || 0,
+          transactions: cat.transactionCount as number || 0,
+          percentage: 0, // Calcular se necessário
+          active: cat.isActive as boolean ?? true,
+          examples: []
+        }));
+        setCategories(mappedCategories);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as categorias',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   // Filtrar categorias
   const filteredCategories = categories.filter(category => {
@@ -35,67 +76,141 @@ export default function CategoriesManagePage() {
   });
 
   // Criar nova categoria
-  const handleCreateCategory = (data: CategoryFormData) => {
-    const newCategory: Category = {
-      id: Date.now().toString(),
-      name: data.name,
-      type: data.type,
-      color: data.color,
-      description: data.description,
-      amount: 0,
-      transactions: 0,
-      percentage: 0,
-      active: data.active ?? true,
-      examples: []
-    };
+  const handleCreateCategory = async (data: CategoryFormData) => {
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          type: data.type,
+          colorHex: data.color,
+          icon: '📊',
+          description: data.description,
+          isActive: data.active ?? true,
+        }),
+      });
 
-    setCategories(prev => [...prev, newCategory]);
-    setIsCreateDialogOpen(false);
+      const result = await response.json();
 
-    toast({
-      title: 'Categoria Criada',
-      description: `${newCategory.name} foi adicionada com sucesso!`,
-    });
+      if (result.success) {
+        setIsCreateDialogOpen(false);
+        await fetchCategories(); // Recarregar lista
+
+        toast({
+          title: 'Categoria Criada',
+          description: `${data.name} foi adicionada com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao criar categoria');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao criar categoria',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Editar categoria
-  const handleEditCategory = (data: CategoryFormData) => {
+  const handleEditCategory = async (data: CategoryFormData) => {
     if (!editingCategory) return;
 
-    setCategories(prev => prev.map(cat =>
-      cat.id === editingCategory.id
-        ? { ...cat, ...data }
-        : cat
-    ));
+    try {
+      const response = await fetch(`/api/categories?id=${editingCategory.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          type: data.type,
+          colorHex: data.color,
+          description: data.description,
+          isActive: data.active,
+        }),
+      });
 
-    setEditingCategory(null);
+      const result = await response.json();
 
-    toast({
-      title: 'Categoria Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+      if (result.success) {
+        setEditingCategory(null);
+        await fetchCategories(); // Recarregar lista
+
+        toast({
+          title: 'Categoria Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao atualizar categoria');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao atualizar categoria',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Excluir categoria
-  const handleDeleteCategory = (categoryId: string) => {
+  const handleDeleteCategory = async (categoryId: string) => {
     const category = categories.find(cat => cat.id === categoryId);
     if (!category) return;
 
-    setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    try {
+      const response = await fetch(`/api/categories?id=${categoryId}`, {
+        method: 'DELETE',
+      });
 
-    toast({
-      title: 'Categoria Excluída',
-      description: `${category.name} foi removida com sucesso!`,
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchCategories(); // Recarregar lista
+
+        toast({
+          title: 'Categoria Excluída',
+          description: `${category.name} foi removida com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao excluir categoria');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao excluir categoria',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Toggle status ativo/inativo
-  const handleToggleActive = (categoryId: string) => {
-    setCategories(prev => prev.map(cat =>
-      cat.id === categoryId
-        ? { ...cat, active: !cat.active }
-        : cat
-    ));
+  const handleToggleActive = async (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return;
+
+    try {
+      const response = await fetch(`/api/categories?id=${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isActive: !category.active,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchCategories(); // Recarregar lista
+      } else {
+        throw new Error(result.error || 'Erro ao alterar status');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao alterar status',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getTypeColor = (type: string) => {
@@ -193,7 +308,16 @@ export default function CategoriesManagePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCategories.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-muted-foreground">Carregando categorias...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCategories.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
                       <p className="text-muted-foreground">

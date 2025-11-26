@@ -70,10 +70,9 @@ export class DuckDuckGoService {
 
     } catch (error) {
       console.error('Erro na busca DuckDuckGo:', error);
-      // Fallback para modo simulado
-      const mockResults = this.generateMockCompanyInfo(query);
-      this.cache.set(cacheKey, { data: mockResults, timestamp: Date.now() });
-      return mockResults;
+      // Retornar array vazio em caso de erro
+      // A busca real já foi tentada, não faz sentido retornar dados falsos
+      return [];
     }
   }
 

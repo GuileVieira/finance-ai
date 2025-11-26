@@ -139,20 +139,81 @@ export class CNPJService {
     }
   }
 
-  // Buscar CNPJ em APIs externas (Receita Federal ou similares)
+  // Buscar CNPJ em APIs externas (BrasilAPI - gratuita)
   private async buscarCNPJExterno(cnpj: string): Promise<CNPJInfo | null> {
-    // Nota: Em produção, você usaria uma API real como:
-    // - https://www.receitaws.com.br/v1/cnpj/{cnpj}
-    // - https://minhareceita.org/api/v1/{cnpj}
-    // - API própria da Receita Federal
+    try {
+      // Usar BrasilAPI - gratuita e sem limite de requisições severo
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        // Timeout de 10 segundos
+        signal: AbortSignal.timeout(10000),
+      });
 
-    // Por enquanto, implementar versão mock com dados realistas
-    return this.gerarDadosMock(cnpj);
+      if (!response.ok) {
+        // Se não encontrar na API, tentar dados conhecidos
+        if (response.status === 404) {
+          console.log(`[CNPJ] CNPJ ${cnpj} não encontrado na API, verificando cache local`);
+          return this.getDadosConhecidos(cnpj);
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Mapear resposta da BrasilAPI para nossa interface
+      const cnpjInfo: CNPJInfo = {
+        cnpj: CNPJService.formatarCNPJ(cnpj),
+        razaoSocial: data.razao_social || '',
+        nomeFantasia: data.nome_fantasia || undefined,
+        situacao: this.mapSituacao(data.descricao_situacao_cadastral),
+        dataAbertura: data.data_inicio_atividade || '',
+        cnaePrincipal: {
+          codigo: String(data.cnae_fiscal || ''),
+          descricao: data.cnae_fiscal_descricao || '',
+        },
+        naturezaJuridica: {
+          codigo: String(data.codigo_natureza_juridica || ''),
+          descricao: data.natureza_juridica || '',
+        },
+        endereco: {
+          logradouro: data.logradouro || '',
+          numero: data.numero || '',
+          complemento: data.complemento || undefined,
+          bairro: data.bairro || '',
+          municipio: data.municipio || '',
+          uf: data.uf || '',
+          cep: data.cep || '',
+        },
+        telefone: data.ddd_telefone_1 ? `(${data.ddd_telefone_1.slice(0, 2)}) ${data.ddd_telefone_1.slice(2)}` : undefined,
+        email: data.email || undefined,
+      };
+
+      console.log(`[CNPJ] Dados obtidos da BrasilAPI: ${cnpjInfo.razaoSocial}`);
+      return cnpjInfo;
+
+    } catch (error) {
+      // Se der erro na API, tentar dados conhecidos como fallback
+      console.error(`[CNPJ] Erro ao consultar BrasilAPI:`, error);
+      return this.getDadosConhecidos(cnpj);
+    }
   }
 
-  // Gerar dados mockados para testes
-  private gerarDadosMock(cnpj: string): CNPJInfo | null {
-    const mockData: { [key: string]: CNPJInfo } = {
+  // Mapear situação cadastral para nossa enum
+  private mapSituacao(descricao: string | undefined): CNPJInfo['situacao'] {
+    if (!descricao) return 'ATIVA';
+    const upper = descricao.toUpperCase();
+    if (upper.includes('ATIVA')) return 'ATIVA';
+    if (upper.includes('INAPTA')) return 'INAPTA';
+    if (upper.includes('BAIXADA')) return 'BAIXADA';
+    if (upper.includes('SUSPENSA')) return 'SUSPENSA';
+    return 'ATIVA';
+  }
+
+  // Dados conhecidos como fallback (cache local)
+  private getDadosConhecidos(cnpj: string): CNPJInfo | null {
+    const dadosConhecidos: { [key: string]: CNPJInfo } = {
       '23261898000132': {
         cnpj: '23.261.898/0001-32',
         razaoSocial: 'IFOOD COMERCIO E SERVICOS DE ALIMENTACAO LTDA',
@@ -167,17 +228,6 @@ export class CNPJService {
           codigo: '206-2',
           descricao: 'Sociedade Empresária Limitada'
         },
-        endereco: {
-          logradouro: 'Avenida Brigadeiro Faria Lima',
-          numero: '1842',
-          complemento: 'Cj 42',
-          bairro: 'Jardim Paulistano',
-          municipio: 'São Paulo',
-          uf: 'SP',
-          cep: '01451-001'
-        },
-        telefone: '(11) 3003-1315',
-        email: 'suporte@ifood.com.br'
       },
       '21862419000136': {
         cnpj: '21.862.419/0001-36',
@@ -193,16 +243,6 @@ export class CNPJService {
           codigo: '206-2',
           descricao: 'Sociedade Empresária Limitada'
         },
-        endereco: {
-          logradouro: 'Avenida Presidente Juscelino Kubitschek',
-          numero: '1909',
-          bairro: 'Vila Nova Conceição',
-          municipio: 'São Paulo',
-          uf: 'SP',
-          cep: '04543-907'
-        },
-        telefone: '(11) 3003-1401',
-        email: 'suporte@uber.com'
       },
       '25767302000149': {
         cnpj: '25.767.302/0001-49',
@@ -218,20 +258,10 @@ export class CNPJService {
           codigo: '206-2',
           descricao: 'Sociedade Empresária Limitada'
         },
-        endereco: {
-          logradouro: 'Avenida Brigadeiro Faria Lima',
-          numero: '1384',
-          bairro: 'Pinheiros',
-          municipio: 'São Paulo',
-          uf: 'SP',
-          cep: '01452-002'
-        },
-        telefone: '(11) 3003-3100',
-        email: 'help@netflix.com'
       }
     };
 
-    return mockData[cnpj] || null;
+    return dadosConhecidos[cnpj] || null;
   }
 
   // Obter categoria baseada no CNAE

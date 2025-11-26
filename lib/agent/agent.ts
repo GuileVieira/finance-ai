@@ -1,7 +1,8 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { z } from 'zod';
-import { mockCategories } from '@/lib/mock-categories';
 import { AgentPrompts } from './prompts';
+import CategoriesService from '@/lib/services/categories.service';
+import type { Category } from '@/lib/types';
 import { aiProviderService } from '@/lib/ai/ai-provider.service';
 import {
   searchCompanyTool,
@@ -117,8 +118,11 @@ export class ClassificationAgent {
   private static instance: ClassificationAgent;
   private history: ClassificationHistory;
   private cache: ClassificationCache;
-  private graph: Graph<AgentStateType>;
-  private tools: any[];
+  private graph: ReturnType<typeof this.buildGraph>;
+  private tools: unknown[];
+  private categoriesCache: Category[] | null = null;
+  private categoriesCacheTime: number = 0;
+  private readonly CATEGORIES_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
   private constructor() {
     this.history = ClassificationHistory.getInstance();
@@ -132,7 +136,50 @@ export class ClassificationAgent {
       analyzeFinancialContextTool,
       validateClassificationTool
     ];
-    this.buildGraph();
+    this.graph = this.buildGraph();
+  }
+
+  /**
+   * Buscar categorias do banco de dados com cache
+   */
+  private async getCategories(): Promise<Category[]> {
+    const now = Date.now();
+
+    // Verificar cache
+    if (this.categoriesCache && (now - this.categoriesCacheTime) < this.CATEGORIES_CACHE_TTL) {
+      return this.categoriesCache;
+    }
+
+    try {
+      const dbCategories = await CategoriesService.getCategories({ isActive: true });
+
+      // Mapear para o formato esperado pelo prompt
+      this.categoriesCache = dbCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        type: cat.type as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating',
+        color: cat.colorHex || '#6B7280',
+        icon: cat.icon || '📊',
+        description: cat.description || '',
+        amount: 0,
+        transactions: 0,
+        percentage: 0,
+        active: cat.active ?? true,
+        examples: []
+      }));
+      this.categoriesCacheTime = now;
+
+      console.log(`[Agent] Categorias carregadas do BD: ${this.categoriesCache.length}`);
+      return this.categoriesCache;
+    } catch (error) {
+      console.error('[Agent] Erro ao buscar categorias do BD:', error);
+      // Se falhar e tiver cache antigo, usar mesmo assim
+      if (this.categoriesCache) {
+        return this.categoriesCache;
+      }
+      // Retornar array vazio se não tiver nada
+      return [];
+    }
   }
 
   static getInstance(): ClassificationAgent {
@@ -362,7 +409,9 @@ export class ClassificationAgent {
   // Classificar transação
   private async classifyTransaction(state: AgentStateType): Promise<Partial<AgentStateType>> {
     try {
-      const prompt = AgentPrompts.buildMainPrompt(mockCategories, this.history.exportPatterns());
+      // Buscar categorias do banco de dados
+      const categories = await this.getCategories();
+      const prompt = AgentPrompts.buildMainPrompt(categories, this.history.exportPatterns());
       const historyStats = this.history.getStats();
 
       const enhancedPrompt = `${prompt}
