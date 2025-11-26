@@ -83,7 +83,8 @@ export default function CategoryAnalysis({
   const pieChartData = sortedCategories.map(category => ({
     name: category.name,
     value: category.value,
-    color: category.color
+    color: category.color,
+    percentage: category.percentage
   }));
 
   const barChartData = sortedCategories.map(category => ({
@@ -151,38 +152,44 @@ export default function CategoryAnalysis({
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, value }) => `${name}: R$ ${value.toLocaleString('pt-BR')}`}
-              outerRadius={120}
+              label={({ percentage }: { percentage: number }) => percentage > 5 ? `${percentage.toFixed(0)}%` : ''}
+              outerRadius={140}
+              innerRadius={60}
               fill="#8884d8"
               dataKey="value"
+              paddingAngle={2}
             >
               {pieChartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
             <Tooltip
-              content={<CustomTooltip />}
-              formatter={(value: number) => [formatCurrency(value), 'Valor']}
-              labelFormatter={(label) => `Categoria: ${label}`}
+              formatter={(value: number, name: string, props: { payload: { name: string; percentage: number } }) => [
+                `${formatCurrency(value)} (${props.payload.percentage.toFixed(1)}%)`,
+                props.payload.name
+              ]}
             />
           </PieChart>
         </ResponsiveContainer>
 
         <div className="mt-4 space-y-2">
           <h4 className="font-medium text-sm">Legenda</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {sortedCategories.slice(0, 6).map((category) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {sortedCategories.slice(0, 9).map((category) => (
               <div key={category.name} className="flex items-center gap-2 text-sm">
                 <div
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: category.color }}
                 />
-                <span className="truncate">{category.name}</span>
+                <span className="truncate flex-1" title={category.name}>{category.name}</span>
+                <span className="text-muted-foreground text-xs">
+                  {formatCurrency(category.value)}
+                </span>
               </div>
             ))}
-            {sortedCategories.length > 6 && (
-              <div className="text-sm text-muted-foreground col-span-2 md:col-span-3">
-                ... e mais {sortedCategories.length - 6} categorias
+            {sortedCategories.length > 9 && (
+              <div className="text-sm text-muted-foreground col-span-full">
+                ... e mais {sortedCategories.length - 9} categorias
               </div>
             )}
           </div>
@@ -412,7 +419,7 @@ export default function CategoryAnalysis({
                                 onRuleEdit?.(rule);
                               }}
                             >
-                              "{rule.pattern}" ({rule.accuracy}%)
+                              &quot;{rule.pattern}&quot; ({rule.accuracy}%)
                             </Badge>
                           ))}
                           {getRulesForCategory(category.name).length > 3 && (
