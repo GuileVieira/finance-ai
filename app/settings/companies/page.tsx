@@ -10,15 +10,74 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CompanyForm } from '@/components/companies/company-form';
-import { mockCompanies } from '@/lib/mock-companies';
 import { Company, CompanyFormData } from '@/lib/types/companies';
 import { getIndustryLabel, getRevenueRangeLabel, formatCNPJ, revenueRanges } from '@/lib/types/companies';
-import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, Building2, TrendingUp, DollarSign, MapPin, Mail, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, Building2, TrendingUp, DollarSign, MapPin, Mail, Phone, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
+// Tipo para resposta da API (camelCase)
+interface CompanyApiResponse {
+  id: string;
+  name: string;
+  cnpj: string;
+  corporateName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  logoUrl: string | null;
+  industry: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Converter de camelCase (API) para snake_case (frontend)
+function mapApiToFrontend(apiCompany: CompanyApiResponse): Company {
+  return {
+    id: apiCompany.id,
+    name: apiCompany.name,
+    cnpj: apiCompany.cnpj,
+    corporate_name: apiCompany.corporateName || apiCompany.name,
+    phone: apiCompany.phone || undefined,
+    email: apiCompany.email || undefined,
+    address: apiCompany.address || undefined,
+    city: apiCompany.city || undefined,
+    state: apiCompany.state || undefined,
+    zip_code: apiCompany.zipCode || undefined,
+    logo_url: apiCompany.logoUrl || undefined,
+    industry: apiCompany.industry || undefined,
+    created_at: apiCompany.createdAt,
+    updated_at: apiCompany.updatedAt,
+    active: apiCompany.active,
+    created_by: 'system',
+  };
+}
+
+// Converter de snake_case (frontend) para camelCase (API)
+function mapFrontendToApi(formData: CompanyFormData) {
+  return {
+    name: formData.name,
+    cnpj: formData.cnpj.replace(/\D/g, ''),
+    corporateName: formData.corporate_name,
+    phone: formData.phone,
+    email: formData.email,
+    address: formData.address,
+    city: formData.city,
+    state: formData.state,
+    zipCode: formData.zip_code,
+    logoUrl: formData.logo_url,
+    industry: formData.industry,
+    active: formData.active ?? true,
+  };
+}
+
 export default function SettingsCompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -26,6 +85,31 @@ export default function SettingsCompaniesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const { toast } = useToast();
+
+  // Buscar empresas da API
+  useEffect(() => {
+    async function fetchCompanies() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/companies');
+        const result = await response.json();
+        if (result.success && result.data?.companies) {
+          const mappedCompanies = result.data.companies.map(mapApiToFrontend);
+          setCompanies(mappedCompanies);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar empresas:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar as empresas.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchCompanies();
+  }, [toast]);
 
   // Filtrar empresas
   const filteredCompanies = companies.filter(company => {
@@ -43,74 +127,141 @@ export default function SettingsCompaniesPage() {
   });
 
   // Criar nova empresa
-  const handleCreateCompany = (data: CompanyFormData) => {
-    const newCompany: Company = {
-      id: Date.now().toString(),
-      name: data.name,
-      cnpj: data.cnpj,
-      corporate_name: data.corporate_name,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      zip_code: data.zip_code,
-      logo_url: data.logo_url,
-      industry: data.industry,
-      monthly_revenue_range: data.monthly_revenue_range,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      active: data.active ?? true,
-      created_by: 'user1'
-    };
+  const handleCreateCompany = async (data: CompanyFormData) => {
+    try {
+      const response = await fetch('/api/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToApi(data)),
+      });
 
-    setCompanies(prev => [...prev, newCompany]);
-    setIsCreateDialogOpen(false);
+      const result = await response.json();
 
-    toast({
-      title: 'Empresa Criada',
-      description: `${newCompany.name} foi adicionada com sucesso!`,
-    });
+      if (result.success && result.data?.company) {
+        const newCompany = mapApiToFrontend(result.data.company);
+        setCompanies(prev => [...prev, newCompany]);
+        setIsCreateDialogOpen(false);
+
+        toast({
+          title: 'Empresa Criada',
+          description: `${newCompany.name} foi adicionada com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao criar empresa');
+      }
+    } catch (error) {
+      console.error('Erro ao criar empresa:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível criar a empresa.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Editar empresa
-  const handleEditCompany = (data: CompanyFormData) => {
+  const handleEditCompany = async (data: CompanyFormData) => {
     if (!editingCompany) return;
 
-    setCompanies(prev => prev.map(comp =>
-      comp.id === editingCompany.id
-        ? { ...comp, ...data, updated_at: new Date().toISOString() }
-        : comp
-    ));
+    try {
+      const response = await fetch(`/api/companies/${editingCompany.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToApi(data)),
+      });
 
-    setEditingCompany(null);
+      const result = await response.json();
 
-    toast({
-      title: 'Empresa Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+      if (result.success && result.data?.company) {
+        const updatedCompany = mapApiToFrontend(result.data.company);
+        setCompanies(prev => prev.map(comp =>
+          comp.id === editingCompany.id ? updatedCompany : comp
+        ));
+        setEditingCompany(null);
+
+        toast({
+          title: 'Empresa Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao atualizar empresa');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar empresa:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar a empresa.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  // Excluir empresa
-  const handleDeleteCompany = (companyId: string) => {
+  // Excluir empresa (soft delete via API)
+  const handleDeleteCompany = async (companyId: string) => {
     const company = companies.find(comp => comp.id === companyId);
     if (!company) return;
 
-    setCompanies(prev => prev.filter(comp => comp.id !== companyId));
+    try {
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'DELETE',
+      });
 
-    toast({
-      title: 'Empresa Excluída',
-      description: `${company.name} foi removida com sucesso!`,
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        // Atualizar lista local - a API faz soft delete (desativa)
+        setCompanies(prev => prev.map(comp =>
+          comp.id === companyId ? { ...comp, active: false } : comp
+        ));
+
+        toast({
+          title: 'Empresa Desativada',
+          description: `${company.name} foi desativada com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao desativar empresa');
+      }
+    } catch (error) {
+      console.error('Erro ao desativar empresa:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível desativar a empresa.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Toggle status ativo/inativo
-  const handleToggleActive = (companyId: string) => {
-    setCompanies(prev => prev.map(comp =>
-      comp.id === companyId
-        ? { ...comp, active: !comp.active, updated_at: new Date().toISOString() }
-        : comp
-    ));
+  const handleToggleActive = async (companyId: string) => {
+    const company = companies.find(comp => comp.id === companyId);
+    if (!company) return;
+
+    try {
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !company.active }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCompanies(prev => prev.map(comp =>
+          comp.id === companyId
+            ? { ...comp, active: !comp.active, updated_at: new Date().toISOString() }
+            : comp
+        ));
+      } else {
+        throw new Error(result.error || 'Erro ao alterar status');
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar o status da empresa.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Calcular estatísticas
@@ -287,7 +438,12 @@ export default function SettingsCompaniesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredCompanies.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-3 text-muted-foreground">Carregando empresas...</span>
+              </div>
+            ) : filteredCompanies.length === 0 ? (
               <div className="text-center py-8">
                 <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">

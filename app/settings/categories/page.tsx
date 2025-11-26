@@ -66,10 +66,15 @@ export default function SettingsCategoriesPage() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const response = await fetch('/api/categories');
+        const response = await fetch('/api/categories?includeStats=true');
         const result = await response.json();
         if (result.success && result.data) {
-          setCategories(result.data);
+          // Mapear transactionCount para transactions para compatibilidade
+          const mappedCategories = result.data.map((cat: Category & { transactionCount?: number }) => ({
+            ...cat,
+            transactions: cat.transactionCount ?? cat.transactions ?? 0
+          }));
+          setCategories(mappedCategories);
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -538,7 +543,7 @@ export default function SettingsCategoriesPage() {
                         <div className="text-sm">
                           <p className="font-medium">{category.transactions || 0}</p>
                           <p className="text-muted-foreground">
-                            {category.percentage || 0}% do total
+                            {Number(category.percentage || 0).toFixed(2)}% do total
                           </p>
                         </div>
                       </TableCell>
@@ -684,7 +689,7 @@ export default function SettingsCategoriesPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Percentual</p>
-                    <p className="text-2xl font-bold">{viewingCategory.percentage}%</p>
+                    <p className="text-2xl font-bold">{Number(viewingCategory.percentage || 0).toFixed(2)}%</p>
                   </div>
                 </div>
 

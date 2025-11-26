@@ -10,15 +10,71 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AccountForm } from '@/components/accounts/account-form';
-import { mockAccounts, accountTypes, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
+import { accountTypes, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
 import { BankAccount, BankAccountFormData } from '@/lib/types/accounts';
 import { supportedBanks } from '@/lib/types/accounts';
-import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, CreditCard, RefreshCw, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, CreditCard, RefreshCw, TrendingUp, Loader2, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
+// Tipo para resposta da API (camelCase)
+interface AccountApiResponse {
+  id: string;
+  companyId: string;
+  name: string;
+  bankName: string;
+  bankCode: string | null;
+  agencyNumber: string | null;
+  accountNumber: string;
+  accountType: 'checking' | 'savings' | 'investment';
+  openingBalance: number;
+  active: boolean;
+  lastSyncAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  companyName?: string;
+  companyCnpj?: string;
+}
+
+// Converter de camelCase (API) para snake_case (frontend)
+function mapApiToFrontend(apiAccount: AccountApiResponse): BankAccount {
+  return {
+    id: apiAccount.id,
+    company_id: apiAccount.companyId,
+    name: apiAccount.name,
+    bank_name: apiAccount.bankName,
+    bank_code: apiAccount.bankCode || '',
+    agency_number: apiAccount.agencyNumber || undefined,
+    account_number: apiAccount.accountNumber,
+    account_type: apiAccount.accountType,
+    opening_balance: Number(apiAccount.openingBalance) || 0,
+    current_balance: Number(apiAccount.openingBalance) || 0, // API não retorna current_balance, usar opening
+    created_at: apiAccount.createdAt,
+    updated_at: apiAccount.updatedAt,
+    active: apiAccount.active,
+    last_sync_at: apiAccount.lastSyncAt || undefined,
+  };
+}
+
+// Converter de snake_case (frontend) para camelCase (API)
+function mapFrontendToApi(formData: BankAccountFormData, companyId: string) {
+  return {
+    companyId,
+    name: formData.name,
+    bankName: formData.bank_name,
+    bankCode: formData.bank_code,
+    agencyNumber: formData.agency_number,
+    accountNumber: formData.account_number,
+    accountType: formData.account_type,
+    openingBalance: formData.opening_balance,
+    active: formData.active ?? true,
+  };
+}
+
 export default function SettingsAccountsPage() {
-  const [accounts, setAccounts] = useState<BankAccount[]>(mockAccounts);
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -26,6 +82,47 @@ export default function SettingsAccountsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
   const { toast } = useToast();
+
+  // Buscar companyId
+  useEffect(() => {
+    async function fetchCompanyId() {
+      try {
+        const response = await fetch('/api/companies');
+        const result = await response.json();
+        if (result.success && result.data?.companies?.length > 0) {
+          setCompanyId(result.data.companies[0].id);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar empresa:', error);
+      }
+    }
+    fetchCompanyId();
+  }, []);
+
+  // Buscar contas da API
+  useEffect(() => {
+    async function fetchAccounts() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/accounts');
+        const result = await response.json();
+        if (result.success && result.data?.accounts) {
+          const mappedAccounts = result.data.accounts.map(mapApiToFrontend);
+          setAccounts(mappedAccounts);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar contas:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar as contas.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchAccounts();
+  }, [toast]);
 
   // Filtrar contas
   const filteredAccounts = accounts.filter(account => {
@@ -42,99 +139,191 @@ export default function SettingsAccountsPage() {
   });
 
   // Criar nova conta
-  const handleCreateAccount = (data: BankAccountFormData) => {
-    const newAccount: BankAccount = {
-      id: Date.now().toString(),
-      company_id: '1',
-      name: data.name,
-      bank_name: data.bank_name,
-      bank_code: data.bank_code,
-      agency_number: data.agency_number,
-      account_number: data.account_number,
-      account_type: data.account_type,
-      opening_balance: data.opening_balance,
-      current_balance: data.opening_balance,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      active: data.active ?? true
-    };
+  const handleCreateAccount = async (data: BankAccountFormData) => {
+    if (!companyId) {
+      toast({
+        title: 'Erro',
+        description: 'Nenhuma empresa configurada. Configure uma empresa primeiro.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    setAccounts(prev => [...prev, newAccount]);
-    setIsCreateDialogOpen(false);
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToApi(data, companyId)),
+      });
 
-    toast({
-      title: 'Conta Criada',
-      description: `${newAccount.name} foi adicionada com sucesso!`,
-    });
+      const result = await response.json();
+
+      if (result.success && result.data?.account) {
+        const newAccount = mapApiToFrontend(result.data.account);
+        setAccounts(prev => [...prev, newAccount]);
+        setIsCreateDialogOpen(false);
+
+        toast({
+          title: 'Conta Criada',
+          description: `${newAccount.name} foi adicionada com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao criar conta');
+      }
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível criar a conta.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Editar conta
-  const handleEditAccount = (data: BankAccountFormData) => {
-    if (!editingAccount) return;
+  const handleEditAccount = async (data: BankAccountFormData) => {
+    if (!editingAccount || !companyId) return;
 
-    setAccounts(prev => prev.map(acc =>
-      acc.id === editingAccount.id
-        ? { ...acc, ...data, updated_at: new Date().toISOString() }
-        : acc
-    ));
+    try {
+      const response = await fetch(`/api/accounts/${editingAccount.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mapFrontendToApi(data, companyId)),
+      });
 
-    setEditingAccount(null);
+      const result = await response.json();
 
-    toast({
-      title: 'Conta Atualizada',
-      description: 'As alterações foram salvas com sucesso!',
-    });
+      if (result.success && result.data?.account) {
+        const updatedAccount = mapApiToFrontend(result.data.account);
+        setAccounts(prev => prev.map(acc =>
+          acc.id === editingAccount.id ? updatedAccount : acc
+        ));
+        setEditingAccount(null);
+
+        toast({
+          title: 'Conta Atualizada',
+          description: 'As alterações foram salvas com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao atualizar conta');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar conta:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar a conta.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  // Excluir conta
-  const handleDeleteAccount = (accountId: string) => {
+  // Excluir conta (soft delete via API)
+  const handleDeleteAccount = async (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
-    setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+    try {
+      const response = await fetch(`/api/accounts/${accountId}`, {
+        method: 'DELETE',
+      });
 
-    toast({
-      title: 'Conta Excluída',
-      description: `${account.name} foi removida com sucesso!`,
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        // Atualizar lista local - a API faz soft delete (desativa)
+        setAccounts(prev => prev.map(acc =>
+          acc.id === accountId ? { ...acc, active: false } : acc
+        ));
+
+        toast({
+          title: 'Conta Desativada',
+          description: `${account.name} foi desativada com sucesso!`,
+        });
+      } else {
+        throw new Error(result.error || 'Erro ao desativar conta');
+      }
+    } catch (error) {
+      console.error('Erro ao desativar conta:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Não foi possível desativar a conta.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Toggle status ativo/inativo
-  const handleToggleActive = (accountId: string) => {
-    setAccounts(prev => prev.map(acc =>
-      acc.id === accountId
-        ? { ...acc, active: !acc.active, updated_at: new Date().toISOString() }
-        : acc
-    ));
-  };
-
-  // Sincronizar conta
-  const handleSyncAccount = (accountId: string) => {
+  const handleToggleActive = async (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
-    // Simular sincronização
-    setAccounts(prev => prev.map(acc =>
-      acc.id === accountId
-        ? {
-            ...acc,
-            last_sync_at: new Date().toISOString(),
-            // Simular pequena variação no saldo
-            current_balance: acc.current_balance + (Math.random() - 0.5) * 1000
-          }
-        : acc
-    ));
+    try {
+      const response = await fetch(`/api/accounts/${accountId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !account.active }),
+      });
 
-    toast({
-      title: 'Sincronização Concluída',
-      description: `${account.name} foi sincronizada com sucesso!`,
-    });
+      const result = await response.json();
+
+      if (result.success) {
+        setAccounts(prev => prev.map(acc =>
+          acc.id === accountId
+            ? { ...acc, active: !acc.active, updated_at: new Date().toISOString() }
+            : acc
+        ));
+      } else {
+        throw new Error(result.error || 'Erro ao alterar status');
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alterar o status da conta.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Sincronizar conta
+  const handleSyncAccount = async (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    try {
+      const response = await fetch(`/api/accounts/${accountId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lastSyncAt: new Date().toISOString() }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAccounts(prev => prev.map(acc =>
+          acc.id === accountId
+            ? { ...acc, last_sync_at: new Date().toISOString() }
+            : acc
+        ));
+
+        toast({
+          title: 'Sincronização Concluída',
+          description: `${account.name} foi sincronizada com sucesso!`,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar conta:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível sincronizar a conta.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Calcular estatísticas
   const totalBalance = accounts.reduce((sum, acc) => sum + (acc.active ? acc.current_balance : 0), 0);
   const activeAccounts = accounts.filter(acc => acc.active).length;
-  const totalTransactions = Math.floor(Math.random() * 1000) + 500; // Mock
   const lastSyncDate = accounts
     .filter(acc => acc.last_sync_at)
     .sort((a, b) => new Date(b.last_sync_at!).getTime() - new Date(a.last_sync_at!).getTime())[0]?.last_sync_at;
@@ -211,8 +400,8 @@ export default function SettingsAccountsPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">{totalTransactions}</p>
-                  <p className="text-sm text-muted-foreground">Transações</p>
+                  <p className="text-2xl font-bold">{accounts.length}</p>
+                  <p className="text-sm text-muted-foreground">Total de Contas</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-purple-500" />
               </div>
@@ -304,7 +493,12 @@ export default function SettingsAccountsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredAccounts.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-3 text-muted-foreground">Carregando contas...</span>
+              </div>
+            ) : filteredAccounts.length === 0 ? (
               <div className="text-center py-8">
                 <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">
