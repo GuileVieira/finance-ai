@@ -27,6 +27,7 @@ interface AccountApiResponse {
   accountNumber: string;
   accountType: 'checking' | 'savings' | 'investment';
   openingBalance: number;
+  currentBalance?: number; // Saldo calculado das transações
   active: boolean;
   lastSyncAt: string | null;
   createdAt: string;
@@ -37,6 +38,12 @@ interface AccountApiResponse {
 
 // Converter de camelCase (API) para snake_case (frontend)
 function mapApiToFrontend(apiAccount: AccountApiResponse): BankAccount {
+  const openingBalance = Number(apiAccount.openingBalance) || 0;
+  // Usar currentBalance da API se disponível, senão usar openingBalance
+  const currentBalance = apiAccount.currentBalance !== undefined
+    ? Number(apiAccount.currentBalance)
+    : openingBalance;
+
   return {
     id: apiAccount.id,
     company_id: apiAccount.companyId,
@@ -45,9 +52,9 @@ function mapApiToFrontend(apiAccount: AccountApiResponse): BankAccount {
     bank_code: apiAccount.bankCode || '',
     agency_number: apiAccount.agencyNumber || undefined,
     account_number: apiAccount.accountNumber,
-    account_type: apiAccount.accountType,
-    opening_balance: Number(apiAccount.openingBalance) || 0,
-    current_balance: Number(apiAccount.openingBalance) || 0, // API não retorna current_balance, usar opening
+    account_type: apiAccount.accountType.toLowerCase() as 'checking' | 'savings' | 'investment',
+    opening_balance: openingBalance,
+    current_balance: currentBalance,
     created_at: apiAccount.createdAt,
     updated_at: apiAccount.updatedAt,
     active: apiAccount.active,
@@ -554,7 +561,7 @@ export default function SettingsAccountsPage() {
 
                         <TableCell>
                           <Badge variant="outline">
-                            {getAccountTypeLabel(account.account_type)}
+                            {getAccountTypeLabel(account.account_type.toLowerCase())}
                           </Badge>
                         </TableCell>
 

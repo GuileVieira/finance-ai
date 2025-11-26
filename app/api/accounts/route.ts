@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
-import { accounts, companies } from '@/lib/db/schema';
-import { eq, desc, like } from 'drizzle-orm';
+import { accounts, companies, transactions } from '@/lib/db/schema';
+import { eq, desc, like, sum, sql } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 
 // GET - Listar contas
@@ -67,13 +67,34 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Encontradas ${allAccounts.length} contas`);
 
-    // Formatar número da conta para mostrar apenas últimos dígitos
-    const formattedAccounts = allAccounts.map(account => ({
-      ...account,
-      maskedAccountNumber: account.accountNumber
-        ? `****${account.accountNumber.slice(-4)}`
-        : '****'
-    }));
+    // Buscar saldo calculado para cada conta (soma das transações)
+    const accountBalances = await db
+      .select({
+        accountId: transactions.accountId,
+        totalAmount: sum(transactions.amount).mapWith(Number),
+      })
+      .from(transactions)
+      .groupBy(transactions.accountId);
+
+    // Criar mapa de saldos
+    const balanceMap = new Map(
+      accountBalances.map(b => [b.accountId, b.totalAmount || 0])
+    );
+
+    // Formatar contas com saldo calculado
+    const formattedAccounts = allAccounts.map(account => {
+      const transactionSum = balanceMap.get(account.id) || 0;
+      const openingBalance = Number(account.openingBalance) || 0;
+      const currentBalance = openingBalance + transactionSum;
+
+      return {
+        ...account,
+        currentBalance, // Saldo atual = saldo inicial + soma das transações
+        maskedAccountNumber: account.accountNumber
+          ? `****${account.accountNumber.slice(-4)}`
+          : '****'
+      };
+    });
 
     return NextResponse.json({
       success: true,
