@@ -27,22 +27,14 @@ export interface BankAccountFormData {
   active?: boolean;
 }
 
-export interface Bank {
-  code: string;
-  name: string;
-  logo_url?: string;
-  color: string;
-}
+// Re-exportar do arquivo de bancos brasileiros para compatibilidade
+export {
+  brazilianBanks as supportedBanks,
+  getBankByCode,
+  getBankName,
+  getBankColor,
+  getAllBanksSorted,
+  searchBanks,
+} from '@/lib/data/brazilian-banks';
 
-export const supportedBanks: Bank[] = [
-  { code: '001', name: 'Banco do Brasil', color: '#FFCD00' },
-  { code: '033', name: 'Santander', color: '#EC0000' },
-  { code: '104', name: 'Caixa Econômica Federal', color: '#0066B3' },
-  { code: '237', name: 'Bradesco', color: '#CC092F' },
-  { code: '341', name: 'Itaú', color: '#FF7900' },
-  { code: '748', name: 'Sicredi', color: '#0F8042' },
-  { code: '756', name: 'Sicoob', color: '#00A693' },
-  { code: '260', name: 'NuBank', color: '#820AD1' },
-  { code: '336', name: 'C6 Bank', color: '#00C470' },
-  { code: '212', name: 'Banco Original', color: '#FF6A00' },
-];
+export type { BrazilianBank as Bank } from '@/lib/data/brazilian-banks';

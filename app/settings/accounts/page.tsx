@@ -11,8 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AccountForm } from '@/components/accounts/account-form';
 import { accountTypes, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
-import { BankAccount, BankAccountFormData } from '@/lib/types/accounts';
-import { supportedBanks } from '@/lib/types/accounts';
+import { BankAccount, BankAccountFormData, supportedBanks, getBankByCode, getBankName, getBankColor } from '@/lib/types/accounts';
 import { Plus, Edit, Trash2, Search, Filter, Eye, ArrowLeft, CreditCard, RefreshCw, TrendingUp, Loader2, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -328,8 +327,13 @@ export default function SettingsAccountsPage() {
     .filter(acc => acc.last_sync_at)
     .sort((a, b) => new Date(b.last_sync_at!).getTime() - new Date(a.last_sync_at!).getTime())[0]?.last_sync_at;
 
+  // Usar a função do serviço de bancos
   const getBankInfo = (bankCode: string) => {
-    return supportedBanks.find(bank => bank.code === bankCode);
+    const bank = getBankByCode(bankCode);
+    if (bank) {
+      return { code: bank.code, name: bank.shortName, color: bank.color };
+    }
+    return { code: bankCode, name: 'Banco Não Identificado', color: '#6B7280' };
   };
 
   return (
@@ -537,10 +541,10 @@ export default function SettingsAccountsPage() {
                           <div className="flex items-center gap-2">
                             <div
                               className="w-4 h-4 rounded"
-                              style={{ backgroundColor: bankInfo?.color || '#6B7280' }}
+                              style={{ backgroundColor: bankInfo.color }}
                             />
                             <div>
-                              <p className="font-medium">{account.bank_name}</p>
+                              <p className="font-medium">{bankInfo.name}</p>
                               <p className="text-xs text-muted-foreground">
                                 Código: {account.bank_code}
                               </p>

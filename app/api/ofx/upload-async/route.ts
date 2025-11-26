@@ -7,6 +7,7 @@ import { initializeDatabase, getDefaultCompany, getDefaultAccount, findAccountBy
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
+import { getBankByCode, getBankName } from '@/lib/data/brazilian-banks';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -131,12 +132,18 @@ export async function POST(request: NextRequest) {
         parseResult.bankInfo.accountId
       );
 
-      if (targetAccount && parseResult.bankInfo.bankName) {
+      if (targetAccount && parseResult.bankInfo.bankId) {
         // Conta encontrada - atualizar com informações do OFX se necessário
         console.log('🔄 Atualizando informações bancárias da conta existente...');
+
+        // Obter nome correto do banco pela tabela
+        const bankCode = parseResult.bankInfo.bankId;
+        const bankFromTable = getBankByCode(bankCode);
+        const resolvedBankName = bankFromTable?.shortName || parseResult.bankInfo.bankName || targetAccount.bankName;
+
         targetAccount = await updateAccountBankInfo(targetAccount.id, {
-          bankName: parseResult.bankInfo.bankName,
-          bankCode: parseResult.bankInfo.bankId,
+          bankName: resolvedBankName,
+          bankCode: bankCode,
           accountNumber: parseResult.bankInfo.accountId,
           agencyNumber: parseResult.bankInfo.branchId,
           accountType: parseResult.bankInfo.accountType
@@ -144,13 +151,21 @@ export async function POST(request: NextRequest) {
       } else if (!targetAccount) {
         // Conta não encontrada - criar nova
         console.log('🏦 Criando nova conta baseada no OFX...');
+
+        // Obter nome correto do banco pela tabela de bancos brasileiros
+        const bankCode = parseResult.bankInfo.bankId || '000';
+        const bankFromTable = getBankByCode(bankCode);
+        const resolvedBankName = bankFromTable?.shortName || parseResult.bankInfo.bankName || 'Banco Não Identificado';
+
+        console.log(`🏦 Banco identificado: ${resolvedBankName} (código ${bankCode})`);
+
         const [newAccount] = await db.insert(accounts).values({
           companyId: defaultCompany.id,
           name: parseResult.bankInfo.accountId
-            ? `Conta ${parseResult.bankInfo.bankName || 'Banco'} - ${parseResult.bankInfo.accountId}`
-            : `Conta ${parseResult.bankInfo.bankName || 'Banco'} - OFX`,
-          bankName: parseResult.bankInfo.bankName || 'Banco Não Identificado',
-          bankCode: parseResult.bankInfo.bankId || '000',
+            ? `Conta ${resolvedBankName} - ${parseResult.bankInfo.accountId}`
+            : `Conta ${resolvedBankName} - OFX`,
+          bankName: resolvedBankName,
+          bankCode: bankCode,
           agencyNumber: parseResult.bankInfo.branchId || '0000',
           accountNumber: parseResult.bankInfo.accountId || '00000-0',
           accountType: parseResult.bankInfo.accountType || 'checking',
