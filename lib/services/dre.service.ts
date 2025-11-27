@@ -23,12 +23,27 @@ export interface DREFilters {
 }
 
 // Padrões para detecção automática de categorias especiais
-const TAX_PATTERNS = ['imposto', 'iss', 'pis', 'cofins', 'icms', 'ipi', 'irpj', 'csll', 'inss', 'tributo', 'taxa municipal', 'taxa estadual'];
-const FINANCIAL_COST_PATTERNS = ['juros', 'taxa bancária', 'tarifa', 'iof', 'multa', 'encargos', 'despesa bancária', 'taxas bancárias', 'tarifas bancárias'];
+// IMPORTANTE: Usamos regex com word boundaries (\b) para evitar falsos positivos
+// Ex: 'iss' não deve matchear 'comissões', apenas 'ISS' como palavra isolada
+const TAX_PATTERNS_REGEX = [
+  /\bimposto/i,      // imposto, impostos
+  /\biss\b/i,        // ISS (palavra isolada)
+  /\bpis\b/i,        // PIS (palavra isolada)
+  /\bcofins\b/i,     // COFINS
+  /\bicms\b/i,       // ICMS
+  /\bipi\b/i,        // IPI
+  /\birpj\b/i,       // IRPJ
+  /\bcsll\b/i,       // CSLL
+  /\btributo/i,      // tributo, tributos
+  /\btaxa\s+municipal/i,  // taxa municipal
+  /\btaxa\s+estadual/i,   // taxa estadual
+];
+const FINANCIAL_COST_PATTERNS = ['juros', 'taxa bancária', 'tarifa bancária', 'tarifas bancárias', 'iof', 'encargos financeiros', 'despesa bancária', 'taxas bancárias'];
 const FINANCIAL_REVENUE_PATTERNS = ['rendimento', 'aplicação', 'juros recebidos', 'receita financeira', 'rendimentos'];
 
-const isTaxCategory = (name: string): boolean =>
-  TAX_PATTERNS.some(p => name.toLowerCase().includes(p));
+const isTaxCategory = (name: string): boolean => {
+  return TAX_PATTERNS_REGEX.some(pattern => pattern.test(name));
+};
 
 const isFinancialCost = (name: string): boolean =>
   FINANCIAL_COST_PATTERNS.some(p => name.toLowerCase().includes(p));
@@ -358,6 +373,30 @@ export default class DREService {
         drilldown: transactionsByCategory.get(cat.id) || []
       }));
 
+      // Filtrar categorias de impostos (detectadas por nome)
+      const taxCategories = dreCategories.filter(cat => isTaxCategory(cat.name)).map(cat => ({
+        name: cat.name,
+        id: cat.id,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: transactionsByCategory.get(cat.id) || []
+      }));
+
+      // Filtrar categorias de custos financeiros (detectadas por nome)
+      const financialCostCategoriesFiltered = dreCategories.filter(cat => isFinancialCost(cat.name)).map(cat => ({
+        name: cat.name,
+        id: cat.id,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: transactionsByCategory.get(cat.id) || []
+      }));
+
       return {
         period: periodLabel,
 
@@ -393,8 +432,18 @@ export default class DREService {
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
-          taxes: [],
-          financialCosts: [],
+          taxes: taxCategories.map(cat => ({
+            label: cat.name,
+            value: -cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
+          financialCosts: financialCostCategoriesFiltered.map(cat => ({
+            label: cat.name,
+            value: -cat.value,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
           variableCosts: variableCostCategories.map(cat => ({
             label: cat.name,
             value: -cat.value, // Negar valor para mostrar como despesa

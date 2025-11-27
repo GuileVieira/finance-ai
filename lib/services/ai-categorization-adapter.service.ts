@@ -3,12 +3,16 @@
  *
  * Chama diretamente o aiProviderService para categorizar transações
  * (Evita fetch HTTP interno que pode falhar em background processing)
+ *
+ * NOVO: Integra serviço de enriquecimento de descrições para
+ * fornecer contexto adicional sobre termos bancários obscuros.
  */
 
 import type { AICategorizationService, TransactionContext } from './transaction-categorization.service';
 import { aiProviderService } from '@/lib/ai/ai-provider.service';
 import CategoriesService from '@/lib/services/categories.service';
 import { filterCategoriesByTransactionType } from '@/lib/utils/category-filter';
+import { descriptionEnrichmentService, type EnrichedDescription } from './description-enrichment.service';
 
 // Cache de categorias do banco para evitar múltiplas consultas
 let cachedCategories: Array<{name: string; type: string}> = [];
@@ -107,6 +111,7 @@ function mapAIResultToValidCategory(aiCategory: string, availableCategories: str
 export class AICategorization implements AICategorizationService {
   /**
    * Categoriza transação usando IA diretamente (sem HTTP fetch)
+   * NOVO: Enriquece a descrição antes de enviar para a IA
    */
   async categorize(
     context: TransactionContext & { companyId: string }
@@ -119,6 +124,20 @@ export class AICategorization implements AICategorizationService {
     try {
       console.log('[AI-ADAPTER] Iniciando categorização direta via aiProviderService');
 
+      // NOVO: Enriquecer descrição com contexto adicional
+      let enrichment: EnrichedDescription | null = null;
+      try {
+        enrichment = await descriptionEnrichmentService.enrichDescription(
+          context.description,
+          context.memo
+        );
+        if (enrichment.bankingTerm) {
+          console.log(`[AI-ADAPTER] Termo bancário detectado: ${enrichment.bankingTerm.term} (${enrichment.bankingTerm.meaning})`);
+        }
+      } catch (enrichError) {
+        console.warn('[AI-ADAPTER] Erro ao enriquecer descrição, continuando sem enriquecimento:', enrichError);
+      }
+
       // Buscar categorias do banco de dados
       const allCategories = await getCategoriesFromDB();
 
@@ -128,6 +147,15 @@ export class AICategorization implements AICategorizationService {
 
       const availableCategories = filteredCategories.map(c => c.name);
       const formattedCategoriesList = `• ${availableCategories.join('\n• ')}`;
+
+      // Montar contexto enriquecido para o prompt
+      const enrichedContextText = enrichment?.enrichedContext
+        ? `\n\nCONTEXTO ADICIONAL (descoberto automaticamente):\n${enrichment.enrichedContext}`
+        : '';
+
+      const categoryHintText = enrichment?.bankingTerm?.categoryHint
+        ? `\n\nDICA: ${enrichment.bankingTerm.categoryHint}`
+        : '';
 
       const modelsToTry = [AI_MODELS.primary, AI_MODELS.fallback];
 
@@ -143,7 +171,7 @@ export class AICategorization implements AICategorizationService {
 CONTEXTO DA TRANSAÇÃO:
 • DESCRIÇÃO: "${context.description}"
 • VALOR: R$ ${context.amount.toFixed(2)}
-• MEMO: "${context.memo || 'N/A'}"
+• MEMO: "${context.memo || 'N/A'}"${enrichedContextText}${categoryHintText}
 
 CATEGORIAS DISPONÍVEIS:
 ${formattedCategoriesList}
@@ -151,7 +179,8 @@ ${formattedCategoriesList}
 REGRAS:
 1. Retorne APENAS o nome exato da categoria escolhida
 2. NÃO inclua explicações, justificativas ou análises
-3. Use uma das categorias listadas acima`
+3. Use uma das categorias listadas acima
+4. Se houver DICA ou CONTEXTO ADICIONAL, use essa informação para escolher a categoria mais adequada`
             },
             {
               role: 'user' as const,
@@ -171,10 +200,19 @@ REGRAS:
 
           console.log(`[AI-ADAPTER] Sucesso! Categoria: "${aiCategory}" → "${validCategory}"`);
 
+          // Montar reasoning com informações do enriquecimento
+          let reasoning = `IA (${response.provider}/${response.model}) categorizou como "${aiCategory}" → "${validCategory}"`;
+          if (enrichment?.bankingTerm) {
+            reasoning += ` | Termo detectado: ${enrichment.bankingTerm.term} (${enrichment.bankingTerm.meaning})`;
+          }
+          if (enrichment?.complement) {
+            reasoning += ` | Complemento: ${enrichment.complement}`;
+          }
+
           return {
             category: validCategory,
-            confidence: 0.9,
-            reasoning: `IA (${response.provider}/${response.model}) categorizou como "${aiCategory}" → "${validCategory}"`,
+            confidence: enrichment?.bankingTerm ? 0.95 : 0.9, // Maior confiança quando temos contexto
+            reasoning,
             modelUsed: `${response.provider}/${response.model}`
           };
         } catch (error) {

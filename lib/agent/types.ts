@@ -100,6 +100,6 @@ export interface CacheEntry {
 
 export interface SearchQuery {
   query: string;
-  type: 'company' | 'cnpj' | 'service';
+  type: 'company' | 'cnpj' | 'service' | 'general' | 'banking_term';
   context?: string;
 }

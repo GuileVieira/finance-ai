@@ -99,8 +99,41 @@ export class DuckDuckGoService {
         return `${query.query} empresa Brasil`;
       case 'service':
         return `${query.query} serviço empresa`;
+      case 'general':
+        return query.query; // Busca genérica sem modificações
+      case 'banking_term':
+        return `${query.query} banco significado extrato`;
       default:
         return query.query;
+    }
+  }
+
+  // Buscar significado de termo bancário
+  async searchBankingTerm(term: string): Promise<string | null> {
+    const cacheKey = `banking_${term}`;
+
+    // Verificar cache
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+
+    try {
+      const results = await this.searchCompany({
+        query: term,
+        type: 'banking_term'
+      });
+
+      if (results.length > 0 && results[0].description) {
+        const description = results[0].description;
+        this.cache.set(cacheKey, { data: description, timestamp: Date.now() });
+        return description;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Erro ao buscar termo bancário:', error);
+      return null;
     }
   }
 

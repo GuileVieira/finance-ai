@@ -282,4 +282,103 @@ Responda com os principais padrões aprendidos em JSON:
   "keyInsights": ["insight 1", "insight 2"]
 }`;
   }
+
+  /**
+   * Prompt para categorização com contexto enriquecido
+   * Usado quando temos informações adicionais sobre termos bancários
+   */
+  static buildEnrichedCategorizationPrompt(
+    description: string,
+    amount: number,
+    memo: string | undefined,
+    enrichedContext: string,
+    categoryHint: string | undefined,
+    categories: Category[]
+  ): string {
+    const categoriesText = this.buildCategoriesText(categories);
+
+    return `Você é um especialista em contabilidade brasileira com 20 anos de experiência.
+
+## TRANSAÇÃO PARA CLASSIFICAR:
+
+• DESCRIÇÃO: "${description}"
+• VALOR: R$ ${amount.toFixed(2)}
+• MEMO: "${memo || 'N/A'}"
+
+## CONTEXTO ADICIONAL (descoberto automaticamente):
+
+${enrichedContext}
+
+${categoryHint ? `## DICA DE CATEGORIA:\n${categoryHint}\n` : ''}
+
+## CATEGORIAS DISPONÍVEIS:
+
+${categoriesText}
+
+## REGRAS:
+
+1. Use o CONTEXTO ADICIONAL para entender melhor a transação
+2. Se houver DICA DE CATEGORIA, considere-a fortemente
+3. Classifique em MACRO e MICRO categoria
+4. Seja específico no reasoning
+
+## FORMATO DE RESPOSTA:
+
+Responda APENAS com JSON válido:
+\`\`\`json
+{
+  "macro": "nome exato da categoria macro",
+  "micro": "nome exato da subcategoria micro",
+  "confidence": 0.95,
+  "reasoning": "explicação detalhada da classificação"
+}
+\`\`\``;
+  }
+
+  /**
+   * Prompt simples para categorização rápida (usado pelo adapter)
+   */
+  static buildSimpleCategorizationPrompt(
+    description: string,
+    amount: number,
+    memo: string | undefined,
+    enrichedContext: string | undefined,
+    categoryHint: string | undefined,
+    availableCategories: string[]
+  ): string {
+    const formattedCategoriesList = `• ${availableCategories.join('\n• ')}`;
+
+    let prompt = `Você é um especialista em finanças empresariais brasileiras. Sua tarefa é categorizar transações financeiras.
+
+CONTEXTO DA TRANSAÇÃO:
+• DESCRIÇÃO: "${description}"
+• VALOR: R$ ${amount.toFixed(2)}
+• MEMO: "${memo || 'N/A'}"`;
+
+    if (enrichedContext) {
+      prompt += `
+
+CONTEXTO ADICIONAL (descoberto automaticamente):
+${enrichedContext}`;
+    }
+
+    if (categoryHint) {
+      prompt += `
+
+DICA: ${categoryHint}`;
+    }
+
+    prompt += `
+
+CATEGORIAS DISPONÍVEIS:
+${formattedCategoriesList}
+
+REGRAS:
+1. Retorne APENAS o nome exato da categoria escolhida
+2. NÃO inclua explicações, justificativas ou análises
+3. Use uma das categorias listadas acima
+4. Se houver DICA ou CONTEXTO ADICIONAL, use essa informação para escolher a categoria mais adequada`;
+
+    return prompt;
+  }
 }
