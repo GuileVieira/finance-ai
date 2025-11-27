@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,13 @@ import { useTheme } from 'next-themes';
 import { dispatchTutorialEvent } from '@/components/tutorial';
 
 export function Header() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Evitar hydration mismatch - só renderiza o ícone depois de montar
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const { user, logout } = useAuth();
 
   // Nome do usuário da sessão
@@ -45,14 +52,16 @@ export function Header() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setTheme(theme === 'dark' ? 'light' : 'dark');
+                const currentTheme = resolvedTheme || theme;
+                setTheme(currentTheme === 'dark' ? 'light' : 'dark');
                 // Disparar evento para o tutorial
                 dispatchTutorialEvent('tutorial:theme-changed');
               }}
               className="p-2"
               data-tutorial="theme-toggle"
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {mounted && (resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />)}
+              {!mounted && <Moon className="h-4 w-4" />}
             </Button>
 
             {/* User Menu */}

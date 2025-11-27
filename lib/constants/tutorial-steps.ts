@@ -26,27 +26,12 @@ export const TUTORIAL_START_DELAY = 1000;
 export const AUTO_ADVANCE_DELAY = 1500;
 
 /**
- * Configuração dos 5 steps do tutorial
+ * Configuração dos 4 steps do tutorial
  */
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
-    id: 'settings-theme',
-    order: 1,
-    title: 'Personalize o Sistema',
-    description: 'Clique no ícone de sol/lua para alternar entre tema claro e escuro. Escolha o que mais combina com você!',
-    route: '/dashboard',
-    targetSelector: '[data-tutorial="theme-toggle"]',
-    tooltipPosition: 'bottom',
-    completionCheck: {
-      type: 'event',
-      eventName: 'tutorial:theme-changed',
-      condition: () => true,
-    },
-    canSkip: true,
-  },
-  {
     id: 'create-company',
-    order: 2,
+    order: 1,
     title: 'Cadastre sua Empresa',
     description: 'Toda transação financeira pertence a uma empresa. Clique no botão para criar sua primeira empresa.',
     route: '/settings/companies',
@@ -64,7 +49,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: 'create-account',
-    order: 3,
+    order: 2,
     title: 'Adicione uma Conta Bancária',
     description: 'Cadastre a conta bancária de onde virão seus extratos OFX. Isso permitirá importar suas transações.',
     route: '/settings/accounts',
@@ -82,7 +67,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: 'review-categories',
-    order: 4,
+    order: 3,
     title: 'Conheça as Categorias',
     description: 'O sistema já vem com categorias pré-configuradas para classificar suas transações. Explore e personalize se necessário!',
     route: '/settings/categories',
@@ -97,12 +82,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: 'first-upload',
-    order: 5,
+    order: 4,
     title: 'Importe seu Primeiro Extrato',
     description: 'Arraste um arquivo OFX do seu banco para a área indicada. O sistema vai processar e categorizar automaticamente!',
     route: '/upload',
     targetSelector: '[data-tutorial="upload-dropzone"]',
-    tooltipPosition: 'top',
+    tooltipPosition: 'bottom',
     completionCheck: {
       type: 'api',
       endpoint: '/api/uploads',
@@ -129,7 +114,6 @@ export function createInitialTutorialState(): TutorialState {
     status: 'not_started',
     currentStepIndex: 0,
     stepsStatus: {
-      'settings-theme': 'pending',
       'create-company': 'pending',
       'create-account': 'pending',
       'review-categories': 'pending',

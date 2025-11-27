@@ -4,7 +4,6 @@
 
 // IDs dos steps do tutorial
 export type TutorialStepId =
-  | 'settings-theme'
   | 'create-company'
   | 'create-account'
   | 'review-categories'
