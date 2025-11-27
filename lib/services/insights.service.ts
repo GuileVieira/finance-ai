@@ -1,8 +1,12 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts } from '@/lib/db/schema';
-import type { Insight } from '@/lib/types';
+import type { Insight, InsightPriority, ExtendedInsight, InsightThresholds } from '@/lib/types';
 import { eq, and, gte, lte, sum, count, avg, desc, isNotNull, ne } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import ThresholdService, { DEFAULT_THRESHOLDS } from './threshold.service';
+import SeasonalityService from './seasonality.service';
+import RecurrenceService from './recurrence.service';
+import AnomalyService from './anomaly.service';
 
 export interface AccuracyStats {
   averageAccuracy: number;
@@ -44,6 +48,105 @@ export interface InsightsFilters {
 }
 
 export default class InsightsService {
+  /**
+   * Obter prioridade do insight para ordenação e destaque visual
+   */
+  static getInsightPriority(insight: Insight): InsightPriority {
+    if (insight.type === 'alert' && insight.impact === 'high') return 'critical';
+    if (insight.type === 'alert') return 'warning';
+    if (insight.type === 'positive') return 'positive';
+    return 'info';
+  }
+
+  /**
+   * Converter Insight para ExtendedInsight com prioridade
+   */
+  static extendInsight(insight: Insight, source: ExtendedInsight['source'] = 'deterministic'): ExtendedInsight {
+    return {
+      ...insight,
+      priority: this.getInsightPriority(insight),
+      source
+    };
+  }
+
+  /**
+   * Gerar TODOS os insights (determinísticos + sazonalidade + recorrência + anomalias)
+   */
+  static async getAllInsights(filters: InsightsFilters = {}): Promise<{
+    insights: ExtendedInsight[];
+    criticalInsights: ExtendedInsight[];
+    total: number;
+    period: string;
+  }> {
+    try {
+      // Obter thresholds configurados
+      const thresholds = await ThresholdService.getThresholds(filters.companyId);
+
+      // Gerar insights em paralelo
+      const [
+        deterministicResult,
+        seasonalityInsights,
+        recurrenceInsights,
+        anomalyInsights
+      ] = await Promise.all([
+        this.getFinancialInsights(filters),
+        SeasonalityService.generateSeasonalityInsights(
+          { companyId: filters.companyId, accountId: filters.accountId, period: filters.period },
+          thresholds
+        ),
+        RecurrenceService.generateRecurrenceInsights(
+          { companyId: filters.companyId, accountId: filters.accountId, period: filters.period },
+          thresholds
+        ),
+        AnomalyService.generateAnomalyInsights(
+          { companyId: filters.companyId, accountId: filters.accountId, period: filters.period },
+          thresholds
+        )
+      ]);
+
+      // Converter todos para ExtendedInsight
+      const allInsights: ExtendedInsight[] = [
+        ...deterministicResult.insights.map(i => this.extendInsight(i, 'deterministic')),
+        ...seasonalityInsights.map(i => this.extendInsight(i, 'seasonality')),
+        ...recurrenceInsights.map(i => this.extendInsight(i, 'recurrence')),
+        ...anomalyInsights.map(i => this.extendInsight(i, 'anomaly'))
+      ];
+
+      // Remover duplicatas por ID
+      const uniqueInsights = allInsights.filter((insight, index, self) =>
+        index === self.findIndex(i => i.id === insight.id)
+      );
+
+      // Ordenar por prioridade
+      const priorityOrder: Record<InsightPriority, number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+        positive: 3
+      };
+
+      uniqueInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+      // Separar insights críticos
+      const criticalInsights = uniqueInsights.filter(i => i.priority === 'critical');
+
+      return {
+        insights: uniqueInsights,
+        criticalInsights,
+        total: uniqueInsights.length,
+        period: deterministicResult.period
+      };
+    } catch (error) {
+      console.error('Error generating all insights:', error);
+      return {
+        insights: [],
+        criticalInsights: [],
+        total: 0,
+        period: this.formatPeriodLabel(filters.period || 'current')
+      };
+    }
+  }
+
   /**
    * Converter período para datas
    */
@@ -710,35 +813,10 @@ export default class InsightsService {
 
   /**
    * Gerar insights simples para dashboard (formato string)
+   * Agora inclui insights de sazonalidade, recorrência e anomalias
    */
   static async getSimpleInsights(filters: InsightsFilters = {}): Promise<SimpleInsightsResponse> {
     try {
-      // Verificar se há dados e gerar insights estendidos
-      let extendedInsights: Insight[] = [];
-      
-      if (filters.period && filters.period !== 'all') {
-        try {
-          const { startDate, endDate } = this.convertPeriodToDates(filters.period);
-          const whereConditions = [
-            gte(transactions.transactionDate, startDate),
-            lte(transactions.transactionDate, endDate)
-          ];
-
-          if (filters.accountId && filters.accountId !== 'all') {
-            whereConditions.push(eq(transactions.accountId, filters.accountId));
-          }
-          
-          if (filters.companyId && filters.companyId !== 'all') {
-            whereConditions.push(eq(accounts.companyId, filters.companyId));
-          }
-
-          const analysisData = await this.getAnalysisData(and(...whereConditions), filters);
-          extendedInsights = await this.generateInsights(analysisData, filters);
-        } catch (err) {
-          console.warn('Failed to generate extended insights for simple view', err);
-        }
-      }
-
       const accuracy = await this.getAccuracyRate(filters);
 
       if (accuracy.totalTransactions === 0) {
@@ -749,40 +827,61 @@ export default class InsightsService {
         };
       }
 
+      // Usar o novo método que integra todos os insights
+      const allInsightsResult = await this.getAllInsights(filters);
       const categoryStats = await this.getCategoryStats(filters);
       const topCategory = await this.getTopCategoryPercentage(filters);
 
       const insights: string[] = [];
 
-      // Priorizar insights gerados (Alertas e Oportunidades)
-      extendedInsights.forEach(insight => {
-        // Adicionar emoji baseado no tipo
-        const prefix = insight.type === 'alert' ? '⚠️ ' : 
-                       insight.type === 'positive' ? '✅ ' : '💡 ';
-        insights.push(`${prefix}${insight.title}: ${insight.description}`);
-      });
+      // Adicionar insights críticos primeiro (com destaque)
+      for (const insight of allInsightsResult.criticalInsights.slice(0, 2)) {
+        insights.push(`🚨 ${insight.title}: ${insight.description}`);
+      }
 
-      // Se tivermos poucos insights gerados, complementar com os básicos
-      if (insights.length < 5) {
-        // Insight 1: Acurácia da categorização
-        if (accuracy.totalCategorized > 0) {
+      // Adicionar outros insights por prioridade
+      const otherInsights = allInsightsResult.insights.filter(i => i.priority !== 'critical');
+
+      for (const insight of otherInsights) {
+        if (insights.length >= 6) break;
+
+        // Emoji baseado na prioridade/tipo
+        let prefix = '';
+        switch (insight.priority) {
+          case 'warning':
+            prefix = '⚠️ ';
+            break;
+          case 'positive':
+            prefix = '✅ ';
+            break;
+          case 'info':
+            prefix = insight.source === 'seasonality' ? '📅 ' :
+                     insight.source === 'recurrence' ? '🔄 ' :
+                     insight.source === 'anomaly' ? '📊 ' : '💡 ';
+            break;
+        }
+
+        insights.push(`${prefix}${insight.title}: ${insight.description}`);
+      }
+
+      // Se tivermos poucos insights, complementar com estatísticas
+      if (insights.length < 4) {
+        if (accuracy.totalCategorized > 0 && !insights.some(i => i.includes('acurácia'))) {
           insights.push(`🎯 ${accuracy.averageAccuracy.toFixed(0)}% de acurácia na categorização automática`);
         }
 
-        // Insight 2: Categorias em uso
-        if (categoryStats.usedCategories > 0) {
-          insights.push(`📂 Categorias financeiras: ${categoryStats.usedCategories}/${categoryStats.activeCategories} em uso`);
+        if (categoryStats.usedCategories > 0 && !insights.some(i => i.includes('Categorias'))) {
+          insights.push(`📂 Categorias: ${categoryStats.usedCategories}/${categoryStats.activeCategories} em uso`);
         }
 
-        // Insight 3: Categoria principal de custos
-        if (topCategory) {
+        if (topCategory && !insights.some(i => i.includes(topCategory.categoryName))) {
           const typeLabel = this.getCategoryTypeLabel(topCategory.type);
           insights.push(`💰 ${topCategory.categoryName} representa ${topCategory.percentage}% ${typeLabel}`);
         }
       }
 
-      // Limitar a 5 insights para não poluir a UI
-      const limitedInsights = insights.slice(0, 5);
+      // Limitar insights para não poluir a UI
+      const limitedInsights = insights.slice(0, 6);
 
       return {
         insights: limitedInsights,

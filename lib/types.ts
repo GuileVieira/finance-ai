@@ -210,3 +210,96 @@ export interface ExportOptions {
   period: ReportPeriod;
   categories?: string[];
 }
+
+// Tipos para Sistema de Insights Avançados
+
+export type InsightPriority = 'critical' | 'warning' | 'info' | 'positive';
+
+export interface InsightThresholds {
+  profitMargin: {
+    low: number;      // default: 10
+    high: number;     // default: 30
+  };
+  categoryConcentration: {
+    warning: number;  // default: 40
+  };
+  avgTransaction: {
+    high: number;     // default: 5000
+  };
+  dailyFrequency: {
+    high: number;     // default: 10
+  };
+  growth: {
+    positive: number; // default: 20
+    negative: number; // default: -10
+  };
+  anomaly: {
+    zScore: number;   // default: 2
+  };
+  recurrence: {
+    valueTolerance: number;  // default: 0.1 (10%)
+    daysTolerance: number;   // default: 3
+  };
+  seasonality: {
+    varianceThreshold: number; // default: 0.2 (20%)
+  };
+}
+
+export interface RecurringExpense {
+  id: string;
+  description: string;
+  normalizedDescription: string;
+  averageValue: number;
+  currentValue: number;
+  variance: number;
+  frequency: number; // quantas vezes apareceu nos últimos meses
+  lastOccurrence: string;
+  category?: string;
+  categoryId?: string;
+  isAnomaly: boolean;
+  anomalyReason?: string;
+}
+
+export interface AnomalyData {
+  id: string;
+  transactionId: string;
+  description: string;
+  amount: number;
+  date: string;
+  category?: string;
+  categoryId?: string;
+  type: 'transaction' | 'category_spike';
+  zScore: number;
+  mean: number;
+  stdDev: number;
+  severity: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export interface SeasonalityData {
+  month: number;
+  monthName: string;
+  historicalAverage: number;
+  currentValue: number;
+  variance: number;
+  variancePercent: number;
+  isSeasonalPeak: boolean;
+  isSeasonalLow: boolean;
+  sameMonthLastYear?: number;
+  sameMonthLastYearVariance?: number;
+}
+
+export interface PeriodComparison {
+  period: 'previous_month' | 'same_month_last_year' | 'rolling_3_months' | 'rolling_12_months';
+  label: string;
+  currentValue: number;
+  comparisonValue: number;
+  variance: number;
+  variancePercent: number;
+}
+
+export interface ExtendedInsight extends Insight {
+  priority: InsightPriority;
+  source: 'deterministic' | 'seasonality' | 'recurrence' | 'anomaly';
+  relatedData?: RecurringExpense | AnomalyData | SeasonalityData;
+}
