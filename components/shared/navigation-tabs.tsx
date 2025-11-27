@@ -13,7 +13,9 @@ const navigationItems = [
   { name: 'Transações', href: '/transactions' },
   { name: 'Upload', href: '/upload' },
   { name: 'Categorias', href: '/categories' },
-  { name: 'Relatórios', href: '/reports' }
+  { name: 'Relatórios', href: '/reports' },
+  { name: 'Empresas', href: '/settings/companies' },
+  { name: 'Contas', href: '/settings/accounts' },
 ];
 
 export function NavigationTabs({ className }: NavigationTabsProps) {
@@ -22,7 +24,10 @@ export function NavigationTabs({ className }: NavigationTabsProps) {
   return (
     <div className={cn("flex space-x-1", className)}>
       {navigationItems.map((item) => {
-        const isActive = pathname === item.href;
+        // Para rotas de settings, verificar se começa com o href
+        const isActive = item.href.startsWith('/settings')
+          ? pathname.startsWith(item.href)
+          : pathname === item.href;
 
         return (
           <Link
