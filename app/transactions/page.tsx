@@ -73,7 +73,10 @@ export default function TransactionsPage() {
     if (isLoadingPeriods) return;
 
     if (periods.length === 0) {
-      setFilters(prev => ({ ...prev, period: 'all' }));
+      setFilters(prev => {
+        if (prev.period === 'all') return prev;
+        return { ...prev, period: 'all' };
+      });
       return;
     }
 
@@ -81,9 +84,10 @@ export default function TransactionsPage() {
       if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
         return prev;
       }
+      if (prev.period === periods[0]?.id) return prev;
       return { ...prev, period: periods[0].id };
     });
-  }, [isLoadingPeriods, periods]);
+  }, [isLoadingPeriods, periods.length, periods[0]?.id]);
 
   // Estado para edição de transação individual
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);

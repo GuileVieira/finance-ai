@@ -11,7 +11,9 @@ import InsightsCard from '@/components/reports/insights-card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Download, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Download, AlertTriangle, FileUp, Upload, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   DREStatement as DREType,
@@ -46,7 +48,10 @@ export default function ReportsPage() {
     if (isLoadingPeriods) return;
 
     if (availablePeriods.length === 0) {
-      setFilters(prev => ({ ...prev, period: 'all' }));
+      setFilters(prev => {
+        if (prev.period === 'all') return prev;
+        return { ...prev, period: 'all' };
+      });
       return;
     }
 
@@ -54,9 +59,10 @@ export default function ReportsPage() {
       if (prev.period !== 'all' && availablePeriods.some(period => period.id === prev.period)) {
         return prev;
       }
+      if (prev.period === availablePeriods[0]?.id) return prev;
       return { ...prev, period: availablePeriods[0].id };
     });
-  }, [availablePeriods, isLoadingPeriods]);
+  }, [isLoadingPeriods, availablePeriods.length, availablePeriods[0]?.id]);
 
   // Usar hooks do TanStack Query para buscar dados dos relatórios
   const {
@@ -111,6 +117,39 @@ export default function ReportsPage() {
     console.log('Insight clicked:', insight);
     // TODO: Implementar ação de insight
   };
+
+  // Verificar se não há dados (primeira vez)
+  const isEmpty = !isLoading && !dreData && !cashFlowData && availablePeriods.length === 0;
+
+  // Se não há dados, mostrar tela de boas-vindas
+  if (isEmpty) {
+    return (
+      <LayoutWrapper>
+        <div className="space-y-6">
+          <Card className="col-span-full">
+            <CardContent className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="rounded-full bg-muted p-6 mb-6">
+                <FileUp className="h-12 w-12 text-muted-foreground" />
+              </div>
+
+              <h3 className="text-xl font-semibold mb-2">Nenhum relatório disponível</h3>
+              <p className="text-muted-foreground max-w-md mb-6">
+                Importe seus extratos bancários para começar a gerar relatórios financeiros como DRE, fluxo de caixa e análises por categoria.
+              </p>
+
+              <Link href="/upload">
+                <Button size="lg" className="gap-2">
+                  <Upload className="h-5 w-5" />
+                  Importar Extratos OFX
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
