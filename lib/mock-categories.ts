@@ -55,10 +55,13 @@ const revenueCategories = [
   }
 ];
 
-// Combinar categorias específicas (53 despesas) com categorias de receita (4)
+// Combinar categorias específicas (despesas) com categorias de receita (4)
 export const mockCategories: Category[] = [
+  // Categorias de Receita
+  ...revenueCategories,
+  // Categorias de Despesa
   {
-    id: '1',
+    id: '101',
     name: '13º SALARIO',
     type: 'fixed_cost',
     color: '#EF4444',

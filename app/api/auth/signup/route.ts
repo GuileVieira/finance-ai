@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const [newCompany] = await db
       .insert(companies)
       .values({
-        name: companyName || `Empresa de ${name}`,
+        name: companyName || `Minha Empresa`,
         active: true,
       })
       .returning();
@@ -90,13 +90,13 @@ export async function POST(request: Request) {
       isDefault: true,
     });
 
-    // Criar conta bancária padrão
+    // Criar conta bancária padrão (exemplo)
     await db.insert(accounts).values({
       companyId: newCompany.id,
-      name: 'Conta Principal',
-      bankName: 'Banco Padrão',
-      bankCode: '000',
-      accountNumber: '00000-0',
+      name: 'Conta Corrente Principal',
+      bankName: 'Banco do Brasil',
+      bankCode: '001',
+      accountNumber: '12345-6',
       accountType: 'checking',
       active: true,
     });
