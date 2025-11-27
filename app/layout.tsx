@@ -18,8 +18,10 @@ export const metadata: Metadata = {
 };
 
 import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider";
+import { AuthProvider } from "@/components/providers/session-provider";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ThemeProvider } from "next-themes";
+import { TutorialProvider } from "@/components/tutorial";
 
 export default function RootLayout({
   children,
@@ -31,18 +33,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryClientProviderWrapper>
-            <MainLayout>
-              {children}
-            </MainLayout>
-          </QueryClientProviderWrapper>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <QueryClientProviderWrapper>
+              <TutorialProvider>
+                <MainLayout>
+                  {children}
+                </MainLayout>
+              </TutorialProvider>
+            </QueryClientProviderWrapper>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

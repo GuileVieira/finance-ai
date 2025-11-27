@@ -121,6 +121,7 @@ export default function UploadPage() {
           <CardContent>
             <div
               {...getRootProps()}
+              data-tutorial="upload-dropzone"
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragActive
                   ? 'border-primary bg-primary/5'

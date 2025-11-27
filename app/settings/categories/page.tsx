@@ -18,6 +18,7 @@ import { TransactionsAPI } from '@/lib/api/transactions';
 import { Plus, Edit, Trash2, Settings, Search, Filter, Eye, ArrowLeft, Activity, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { dispatchTutorialEvent } from '@/components/tutorial';
 
 interface InsightsStats {
   accuracy: {
@@ -83,6 +84,13 @@ export default function SettingsCategoriesPage() {
       }
     }
     fetchCategories();
+  }, []);
+
+  // Marcar categorias como visualizadas para o tutorial
+  useEffect(() => {
+    // Salvar no localStorage e disparar evento
+    localStorage.setItem('tutorial-categories-viewed', 'true');
+    dispatchTutorialEvent('tutorial:categories-viewed');
   }, []);
 
   // Carregar estatísticas
@@ -457,7 +465,7 @@ export default function SettingsCategoriesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
+            <Table data-tutorial="categories-list">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>

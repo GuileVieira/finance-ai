@@ -301,7 +301,7 @@ export default function SettingsCompaniesPage() {
 
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button data-tutorial="new-company-btn">
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Empresa
               </Button>

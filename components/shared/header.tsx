@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,27 +16,15 @@ import { NavigationTabs } from './navigation-tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { dispatchTutorialEvent } from '@/components/tutorial';
 
-interface HeaderProps {
-  userName?: string;
-}
-
-export function Header({ userName }: HeaderProps) {
-  const [currentUser, setCurrentUser] = useState(userName || 'João Silva');
+export function Header() {
   const { theme, setTheme } = useTheme();
-  const { isLoggedIn, logout } = useAuth();
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    // Buscar nome do usuário do localStorage quando disponível
-    try {
-      const storedUserName = localStorage.getItem('userName');
-      if (storedUserName) {
-        setCurrentUser(storedUserName);
-      }
-    } catch (error) {
-      // Ignorar erro se localStorage não estiver disponível
-    }
-  }, [userName]);
+  // Nome do usuário da sessão
+  const userName = user?.name || 'Usuário';
+  const userEmail = user?.email || '';
 
   return (
     <header className="bg-background shadow-sm border-b">
@@ -57,8 +44,13 @@ export function Header({ userName }: HeaderProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={() => {
+                setTheme(theme === 'dark' ? 'light' : 'dark');
+                // Disparar evento para o tutorial
+                dispatchTutorialEvent('tutorial:theme-changed');
+              }}
               className="p-2"
+              data-tutorial="theme-toggle"
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
@@ -69,7 +61,7 @@ export function Header({ userName }: HeaderProps) {
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
                     <AvatarFallback className="bg-secondary text-secondary-foreground">
-                      {currentUser.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -78,10 +70,10 @@ export function Header({ userName }: HeaderProps) {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {currentUser}
+                      {userName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {currentUser.toLowerCase().replace(' ', '.')}@empresa.com
+                      {userEmail}
                     </p>
                   </div>
                 </DropdownMenuLabel>
