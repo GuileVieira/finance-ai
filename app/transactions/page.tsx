@@ -15,7 +15,8 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useTransactionGroups } from '@/hooks/use-transaction-groups';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAllCategories } from '@/hooks/use-all-categories';
-import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X, Edit } from 'lucide-react';
+import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X, Edit, Upload, FileUp, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -397,6 +398,39 @@ export default function TransactionsPage() {
 
   // Encontrar transação selecionada para mostrar detalhes
   const selectedTransaction = transactions.find(t => t.id === editingTransaction);
+
+  // Verificar se é a primeira vez (sem dados no sistema)
+  const isFirstTimeUser = isEmpty && !isLoading && filters.search === '' && filters.category === 'all' && filters.type === 'all' && filters.bank === 'all';
+
+  // Se for primeira vez (sem dados), mostrar tela de boas-vindas
+  if (isFirstTimeUser) {
+    return (
+      <LayoutWrapper>
+        <div className="space-y-6">
+          <Card className="col-span-full">
+            <CardContent className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="rounded-full bg-muted p-6 mb-6">
+                <FileUp className="h-12 w-12 text-muted-foreground" />
+              </div>
+
+              <h3 className="text-xl font-semibold mb-2">Nenhuma transação encontrada</h3>
+              <p className="text-muted-foreground max-w-md mb-6">
+                Importe seus extratos bancários no formato OFX para começar a visualizar e categorizar suas transações.
+              </p>
+
+              <Link href="/upload">
+                <Button size="lg" className="gap-2">
+                  <Upload className="h-5 w-5" />
+                  Importar Extratos OFX
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>

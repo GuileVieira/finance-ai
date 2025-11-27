@@ -7,7 +7,6 @@ import type {
   TutorialStepId,
   StepStatus,
   UseTutorialReturn,
-  ExistingDataCheck,
 } from '@/lib/types/tutorial';
 import {
   TUTORIAL_STORAGE_KEY,
@@ -56,48 +55,6 @@ function saveState(state: TutorialState): void {
   } catch (error) {
     console.warn('[Tutorial] Erro ao salvar estado:', error);
   }
-}
-
-/**
- * Verificar dados existentes no sistema
- */
-async function checkExistingData(): Promise<ExistingDataCheck> {
-  const result: ExistingDataCheck = {
-    hasCompany: false,
-    hasAccount: false,
-    hasCategories: false,
-    hasUpload: false,
-  };
-
-  try {
-    // Verificar empresas
-    const companiesRes = await fetch('/api/companies');
-    if (companiesRes.ok) {
-      const data = await companiesRes.json();
-      result.hasCompany = data?.data?.total > 0;
-    }
-
-    // Verificar contas
-    const accountsRes = await fetch('/api/accounts');
-    if (accountsRes.ok) {
-      const data = await accountsRes.json();
-      result.hasAccount = data?.data?.total > 0;
-    }
-
-    // Verificar uploads
-    const uploadsRes = await fetch('/api/uploads');
-    if (uploadsRes.ok) {
-      const data = await uploadsRes.json();
-      result.hasUpload = data?.data?.stats?.total > 0;
-    }
-
-    // Categorias sempre existem (pré-configuradas)
-    result.hasCategories = true;
-  } catch (error) {
-    console.warn('[Tutorial] Erro ao verificar dados existentes:', error);
-  }
-
-  return result;
 }
 
 /**
@@ -180,24 +137,10 @@ export function useTutorial(): UseTutorialReturn {
   const startTutorial = useCallback(async () => {
     setIsLoading(true);
 
-    // Verificar dados existentes
-    const existingData = await checkExistingData();
-
     // Criar estado inicial
     const newState = createInitialTutorialState();
     newState.status = 'in_progress';
     newState.startedAt = new Date().toISOString();
-
-    // Marcar steps já concluídos baseado em dados existentes
-    if (existingData.hasCompany) {
-      newState.stepsStatus['create-company'] = 'completed';
-    }
-    if (existingData.hasAccount) {
-      newState.stepsStatus['create-account'] = 'completed';
-    }
-    if (existingData.hasUpload) {
-      newState.stepsStatus['first-upload'] = 'completed';
-    }
 
     setState(newState);
     setIsLoading(false);

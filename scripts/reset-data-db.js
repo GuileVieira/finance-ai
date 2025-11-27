@@ -198,8 +198,17 @@ if (flags.help) {
   console.log(`
 Uso: node scripts/reset-data-db.js [opções]
 
+Remove TODOS os dados do sistema, EXCETO usuários:
+  - Transações
+  - Contas bancárias
+  - Categorias
+  - Regras de categorização
+  - Empresas
+  - Uploads e processing batches
+  - Arquivos do storage
+
 Opções:
-  --uploads-only     Limpa apenas uploads (não remove transações)
+  --uploads-only     Limpa apenas uploads (não remove transações, contas, etc)
   --recent          Limpa apenas dados recentes (última hora)
   --company ID      Limpar apenas da empresa especificada
   --dry-run         Apenas mostra o que será limpo (não executa)
@@ -207,10 +216,10 @@ Opções:
   --help, -h        Mostra esta ajuda
 
 Exemplos:
-  node scripts/reset-data-db.js                    # Limpeza completa
+  node scripts/reset-data-db.js                    # Limpeza completa (preserva users)
   node scripts/reset-data-db.js --dry-run          # Simular
   node scripts/reset-data-db.js --recent           # Apenas recentes
-  node scripts/reset-data-db.js --uploads-only      # Apenas uploads
+  node scripts/reset-data-db.js --uploads-only     # Apenas uploads
 `);
   process.exit(0);
 }
@@ -267,18 +276,56 @@ async function main() {
 
     // Contar transações
     let transactionCount = null;
+    let accountCount = null;
+    let categoryCount = null;
+    let companyCount = null;
+    let rulesCount = null;
+
     if (!flags.uploadsOnly) {
       const whereTrans = options.company
         ? `WHERE company_id = $1`
         : '';
       const paramsTrans = options.company ? [options.company] : [];
 
-      // Contar transações diretamente (sem dependência de uploads para simplificar)
+      // Contar transações
       transactionCount = await client.query(
         `SELECT COUNT(*) as count FROM financeai_transactions ${whereTrans}`,
         paramsTrans
       );
       console.log(`💳 Transações encontradas: ${transactionCount.rows[0].count}`);
+
+      // Contar contas bancárias
+      accountCount = await client.query(
+        `SELECT COUNT(*) as count FROM financeai_accounts ${whereTrans}`,
+        paramsTrans
+      );
+      console.log(`🏦 Contas bancárias encontradas: ${accountCount.rows[0].count}`);
+
+      // Contar categorias (todas, incluindo padrão do sistema)
+      categoryCount = await client.query(
+        `SELECT COUNT(*) as count FROM financeai_categories ${whereTrans}`,
+        paramsTrans
+      );
+      console.log(`🏷️  Categorias encontradas: ${categoryCount.rows[0].count}`);
+
+      // Contar regras de categorização (pode não existir)
+      try {
+        rulesCount = await client.query(
+          `SELECT COUNT(*) as count FROM financeai_categorization_rules ${whereTrans}`,
+          paramsTrans
+        );
+        console.log(`📐 Regras de categorização encontradas: ${rulesCount.rows[0].count}`);
+      } catch (e) {
+        console.log(`📐 Regras de categorização: tabela não existe`);
+      }
+
+      // Contar empresas
+      if (!options.company) {
+        companyCount = await client.query(
+          `SELECT COUNT(*) as count FROM financeai_companies`
+        );
+        console.log(`🏢 Empresas encontradas: ${companyCount.rows[0].count}`);
+      }
     }
 
     // Relatório final
@@ -286,11 +333,18 @@ async function main() {
     console.log('='.repeat(50));
     console.log(`📋 Uploads para remover: ${uploadCount.rows[0].count}`);
     console.log(`📦 Processing batches para remover: ${batchCount.rows[0].count}`);
-    if (!flags.uploadsOnly && transactionCount) {
-      console.log(`💳 Transações para remover: ${transactionCount.rows[0].count}`);
+    if (!flags.uploadsOnly) {
+      console.log(`💳 Transações para remover: ${transactionCount?.rows[0].count || 0}`);
+      console.log(`🏦 Contas bancárias para remover: ${accountCount?.rows[0].count || 0}`);
+      console.log(`🏷️  Categorias para remover: ${categoryCount?.rows[0].count || 0}`);
+      console.log(`📐 Regras de categorização para remover: ${rulesCount?.rows[0].count || 0}`);
+      if (companyCount) {
+        console.log(`🏢 Empresas para remover: ${companyCount.rows[0].count}`);
+      }
     }
     console.log(`📁 Arquivos do storage local para remover: Todos`);
     console.log(`☁️  Arquivos do Supabase Storage para remover: Todos`);
+    console.log(`👤 Usuários: NÃO SERÃO AFETADOS`);
 
     if (flags.dryRun) {
       console.log('\n✨ Modo de simulação - Nenhuma alteração foi realizada');
@@ -298,10 +352,16 @@ async function main() {
       return;
     }
 
-    // Confirmação
-    if (uploadCount.rows[0].count === 0 &&
-        batchCount.rows[0].count === 0 &&
-        (!transactionCount || transactionCount.rows[0].count === 0)) {
+    // Confirmação - verificar se há algo para limpar
+    const hasData =
+      parseInt(uploadCount.rows[0].count) > 0 ||
+      parseInt(batchCount.rows[0].count) > 0 ||
+      (transactionCount && parseInt(transactionCount.rows[0].count) > 0) ||
+      (accountCount && parseInt(accountCount.rows[0].count) > 0) ||
+      (categoryCount && parseInt(categoryCount.rows[0].count) > 0) ||
+      (companyCount && parseInt(companyCount.rows[0].count) > 0);
+
+    if (!hasData) {
       console.log('\n✅ Nenhum dado encontrado para limpeza');
       return;
     }
@@ -321,21 +381,52 @@ async function main() {
 
     console.log('\n🧹 Iniciando limpeza...');
 
+    const transWhere = options.company ? `WHERE company_id = $1` : '';
+    const transParams = options.company ? [options.company] : [];
+
     // Remover transações primeiro (se aplicável)
     let deleteTransactions = null;
+    let deleteAccounts = null;
+    let deleteCategories = null;
+    let deleteRules = null;
+    let deleteCompanies = null;
+
     if (!flags.uploadsOnly) {
+      // 1. Remover transações (dependem de accounts e categories)
       console.log('💳 Removendo transações...');
-
-      const transWhere = options.company
-        ? `WHERE company_id = $1`
-        : '';
-      const transParams = options.company ? [options.company] : [];
-
       deleteTransactions = await client.query(
         `DELETE FROM financeai_transactions ${transWhere}`,
         transParams
       );
       console.log(`✅ Transações removidas: ${deleteTransactions.rowCount || 0}`);
+
+      // 2. Remover regras de categorização (pode não existir)
+      try {
+        console.log('📐 Removendo regras de categorização...');
+        deleteRules = await client.query(
+          `DELETE FROM financeai_categorization_rules ${transWhere}`,
+          transParams
+        );
+        console.log(`✅ Regras removidas: ${deleteRules.rowCount || 0}`);
+      } catch (e) {
+        console.log(`📐 Regras: tabela não existe, pulando...`);
+      }
+
+      // 3. Remover categorias
+      console.log('🏷️  Removendo categorias...');
+      deleteCategories = await client.query(
+        `DELETE FROM financeai_categories ${transWhere}`,
+        transParams
+      );
+      console.log(`✅ Categorias removidas: ${deleteCategories.rowCount || 0}`);
+
+      // 4. Remover contas bancárias (dependem de companies)
+      console.log('🏦 Removendo contas bancárias...');
+      deleteAccounts = await client.query(
+        `DELETE FROM financeai_accounts ${transWhere}`,
+        transParams
+      );
+      console.log(`✅ Contas bancárias removidas: ${deleteAccounts.rowCount || 0}`);
     }
 
     // Remover processing batches
@@ -354,6 +445,13 @@ async function main() {
     );
     console.log(`✅ Uploads removidos: ${deleteUploads.rowCount || 0}`);
 
+    // Remover empresas (por último, pois tudo depende delas)
+    if (!flags.uploadsOnly && !options.company) {
+      console.log('🏢 Removendo empresas...');
+      deleteCompanies = await client.query(`DELETE FROM financeai_companies`);
+      console.log(`✅ Empresas removidas: ${deleteCompanies.rowCount || 0}`);
+    }
+
     // Limpar arquivos do storage local
     cleanStorageFiles();
 
@@ -366,11 +464,18 @@ async function main() {
     console.log(`📋 Uploads removidos: ${deleteUploads.rowCount || 0}`);
     console.log(`📦 Processing batches removidos: ${deleteBatches.rowCount || 0}`);
     if (!flags.uploadsOnly) {
-      console.log(`💳 Transações removidas: ${deleteTransactions.rowCount || 0}`);
+      console.log(`💳 Transações removidas: ${deleteTransactions?.rowCount || 0}`);
+      console.log(`📐 Regras removidas: ${deleteRules?.rowCount || 0}`);
+      console.log(`🏷️  Categorias removidas: ${deleteCategories?.rowCount || 0}`);
+      console.log(`🏦 Contas bancárias removidas: ${deleteAccounts?.rowCount || 0}`);
+      if (deleteCompanies) {
+        console.log(`🏢 Empresas removidas: ${deleteCompanies.rowCount || 0}`);
+      }
     }
     console.log('📁 Arquivos do storage local: Removidos');
     console.log('☁️  Arquivos do Supabase Storage: Removidos');
-    console.log('\n✨ Sistema 100% limpo e pronto para novos uploads OFX!');
+    console.log('👤 Usuários: Preservados');
+    console.log('\n✨ Sistema limpo e pronto para novos dados!');
 
   } catch (error) {
     console.error('❌ Erro durante a limpeza:', error);

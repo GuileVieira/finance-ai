@@ -8,6 +8,7 @@ import { CategoryChart } from '@/components/dashboard/category-chart';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { TopExpenses } from '@/components/dashboard/top-expenses';
 import { Insights } from '@/components/dashboard/insights';
+import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RefreshCw } from 'lucide-react';
@@ -64,6 +65,7 @@ export default function DashboardPage() {
     recentTransactions,
     isLoading,
     isRefetching,
+    isEmpty,
     error,
     refetch,
   } = useDashboard(filters, {
@@ -128,7 +130,21 @@ export default function DashboardPage() {
     metrics?.growthRate
   ]);
 
-  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics);
+  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics, 'isEmpty:', isEmpty);
+
+  // Se está vazio (sem transações), mostrar tela de boas-vindas
+  if (isEmpty && !isLoading) {
+    return (
+      <LayoutWrapper>
+        <div className="space-y-6">
+          <EmptyState
+            title="Bem-vindo ao FinanceAI!"
+            description="Para começar a visualizar seus dados financeiros, importe seus extratos bancários no formato OFX. O sistema vai categorizar automaticamente suas transações usando inteligência artificial."
+          />
+        </div>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
@@ -179,15 +195,11 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        {/* Cards de métricas APENAS */}
+        {/* Cards de métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {isLoading ? (
             <div className="col-span-4 text-center p-8">
               <div className="text-lg">Carregando métricas...</div>
-            </div>
-          ) : error ? (
-            <div className="col-span-4 text-center p-8">
-              <div className="text-lg text-red-600">Erro: {error.message}</div>
             </div>
           ) : (
             dashboardMetrics.map((metric, index) => {

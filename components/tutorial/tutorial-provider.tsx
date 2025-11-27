@@ -70,10 +70,6 @@ export function TutorialProvider({ children, autoStart = true }: TutorialProvide
     tutorial.skipTutorial();
   }, [tutorial]);
 
-  const handleComplete = useCallback(() => {
-    tutorial.completeCurrentStep();
-  }, [tutorial]);
-
   const handleResume = useCallback(() => {
     tutorial.resumeTutorial();
   }, [tutorial]);
@@ -99,7 +95,6 @@ export function TutorialProvider({ children, autoStart = true }: TutorialProvide
           currentIndex={tutorial.currentStepIndex}
           totalSteps={tutorial.totalSteps}
           stepsStatus={tutorial.state?.stepsStatus ?? {
-            'settings-theme': 'pending',
             'create-company': 'pending',
             'create-account': 'pending',
             'review-categories': 'pending',
@@ -108,7 +103,6 @@ export function TutorialProvider({ children, autoStart = true }: TutorialProvide
           onNext={handleNext}
           onSkip={handleSkip}
           onClose={handleClose}
-          onComplete={handleComplete}
         />
       )}
 

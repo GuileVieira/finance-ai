@@ -83,10 +83,14 @@ export function useDashboard(
   const topExpenses = dashboardData?.topExpenses || [];
   const recentTransactions = dashboardData?.recentTransactions || [];
 
+  // Verificar se tem dados (transações)
+  const isEmpty = !isLoading && (!metrics || metrics.transactionCount === 0);
+
   console.log('📊 Estado da query:', {
     isLoading,
     hasError: !!error,
     hasData: !!metrics,
+    isEmpty,
     isRefetching,
     categoriesCount: categorySummary.length,
     expensesCount: topExpenses.length,
@@ -104,6 +108,7 @@ export function useDashboard(
     // Estados
     isLoading,
     isRefetching,
+    isEmpty,
 
     // Erros
     error,

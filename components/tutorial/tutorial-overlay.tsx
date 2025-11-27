@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { TutorialSpotlight } from './tutorial-spotlight';
 import { TutorialTooltip } from './tutorial-tooltip';
 import { useElementPosition, useScrollToElement } from './hooks/use-element-position';
-import { useCompletionWatcher } from './hooks/use-completion-watcher';
 import type { TutorialStep, TutorialStepId, StepStatus } from '@/lib/types/tutorial';
-import { isFirstStep, isLastStep, AUTO_ADVANCE_DELAY } from '@/lib/constants/tutorial-steps';
+import { isFirstStep, isLastStep } from '@/lib/constants/tutorial-steps';
 
 interface TutorialOverlayProps {
   step: TutorialStep;
@@ -18,7 +17,6 @@ interface TutorialOverlayProps {
   onNext: () => void;
   onSkip: () => void;
   onClose: () => void;
-  onComplete: () => void;
 }
 
 /**
@@ -33,7 +31,6 @@ export function TutorialOverlay({
   onNext,
   onSkip,
   onClose,
-  onComplete,
 }: TutorialOverlayProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,20 +59,6 @@ export function TutorialOverlay({
       return () => clearTimeout(timeoutId);
     }
   }, [step.id, targetRect, scrollToElement, step.targetSelector]);
-
-  // Handler para quando o step é completado automaticamente
-  const handleAutoComplete = useCallback(() => {
-    // Pequeno delay antes de avançar para feedback visual
-    setTimeout(() => {
-      onComplete();
-    }, AUTO_ADVANCE_DELAY);
-  }, [onComplete]);
-
-  // Observar conclusão do step
-  useCompletionWatcher(step, {
-    enabled: isOnCorrectRoute,
-    onComplete: handleAutoComplete,
-  });
 
   // Keyboard navigation
   useEffect(() => {
