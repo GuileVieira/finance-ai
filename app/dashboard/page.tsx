@@ -70,6 +70,7 @@ export default function DashboardPage() {
     isLoading,
     isRefetching,
     isEmpty,
+    isFilterEmpty,
     error,
     refetch,
   } = useDashboard(filters, {
@@ -134,9 +135,9 @@ export default function DashboardPage() {
     metrics?.growthRate
   ]);
 
-  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics, 'isEmpty:', isEmpty);
+  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics, 'isEmpty:', isEmpty, 'isFilterEmpty:', isFilterEmpty);
 
-  // Se está vazio (sem transações), mostrar tela de boas-vindas
+  // Se está vazio (sem transações e sem filtros), mostrar tela de boas-vindas
   if (isEmpty && !isLoading) {
     return (
       <LayoutWrapper>
@@ -149,6 +150,24 @@ export default function DashboardPage() {
       </LayoutWrapper>
     );
   }
+
+  // Componente para mostrar quando filtro não tem resultados
+  const FilterEmptyMessage = () => (
+    <div className="col-span-full flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-muted/20">
+      <div className="text-4xl mb-4">🔍</div>
+      <h3 className="text-lg font-semibold mb-2">Nenhuma transação encontrada</h3>
+      <p className="text-muted-foreground mb-4">
+        Não há transações para o filtro selecionado. Tente ajustar o período ou o banco.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setFilters({ period: 'all', accountId: 'all', companyId: 'all' })}
+      >
+        Limpar filtros
+      </Button>
+    </div>
+  );
 
   return (
     <LayoutWrapper>
@@ -205,6 +224,8 @@ export default function DashboardPage() {
             <div className="col-span-4 text-center p-8">
               <div className="text-lg">Carregando métricas...</div>
             </div>
+          ) : isFilterEmpty ? (
+            <FilterEmptyMessage />
           ) : (
             dashboardMetrics.map((metric, index) => {
               console.log(`🎴 Renderizando card ${index}: ${metric.title}`);
@@ -213,39 +234,44 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Análises Temporais */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TrendChart data={trendData} isLoading={isLoading} />
-          <CashFlowChart data={trendData} isLoading={isLoading} period={filters.period} />
-        </div>
+        {/* Só mostrar gráficos se tiver dados */}
+        {!isFilterEmpty && (
+          <>
+            {/* Análises Temporais */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TrendChart data={trendData} isLoading={isLoading} />
+              <CashFlowChart data={trendData} isLoading={isLoading} period={filters.period} />
+            </div>
 
-        {/* Análises Detalhadas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategoryChart
-            categories={categorySummary}
-            isLoading={isLoading}
-            isEmpty={!categorySummary || categorySummary.length === 0}
-          />
-          <RecentTransactions
-            transactions={recentTransactions}
-            isLoading={isLoading}
-            isEmpty={!recentTransactions || recentTransactions.length === 0}
-          />
-        </div>
+            {/* Análises Detalhadas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CategoryChart
+                categories={categorySummary}
+                isLoading={isLoading}
+                isEmpty={!categorySummary || categorySummary.length === 0}
+              />
+              <RecentTransactions
+                transactions={recentTransactions}
+                isLoading={isLoading}
+                isEmpty={!recentTransactions || recentTransactions.length === 0}
+              />
+            </div>
 
-        {/* Análises Adicionais */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TopExpenses
-            expenses={topExpenses}
-            isLoading={isLoading}
-            isEmpty={!topExpenses || topExpenses.length === 0}
-          />
-          <Insights
-            period={filters.period}
-            companyId={filters.companyId}
-            accountId={filters.accountId}
-          />
-        </div>
+            {/* Análises Adicionais */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TopExpenses
+                expenses={topExpenses}
+                isLoading={isLoading}
+                isEmpty={!topExpenses || topExpenses.length === 0}
+              />
+              <Insights
+                period={filters.period}
+                companyId={filters.companyId}
+                accountId={filters.accountId}
+              />
+            </div>
+          </>
+        )}
 
       </div>
     </LayoutWrapper>

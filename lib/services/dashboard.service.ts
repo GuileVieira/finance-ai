@@ -27,6 +27,66 @@ export default class DashboardService {
   }
 
   /**
+   * Verifica se uma string é um UUID válido
+   */
+  private static isUUID(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  /**
+   * Adiciona condições de filtro de conta/banco ao array de whereConditions
+   */
+  private static addAccountFilters(
+    whereConditions: ReturnType<typeof eq>[],
+    filters: DashboardFilters
+  ): void {
+    if (filters.accountId && filters.accountId !== 'all') {
+      if (this.isUUID(filters.accountId)) {
+        console.log('🏦 Filtro accountId (UUID) =', filters.accountId);
+        whereConditions.push(eq(transactions.accountId, filters.accountId));
+      } else {
+        console.log('🏦 Filtro bankName (do accountId) =', filters.accountId);
+        whereConditions.push(eq(accounts.bankName, filters.accountId));
+      }
+    }
+
+    if (filters.bankName && filters.bankName !== 'all') {
+      console.log('🏦 Filtro bankName =', filters.bankName);
+      whereConditions.push(eq(accounts.bankName, filters.bankName));
+    }
+
+    if (filters.companyId && filters.companyId !== 'all') {
+      console.log('🏢 Filtro companyId =', filters.companyId);
+      whereConditions.push(eq(accounts.companyId, filters.companyId));
+    }
+  }
+
+  /**
+   * Retorna condições de filtro de conta/banco para uso inline
+   */
+  private static getAccountFilterConditions(filters: DashboardFilters): (ReturnType<typeof eq> | undefined)[] {
+    const conditions: (ReturnType<typeof eq> | undefined)[] = [];
+
+    if (filters.accountId && filters.accountId !== 'all') {
+      if (this.isUUID(filters.accountId)) {
+        conditions.push(eq(transactions.accountId, filters.accountId));
+      } else {
+        conditions.push(eq(accounts.bankName, filters.accountId));
+      }
+    }
+
+    if (filters.bankName && filters.bankName !== 'all') {
+      conditions.push(eq(accounts.bankName, filters.bankName));
+    }
+
+    if (filters.companyId && filters.companyId !== 'all') {
+      conditions.push(eq(accounts.companyId, filters.companyId));
+    }
+
+    return conditions;
+  }
+
+  /**
    * Verificar se o banco de dados está disponível
    */
   private static checkDatabaseConnection(): void {
@@ -75,15 +135,8 @@ export default class DashboardService {
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        console.log('🏦 Adicionando filtro accountId =', filters.accountId);
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        console.log('🏢 Adicionando filtro companyId =', filters.companyId);
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
+      // Usar função auxiliar para filtros de conta/banco
+      this.addAccountFilters(whereConditions, filters);
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
       console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
@@ -152,13 +205,8 @@ export default class DashboardService {
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
+      // Usar função auxiliar para filtros de conta/banco
+      this.addAccountFilters(whereConditions, filters);
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -221,13 +269,8 @@ export default class DashboardService {
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
+      // Usar função auxiliar para filtros de conta/banco
+      this.addAccountFilters(whereConditions, filters);
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -282,13 +325,8 @@ export default class DashboardService {
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
+      // Usar função auxiliar para filtros de conta/banco
+      this.addAccountFilters(whereConditions, filters);
 
       const whereClause = and(...whereConditions);
 
@@ -339,13 +377,8 @@ export default class DashboardService {
         whereConditions.push(lte(transactions.transactionDate, filters.endDate));
       }
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
+      // Usar função auxiliar para filtros de conta/banco
+      this.addAccountFilters(whereConditions, filters);
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -454,6 +487,9 @@ export default class DashboardService {
 
       console.log(`📅 Comparando: ${filters.startDate} até ${filters.endDate} vs ${previousStartDate} até ${previousEndDate}`);
 
+      // Obter condições de filtro de conta/banco
+      const accountConditions = this.getAccountFilterConditions(filters);
+
       // Mês atual - SQL direto sem chamar getMetrics novamente
       const currentMetricsResult = await db
         .select({
@@ -467,8 +503,7 @@ export default class DashboardService {
           and(
             gte(transactions.transactionDate, filters.startDate!),
             lte(transactions.transactionDate, filters.endDate!),
-            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-            filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined
+            ...accountConditions
           )
         );
 
@@ -485,8 +520,7 @@ export default class DashboardService {
           and(
             gte(transactions.transactionDate, previousStartDate),
             lte(transactions.transactionDate, previousEndDate),
-            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-            filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined
+            ...accountConditions
           )
         );
 

@@ -4,6 +4,7 @@ export interface DashboardFilters {
   period?: string;
   companyId?: string;
   accountId?: string;
+  bankName?: string; // Filtrar por nome do banco (ex: "Banco Santander S.a.")
   startDate?: string;
   endDate?: string;
 }

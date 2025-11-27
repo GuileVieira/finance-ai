@@ -83,8 +83,16 @@ export function useDashboard(
   const topExpenses = dashboardData?.topExpenses || [];
   const recentTransactions = dashboardData?.recentTransactions || [];
 
-  // Verificar se tem dados (transações)
-  const isEmpty = !isLoading && (!metrics || metrics.transactionCount === 0);
+  // Verificar se o filtro atual não tem dados
+  const isFilterEmpty = !isLoading && (!metrics || metrics.transactionCount === 0);
+
+  // Verificar se tem filtros aplicados (período específico ou banco específico)
+  const hasActiveFilters = (filters.period && filters.period !== 'all') ||
+                           (filters.accountId && filters.accountId !== 'all');
+
+  // isEmpty = true apenas quando NÃO tem filtros e não tem dados (usuário nunca importou)
+  // Se tem filtros aplicados, não é "empty" - é só o filtro que não retornou resultados
+  const isEmpty = isFilterEmpty && !hasActiveFilters;
 
   console.log('📊 Estado da query:', {
     isLoading,
@@ -108,7 +116,8 @@ export function useDashboard(
     // Estados
     isLoading,
     isRefetching,
-    isEmpty,
+    isEmpty,        // true = usuário nunca importou dados
+    isFilterEmpty,  // true = filtro atual não tem resultados
 
     // Erros
     error,
