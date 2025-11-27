@@ -49,8 +49,11 @@ export default function DREStatementComponent({
   };
 
   const getVariation = (current: number, previous: number) => {
-    if (!previous || previous === 0) return { value: 0, isPositive: true };
+    // Não mostrar se não tem período anterior
+    if (!previous || previous === 0) return null;
     const variation = ((current - previous) / previous) * 100;
+    // Não mostrar variações absurdas (> 200%)
+    if (Math.abs(variation) > 200) return null;
     return {
       value: Math.abs(variation),
       isPositive: variation >= 0
