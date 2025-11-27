@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AccountForm } from '@/components/accounts/account-form';
 import { mockAccounts, getAccountTypeLabel, formatCurrency } from '@/lib/mock-accounts';
 import { BankAccount, BankAccountFormData, supportedBanks } from '@/lib/types/accounts';
-import { ArrowLeft, Edit, Download, Calendar, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Download, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -175,7 +175,7 @@ export default function AccountDetailPage() {
               onClick={handleSync}
               disabled={isSyncing || !account.active}
             >
-              <Sync className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
             </Button>
 
