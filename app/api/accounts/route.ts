@@ -101,6 +101,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao listar contas:', error);
     return NextResponse.json({
       success: false,
@@ -112,6 +115,7 @@ export async function GET(request: NextRequest) {
 // POST - Criar nova conta
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     await initializeDatabase();
 
     const body = await request.json();
@@ -122,13 +126,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Nome da conta é obrigatório'
-      }, { status: 400 });
-    }
-
-    if (!body.companyId) {
-      return NextResponse.json({
-        success: false,
-        error: 'ID da empresa é obrigatório'
       }, { status: 400 });
     }
 
@@ -146,22 +143,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Verificar se empresa existe
-    const [company] = await db.select()
-      .from(companies)
-      .where(eq(companies.id, body.companyId))
-      .limit(1);
-
-    if (!company) {
-      return NextResponse.json({
-        success: false,
-        error: 'Empresa não encontrada'
-      }, { status: 404 });
-    }
-
-    // Criar conta
+    // Criar conta com companyId da sessão
     const [newAccount] = await db.insert(accounts).values({
-      companyId: body.companyId,
+      companyId,
       name: body.name.trim(),
       bankName: body.bankName.trim(),
       bankCode: body.bankCode?.trim() || null,
@@ -178,16 +162,14 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         account: newAccount,
-        company: {
-          id: company.id,
-          name: company.name,
-          cnpj: company.cnpj
-        },
         message: 'Conta criada com sucesso'
       }
     }, { status: 201 });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao criar conta:', error);
     return NextResponse.json({
       success: false,

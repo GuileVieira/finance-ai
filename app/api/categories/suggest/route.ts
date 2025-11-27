@@ -3,17 +3,19 @@ import { db } from '@/lib/db/connection';
 import { categoryRules, categories, transactions } from '@/lib/db/schema';
 import { eq, and, ilike, desc, sql } from 'drizzle-orm';
 import CategoryRulesService from '@/lib/services/category-rules.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body = await request.json();
-    const { companyId, description, amount, transactionType } = body;
+    const { description, amount, transactionType } = body;
 
     // Validações
-    if (!companyId || !description) {
+    if (!description) {
       return NextResponse.json({
         success: false,
-        error: 'CompanyId e description são obrigatórios'
+        error: 'Description é obrigatório'
       }, { status: 400 });
     }
 
@@ -100,6 +102,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao buscar sugestões:', error);
     return NextResponse.json({
       success: false,
@@ -114,7 +119,6 @@ export async function GET(request: NextRequest) {
     endpoint: '/api/categories/suggest',
     method: 'POST',
     body: {
-      companyId: 'string (obrigatório) - ID da empresa',
       description: 'string (obrigatório) - Descrição da transação',
       amount: 'number (opcional) - Valor da transação',
       transactionType: 'string (opcional) - Tipo da transação (credit/debit)'
@@ -130,6 +134,7 @@ export async function GET(request: NextRequest) {
           reasoning: 'string'
         }
       ]
-    }
+    },
+    note: 'CompanyId é obtido automaticamente da sessão'
   });
 }

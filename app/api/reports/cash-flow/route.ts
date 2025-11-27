@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import CashFlowService from '@/lib/services/cash-flow.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId: sessionCompanyId } = await requireAuth();
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'current';
     const days = parseInt(searchParams.get('days') || '30');
-    const companyId = searchParams.get('companyId') || undefined;
+    const companyId = sessionCompanyId; // Usar companyId da sessão
     const accountId = searchParams.get('accountId') || undefined;
 
     console.log('📊 [CASH-FLOW-API] Buscando fluxo de caixa com filtros:', { period, days, companyId, accountId });
@@ -43,10 +45,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId: sessionCompanyId } = await requireAuth();
     await initializeDatabase();
 
     const body = await request.json();
-    const { startDate, endDate, companyId, accountId } = body;
+    const { startDate, endDate, accountId } = body;
+    const companyId = sessionCompanyId; // Usar companyId da sessão
 
     console.log('📊 [CASH-FLOW-API] Calculando fluxo de caixa personalizado:', { startDate, endDate, companyId, accountId });
 

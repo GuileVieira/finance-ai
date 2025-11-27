@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { aiUsageLogs } from '@/lib/db/schema';
 import { desc, eq, and, gte, lte, sql } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
+
     if (!db) {
       return NextResponse.json(
         { error: 'Banco de dados não disponível' },

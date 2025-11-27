@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ClassificationHistory } from '@/lib/classification/history';
 import { ClassificationCache } from '@/lib/classification/cache';
 import { ClassificationRecord } from '@/lib/agent/types';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // Schema para adicionar feedback
 const FeedbackSchema = z.object({
@@ -33,6 +34,7 @@ const QuerySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
     const body = await request.json();
     const validatedData = FeedbackSchema.parse(body);
 
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
@@ -252,6 +255,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 

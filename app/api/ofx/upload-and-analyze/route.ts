@@ -9,11 +9,14 @@ import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
 import AsyncUploadProcessorService from '@/lib/services/async-upload-processor.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    const { companyId } = await requireAuth();
+
     console.log('\n=== [OFX-UPLOAD-ANALYZE] Nova requisição de upload e análise ===');
     console.log('🔧 Headers:', {
       contentType: request.headers.get('content-type'),
@@ -24,12 +27,12 @@ export async function POST(request: NextRequest) {
     console.log('🔧 Verificando banco de dados...');
     await initializeDatabase();
 
-    // Obter empresa e conta padrão
-    const defaultCompany = await getDefaultCompany();
+    // Obter empresa do usuário autenticado
+    const [defaultCompany] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!defaultCompany) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma empresa encontrada. Configure uma empresa primeiro.'
+        error: 'Empresa não encontrada.'
       }, { status: 400 });
     }
 
@@ -516,7 +519,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Upload e Análise OFX',
     endpoint: '/api/ofx/upload-and-analyze',

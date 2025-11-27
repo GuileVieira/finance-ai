@@ -3,18 +3,11 @@ import { db } from '@/lib/db/connection';
 import { categoryRules, categories, companies } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { createHash } from 'crypto';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
-
-    if (!companyId) {
-      return NextResponse.json({
-        success: false,
-        error: 'CompanyId é obrigatório'
-      }, { status: 400 });
-    }
+    const { companyId } = await requireAuth();
 
     console.log(`🔍 Buscando regras para empresa: ${companyId}`);
 
@@ -58,14 +51,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
+
     const body = await request.json();
-    const { companyId, pattern, categoryId, examples, confidence = 0.8 } = body;
+    const { pattern, categoryId, examples, confidence = 0.8 } = body;
 
     // Validações
-    if (!companyId || !pattern || !categoryId) {
+    if (!pattern || !categoryId) {
       return NextResponse.json({
         success: false,
-        error: 'CompanyId, pattern e categoryId são obrigatórios'
+        error: 'Pattern e categoryId são obrigatórios'
       }, { status: 400 });
     }
 
@@ -157,6 +152,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAuth();
+
     const body = await request.json();
     const { ruleId, active, applicationCount } = body;
 

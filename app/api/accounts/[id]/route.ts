@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { accounts, companies, transactions } from '@/lib/db/schema';
-import { eq, desc, count } from 'drizzle-orm';
+import { eq, desc, count, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
+import { requireAuth } from '@/lib/auth/get-session';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -11,12 +12,14 @@ interface RouteParams {
 // GET - Obter conta por ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const { companyId } = await requireAuth();
     await initializeDatabase();
 
     const { id } = await params;
 
     console.log(`🏦 [ACCOUNTS-API] Buscando conta: ${id}`);
 
+    // Buscar conta verificando que pertence à empresa do usuário
     const [account] = await db.select({
       id: accounts.id,
       companyId: accounts.companyId,
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     .from(accounts)
     .leftJoin(companies, eq(accounts.companyId, companies.id))
-    .where(eq(accounts.id, id))
+    .where(and(eq(accounts.id, id), eq(accounts.companyId, companyId)))
     .limit(1);
 
     if (!account) {
@@ -68,6 +71,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao buscar conta:', error);
     return NextResponse.json({
       success: false,
@@ -79,6 +85,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT - Atualizar conta
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { companyId } = await requireAuth();
     await initializeDatabase();
 
     const { id } = await params;
@@ -86,10 +93,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     console.log(`🏦 [ACCOUNTS-API] Atualizando conta ${id}:`, body);
 
-    // Verificar se conta existe
+    // Verificar se conta existe E pertence à empresa do usuário
     const [existingAccount] = await db.select()
       .from(accounts)
-      .where(eq(accounts.id, id))
+      .where(and(eq(accounts.id, id), eq(accounts.companyId, companyId)))
       .limit(1);
 
     if (!existingAccount) {
@@ -99,25 +106,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }, { status: 404 });
     }
 
-    // Se estiver mudando a empresa, verificar se a nova empresa existe
-    if (body.companyId && body.companyId !== existingAccount.companyId) {
-      const [company] = await db.select()
-        .from(companies)
-        .where(eq(companies.id, body.companyId))
-        .limit(1);
-
-      if (!company) {
-        return NextResponse.json({
-          success: false,
-          error: 'Empresa não encontrada'
-        }, { status: 404 });
-      }
-    }
-
-    // Preparar dados para atualização
-    const updateData: any = {};
+    // Preparar dados para atualização (NÃO permitir mudança de companyId)
+    const updateData: Record<string, unknown> = {};
     const allowedFields = [
-      'companyId', 'name', 'bankName', 'bankCode',
+      'name', 'bankName', 'bankCode',
       'agencyNumber', 'accountNumber', 'accountType',
       'openingBalance', 'active', 'lastSyncAt'
     ];
@@ -147,6 +139,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao atualizar conta:', error);
     return NextResponse.json({
       success: false,
@@ -158,16 +153,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE - Desativar conta
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { companyId } = await requireAuth();
     await initializeDatabase();
 
     const { id } = await params;
 
     console.log(`🏦 [ACCOUNTS-API] Desativando conta: ${id}`);
 
-    // Verificar se conta existe
+    // Verificar se conta existe E pertence à empresa do usuário
     const [existingAccount] = await db.select()
       .from(accounts)
-      .where(eq(accounts.id, id))
+      .where(and(eq(accounts.id, id), eq(accounts.companyId, companyId)))
       .limit(1);
 
     if (!existingAccount) {
@@ -197,6 +193,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao desativar conta:', error);
     return NextResponse.json({
       success: false,

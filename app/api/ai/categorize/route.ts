@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ClassificationAgent } from '@/lib/agent/agent';
 import { ClassificationResult } from '@/lib/agent/types';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // Schema de validação da requisição
 const CategorizeRequestSchema = z.object({
@@ -14,6 +15,7 @@ const CategorizeRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
     const body = await request.json();
     const validatedData = CategorizeRequestSchema.parse(body);
 
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
 // Endpoint para validação de classificação
 export async function PUT(request: NextRequest) {
   try {
+    await requireAuth();
     const body = await request.json();
     const { transactionId, isCorrect, feedback } = body;
 
@@ -98,6 +101,7 @@ export async function PUT(request: NextRequest) {
 // Endpoint para consultar status do agente
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 

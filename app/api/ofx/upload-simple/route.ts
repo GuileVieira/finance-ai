@@ -4,18 +4,21 @@ import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createHash } from 'crypto';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
+
     console.log('\n=== [UPLOAD-SIMPLE] Iniciando upload simplificado ===');
 
     // Inicializar banco
     await initializeDatabase();
-    const defaultCompany = await getDefaultCompany();
+    const [defaultCompany] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!defaultCompany) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma empresa encontrada'
+        error: 'Empresa não encontrada'
       }, { status: 400 });
     }
 
@@ -154,6 +157,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Upload Simplificado',
     endpoint: '/api/ofx/upload-simple',

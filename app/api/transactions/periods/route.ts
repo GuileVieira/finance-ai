@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import TransactionsService from '@/lib/services/transactions.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
+
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId') || undefined;
     const accountId = searchParams.get('accountId') || undefined;
     const type = searchParams.get('type') as ('credit' | 'debit') | null;
 
@@ -15,11 +17,9 @@ export async function GET(request: NextRequest) {
       companyId?: string;
       accountId?: string;
       type?: 'credit' | 'debit';
-    } = {};
-
-    if (companyId && companyId !== 'all') {
-      filters.companyId = companyId;
-    }
+    } = {
+      companyId // Always use companyId from session
+    };
 
     if (accountId && accountId !== 'all') {
       filters.accountId = accountId;

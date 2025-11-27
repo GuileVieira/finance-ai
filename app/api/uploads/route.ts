@@ -3,20 +3,23 @@ import { db } from '@/lib/db/connection';
 import { uploads, companies, accounts } from '@/lib/db/schema';
 import { eq, desc, and, or, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany } from '@/lib/db/init-db';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
+
     console.log('\n=== [UPLOADS-LIST] Nova requisição de listagem ===');
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
 
-    // Obter empresa padrão
-    const defaultCompany = await getDefaultCompany();
+    // Obter empresa do usuário autenticado
+    const [defaultCompany] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!defaultCompany) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma empresa encontrada. Configure uma empresa primeiro.'
+        error: 'Empresa não encontrada.'
       }, { status: 400 });
     }
 
@@ -196,7 +199,8 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Uploads',
     endpoint: '/api/uploads',

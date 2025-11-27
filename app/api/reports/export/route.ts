@@ -3,9 +3,11 @@ import { ExportOptions } from '@/lib/types';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
     const options: ExportOptions = await request.json();
 
     // Buscar dados baseado nas opções

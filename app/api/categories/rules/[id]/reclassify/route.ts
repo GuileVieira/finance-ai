@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ReclassificationService } from '@/lib/services/reclassification.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 /**
  * GET - Preview da reclassificação
@@ -16,6 +17,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAuth();
     const { id: ruleId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const onlyAutomatic = searchParams.get('onlyAutomatic') !== 'false'; // Default: true
@@ -50,6 +52,9 @@ export async function GET(
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RECLASSIFY-PREVIEW-ERROR]', error);
     return NextResponse.json(
       {
@@ -69,6 +74,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAuth();
     const { id: ruleId } = await params;
     const body = await request.json();
     const {
@@ -107,6 +113,9 @@ export async function POST(
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RECLASSIFY-ERROR]', error);
     return NextResponse.json(
       {

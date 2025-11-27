@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount, findAccountByBankInfo, updateAccountBankInfo } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // Importar sistema de filas se disponível
 let QueueService: any = null;
@@ -19,15 +20,17 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    const { companyId } = await requireAuth();
+
     console.log('\n=== [OFX-UPLOAD-QUEUE] Upload com sistema de filas ===');
 
     // Inicializar banco
     await initializeDatabase();
-    const defaultCompany = await getDefaultCompany();
+    const [defaultCompany] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!defaultCompany) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma empresa encontrada'
+        error: 'Empresa não encontrada'
       }, { status: 400 });
     }
 
@@ -332,7 +335,8 @@ async function processOFXInBackground(
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  await requireAuth();
   const queueStats = QueueService ? await QueueService.getQueueStats() : null;
 
   return NextResponse.json({

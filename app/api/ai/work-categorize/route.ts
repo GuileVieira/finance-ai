@@ -3,6 +3,7 @@ import CategoriesService from '@/lib/services/categories.service';
 import { searchCompanyInfo, searchByCNPJ, ProcessedSearchResult } from '@/lib/tools/duckduckgo-search.tool';
 import { aiProviderService } from '@/lib/ai/ai-provider.service';
 import { filterCategoriesByTransactionType } from '@/lib/utils/category-filter';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // Cache de categorias do banco para evitar múltiplas consultas
 let cachedCategories: any[] = [];
@@ -707,6 +708,7 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    await requireAuth();
     console.log('\n=== [WORK-CATEGORIZE] Nova requisição de categorização ===');
 
     const body = await request.json();
@@ -801,8 +803,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
+    await requireAuth();
     // Buscar categorias dinâmicas do banco
     let categoriesList: Array<{name: string; type: string}> = [];
     try {

@@ -4,8 +4,30 @@ import { db } from '@/lib/db/connection';
 import { users, companies, userCompanies, categories, accounts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { mockCategories } from '@/lib/mock-categories';
+import { signupRateLimiter, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // Rate limiting: 3 cadastros por hora por IP
+  const clientIP = getClientIP(request);
+  const rateLimitResult = signupRateLimiter.check(clientIP);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Muitos cadastros recentes. Tente novamente mais tarde.',
+        retryAfter: Math.ceil(rateLimitResult.resetIn / 1000)
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil(rateLimitResult.resetIn / 1000)),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining)
+        }
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, email, password, companyName } = body;

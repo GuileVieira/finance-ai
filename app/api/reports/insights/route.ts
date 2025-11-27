@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import InsightsService from '@/lib/services/insights.service';
 import type { InsightPriority } from '@/lib/types';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId: sessionCompanyId } = await requireAuth();
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'current';
     const category = searchParams.get('category') || undefined;
     const type = searchParams.get('type') as 'alert' | 'recommendation' | 'positive' | 'trend' | undefined;
-    const companyId = searchParams.get('companyId') || undefined;
+    const companyId = sessionCompanyId; // Usar companyId da sessão
     const accountId = searchParams.get('accountId') || undefined;
     const extended = searchParams.get('extended') === 'true'; // Novo parâmetro para usar getAllInsights
 

@@ -3,15 +3,17 @@ import { CategoryFilters, CategoryWithStats } from '@/lib/api/categories';
 import { db } from '@/lib/db/drizzle';
 import { categories, transactions } from '@/lib/db/schema';
 import { eq, desc, isNull, count, sum, sql, and } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const { searchParams } = new URL(request.url);
 
     // Parse filters from query params
     const filters = {
       type: searchParams.get('type') as any,
-      companyId: searchParams.get('companyId') || undefined,
+      companyId, // Always from session
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
       includeStats: searchParams.get('includeStats') === 'true',
       search: searchParams.get('search') || undefined,
@@ -20,7 +22,9 @@ export async function GET(request: NextRequest) {
     };
 
     // Buscar categorias com transações associadas usando query direta
-    const whereConditions = [];
+    const whereConditions = [
+      eq(categories.companyId, companyId)
+    ];
 
     if (filters.type && filters.type !== 'all') {
       whereConditions.push(eq(categories.type, filters.type));
@@ -102,6 +106,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-WITH-TRANSACTIONS-API] Error fetching categories with transactions:', error);
     return NextResponse.json(
       {

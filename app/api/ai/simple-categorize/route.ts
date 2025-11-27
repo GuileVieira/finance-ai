@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runSimpleAgent } from '@/lib/agent/simple-agent';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    await requireAuth();
     console.log('\n=== [SIMPLE-CATEGORIZE] Nova requisição de categorização ===');
 
     const body = await request.json();
@@ -63,7 +65,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Categorização Simples - Use POST para categorizar transações',
     endpoint: '/api/ai/simple-categorize',

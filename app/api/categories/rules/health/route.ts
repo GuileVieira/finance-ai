@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoryRulesService from '@/lib/services/category-rules.service';
 import { TransactionCategorizationService } from '@/lib/services/transaction-categorization.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 /**
  * GET /api/categories/rules/health
@@ -12,15 +13,7 @@ import { TransactionCategorizationService } from '@/lib/services/transaction-cat
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'companyId é obrigatório' },
-        { status: 400 }
-      );
-    }
+    const { companyId } = await requireAuth();
 
     // Executar todas as verificações em paralelo
     const [
@@ -133,6 +126,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RULES-HEALTH-API] Error:', error);
     return NextResponse.json(
       {
@@ -155,15 +151,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body = await request.json();
-    const { companyId, actions } = body;
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'companyId é obrigatório' },
-        { status: 400 }
-      );
-    }
+    const { actions } = body;
 
     const results: Record<string, number> = {};
 
@@ -186,6 +176,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RULES-HEALTH-API] Maintenance error:', error);
     return NextResponse.json(
       {

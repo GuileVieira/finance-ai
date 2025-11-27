@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  // Desativar em produção
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint desativado em produção' }, { status: 404 });
+  }
+
   try {
     // Esta é uma página HTML simples para visualizar dados do banco
     const html = `

@@ -12,9 +12,9 @@ import { db } from '@/lib/db/drizzle';
 import { categoryRules, categories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { RulesExport, ExportedRule, ExportedCategory } from '../export/route';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export interface ImportOptions {
-  companyId: string;
   conflictStrategy: 'skip' | 'replace' | 'merge'; // Como lidar com regras duplicadas
   createMissingCategories: boolean; // Criar categorias ausentes
   dryRun: boolean; // Apenas preview, não aplica mudanças
@@ -42,6 +42,7 @@ export interface ImportResult {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body = await request.json();
     const { importData, options }: { importData: RulesExport; options: ImportOptions } = body;
 
@@ -55,18 +56,10 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      companyId,
       conflictStrategy = 'skip',
       createMissingCategories = true,
       dryRun = false
     } = options;
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'companyId is required in options' },
-        { status: 400 }
-      );
-    }
 
     // 2. Preparar resultado
     const result: ImportResult = {
@@ -215,6 +208,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[IMPORT-ERROR]', error);
     return NextResponse.json(
       {

@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DashboardService from '@/lib/services/dashboard.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // GET - Buscar top despesas do dashboard
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticação e obter companyId da sessão
+    const { companyId } = await requireAuth();
+
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
 
-    // Parse filtros
+    // Parse filtros - usar companyId da sessão
     const filters = {
       period: searchParams.get('period') || undefined,
-      companyId: searchParams.get('companyId') || undefined,
+      companyId: companyId,
       accountId: searchParams.get('accountId') || undefined,
       startDate: searchParams.get('startDate') || undefined,
       endDate: searchParams.get('endDate') || undefined,

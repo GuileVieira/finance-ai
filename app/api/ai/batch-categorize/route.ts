@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ClassificationAgent } from '@/lib/agent/agent';
 import { BatchClassificationRequest, BatchClassificationResponse } from '@/lib/agent/types';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // Schema de validação da requisição em lote
 const BatchCategorizeRequestSchema = z.object({
@@ -18,6 +19,7 @@ const BatchCategorizeRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
     const body = await request.json();
     const validatedData = BatchCategorizeRequestSchema.parse(body);
 
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
 // Endpoint para processamento assíncrono de lotes grandes
 export async function PUT(request: NextRequest) {
   try {
+    await requireAuth();
     const body = await request.json();
     const { batchId, status } = body;
 
@@ -103,6 +106,7 @@ export async function PUT(request: NextRequest) {
 // Endpoint para consultar status de processamento
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batchId');
 

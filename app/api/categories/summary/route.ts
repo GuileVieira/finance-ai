@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const { searchParams } = new URL(request.url);
 
     // Parse filters from query params
     const filters = {
       type: searchParams.get('type') as any,
-      companyId: searchParams.get('companyId') || undefined,
+      companyId, // Always from session
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined
     };
 
@@ -20,6 +22,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-SUMMARY-API] Error fetching categories summary:', error);
     return NextResponse.json(
       {

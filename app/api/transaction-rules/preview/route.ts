@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { transactions, categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, or, ilike, isNull, desc } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
+
     const body = await request.json();
-    const { companyId, rulePattern, ruleType = 'contains', categoryId, applyToAll = false, limit = 10 } = body;
+    const { rulePattern, ruleType = 'contains', categoryId, applyToAll = false, limit = 10 } = body;
 
     // Validações
-    if (!companyId || !rulePattern || !categoryId) {
+    if (!rulePattern || !categoryId) {
       return NextResponse.json({
         success: false,
-        error: 'CompanyId, RulePattern e CategoryId são obrigatórios'
+        error: 'RulePattern e CategoryId são obrigatórios'
       }, { status: 400 });
     }
 

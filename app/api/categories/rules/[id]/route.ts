@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { categoryRules } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 /**
  * GET - Buscar regra específica
@@ -18,6 +19,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    await requireAuth();
     const ruleId = params.id;
 
     const [dbRule] = await db
@@ -52,6 +54,9 @@ export async function GET(
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ [GET-RULE] Erro:', error);
     return NextResponse.json(
       { success: false, error: 'Erro ao buscar regra' },
@@ -68,6 +73,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    await requireAuth();
     const ruleId = params.id;
     const body = await request.json();
 
@@ -151,6 +157,9 @@ export async function PATCH(
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ [UPDATE-RULE] Erro:', error);
     return NextResponse.json(
       {
@@ -170,6 +179,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    await requireAuth();
     const ruleId = params.id;
 
     // Verificar se regra existe
@@ -199,6 +209,9 @@ export async function DELETE(
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ [DELETE-RULE] Erro:', error);
     return NextResponse.json(
       {

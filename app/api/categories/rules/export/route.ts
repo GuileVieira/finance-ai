@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export interface ExportedRule {
   id: string;
@@ -54,16 +55,9 @@ export interface RulesExport {
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const searchParams = request.nextUrl.searchParams;
-    const companyId = searchParams.get('companyId');
     const activeOnly = searchParams.get('activeOnly') !== 'false'; // Default: true
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'companyId is required' },
-        { status: 400 }
-      );
-    }
 
     // 1. Buscar regras
     const rulesQuery = activeOnly
@@ -155,6 +149,9 @@ export async function GET(request: NextRequest) {
     );
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[EXPORT-ERROR]', error);
     return NextResponse.json(
       {

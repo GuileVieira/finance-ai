@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  // Desativar em produção
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint desativado em produção' }, { status: 404 });
+  }
+
   try {
     console.log('\n=== [TEST-UPLOAD] Iniciando teste de upload ===');
 

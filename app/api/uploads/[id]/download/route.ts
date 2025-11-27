@@ -4,12 +4,15 @@ import { uploads, companies } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { companyId } = await requireAuth();
+
     console.log(`\n=== [UPLOAD-DOWNLOAD] Requisição de download: ${params.id} ===`);
 
     // Inicializar banco de dados se necessário
@@ -25,7 +28,7 @@ export async function GET(
 
     console.log(`🔍 Buscando upload: ${params.id}`);
 
-    // Buscar upload no banco
+    // Buscar upload no banco - VERIFICAR PROPRIEDADE
     const [upload] = await db.select({
       id: uploads.id,
       filename: uploads.filename,
@@ -45,7 +48,8 @@ export async function GET(
       .from(uploads)
       .leftJoin(companies, eq(uploads.companyId, companies.id))
       .where(and(
-        eq(uploads.id, params.id)
+        eq(uploads.id, params.id),
+        eq(uploads.companyId, companyId) // Verificar propriedade
       ))
       .limit(1);
 
@@ -123,9 +127,10 @@ function getMimeType(fileType: string): string {
 }
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Download de Uploads',
     endpoint: `/api/uploads/${params.id}/download`,

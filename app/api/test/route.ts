@@ -5,6 +5,11 @@ import { companies, accounts, transactions, uploads } from '@/lib/db/schema';
 import { desc, eq, count } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
+  // Desativar em produção
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint desativado em produção' }, { status: 404 });
+  }
+
   try {
     console.log('🧪 [TEST-API] Iniciando testes do sistema...');
 

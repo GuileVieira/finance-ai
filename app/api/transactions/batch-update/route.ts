@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { transactions, categoryRules } from '@/lib/db/schema';
 import { eq, inArray } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
+
     const body = await request.json();
     const { transactionIds, updates, incrementRuleUsage = false } = body;
 

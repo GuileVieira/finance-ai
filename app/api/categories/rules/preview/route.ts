@@ -13,12 +13,12 @@ import { TransactionClusteringService } from '@/lib/services/transaction-cluster
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories } from '@/lib/db/schema';
 import { eq, sql, like } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 interface PreviewRequest {
   description: string;
   pattern?: string;
   ruleType?: 'contains' | 'wildcard' | 'exact' | 'regex';
-  companyId?: string;
 }
 
 interface PatternMatch {
@@ -36,6 +36,7 @@ interface PatternMatch {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body: PreviewRequest = await request.json();
 
     if (!body.description && !body.pattern) {
@@ -47,8 +48,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const companyId = body.companyId || 'default-company';
     const results: {
       suggestedPatterns: ReturnType<typeof RuleGenerationService.extractPattern>['alternativePatterns'];
       bestPattern: {
@@ -120,6 +119,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RULE-PREVIEW-API] Error:', error);
     return NextResponse.json(
       {
@@ -219,6 +221,7 @@ async function findMatchingTransactions(
  */
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const pattern = searchParams.get('pattern');
     const ruleType = searchParams.get('ruleType') || 'contains';
@@ -247,6 +250,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[RULE-PREVIEW-API] Error testing pattern:', error);
     return NextResponse.json(
       {

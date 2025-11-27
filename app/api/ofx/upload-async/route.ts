@@ -8,22 +8,25 @@ import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
 import { getBankByCode, getBankName } from '@/lib/data/brazilian-banks';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    const { companyId } = await requireAuth();
+
     console.log('\n=== [OFX-UPLOAD-ASYNC] Nova requisição de upload assíncrono ===');
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
 
-    // Obter empresa e conta padrão
-    const defaultCompany = await getDefaultCompany();
+    // Obter empresa do usuário autenticado
+    const [defaultCompany] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!defaultCompany) {
       return NextResponse.json({
         success: false,
-        error: 'Nenhuma empresa encontrada. Configure uma empresa primeiro.'
+        error: 'Empresa não encontrada.'
       }, { status: 400 });
     }
 
@@ -353,7 +356,8 @@ async function processOFXAsync(
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  await requireAuth();
   return NextResponse.json({
     message: 'API de Upload Assíncrono OFX',
     endpoint: '/api/ofx/upload-async',

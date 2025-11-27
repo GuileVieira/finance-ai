@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { db } from '@/lib/db/connection';
 import { categories, transactions } from '@/lib/db/schema';
-import { eq, isNull, desc, sql } from 'drizzle-orm';
+import { eq, isNull, desc, sql, and } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export interface CategoryResponse {
   id: string;
@@ -15,12 +16,13 @@ export interface CategoryResponse {
 // GET - Buscar categorias distintas usadas nas transações
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
     const includeEmpty = searchParams.get('includeEmpty');
 
-    console.log('🏷️ [CATEGORIES-DISTINCT-API] Buscando categorias distintas:', { includeEmpty });
+    console.log('🏷️ [CATEGORIES-DISTINCT-API] Buscando categorias distintas:', { includeEmpty, companyId });
 
     // Buscar categorias que têm transações (usando DISTINCT)
     let query = db
@@ -33,6 +35,10 @@ export async function GET(request: NextRequest) {
       })
       .from(categories)
       .innerJoin(transactions, eq(categories.id, transactions.categoryId))
+      .where(and(
+        eq(categories.companyId, companyId),
+        eq(transactions.companyId, companyId)
+      ))
       .groupBy(categories.id, categories.name, categories.type, categories.colorHex)
       .orderBy(sql`count(*) DESC`);
 
@@ -48,7 +54,10 @@ export async function GET(request: NextRequest) {
         })
         .from(categories)
         .leftJoin(transactions, eq(categories.id, transactions.categoryId))
-        .where(isNull(transactions.categoryId));
+        .where(and(
+          eq(categories.companyId, companyId),
+          isNull(transactions.categoryId)
+        ));
 
       const emptyCategories = await emptyCategoriesQuery;
 
@@ -71,6 +80,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('❌ Erro ao buscar categorias distintas:', error);
     return NextResponse.json({
       success: false,

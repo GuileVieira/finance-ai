@@ -3,6 +3,7 @@ import { db } from '@/lib/db/connection';
 import { companies, accounts } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
+import { requireAuth } from '@/lib/auth/get-session';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -11,6 +12,8 @@ interface RouteParams {
 // GET - Obter empresa por ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth();
+
     await initializeDatabase();
 
     const { id } = await params;
@@ -57,6 +60,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT - Atualizar empresa
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth();
+
     await initializeDatabase();
 
     const { id } = await params;
@@ -139,6 +144,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE - Desativar empresa
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    await requireAuth();
+
     await initializeDatabase();
 
     const { id } = await params;

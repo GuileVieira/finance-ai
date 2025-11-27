@@ -4,6 +4,11 @@ import { companies, accounts, categories } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
+  // Desativar em produção
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Endpoint desativado em produção' }, { status: 404 });
+  }
+
   try {
     console.log('🚀 [DB-INIT] Inicializando dados no PostgreSQL...');
 

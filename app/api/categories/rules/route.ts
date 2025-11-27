@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoryRulesService from '@/lib/services/category-rules.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
 
     // Parse filters from query params
@@ -20,6 +22,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-RULES-API] Error fetching category rules:', error);
     return NextResponse.json(
       {
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body = await request.json();
 
     // Validate required fields
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
       const validation = await CategoryRulesService.validateRuleCreation(
         body.rulePattern,
         body.categoryId,
-        body.companyId
+        companyId
       );
 
       return NextResponse.json({
@@ -70,7 +76,7 @@ export async function POST(request: NextRequest) {
       rulePattern: body.rulePattern,
       ruleType: body.ruleType,
       categoryId: body.categoryId,
-      companyId: body.companyId,
+      companyId, // Always from session
       confidenceScore: body.confidenceScore,
       active: body.active,
       skipValidation: body.skipValidation
@@ -85,6 +91,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-RULES-API] Error creating category rule:', error);
 
     // Verificar se é erro de duplicata
@@ -105,6 +114,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -129,6 +139,9 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-RULES-API] Error updating category rule:', error);
     return NextResponse.json(
       {
@@ -143,6 +156,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await requireAuth();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -164,6 +178,9 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-RULES-API] Error deleting category rule:', error);
     return NextResponse.json(
       {

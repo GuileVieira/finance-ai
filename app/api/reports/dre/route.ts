@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DREService from '@/lib/services/dre.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId: sessionCompanyId } = await requireAuth();
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'current';
     const includeComparison = searchParams.get('compare') === 'true';
-    const companyId = searchParams.get('companyId') || undefined;
+    const companyId = sessionCompanyId; // Usar companyId da sessão
     const accountId = searchParams.get('accountId') || undefined;
 
     console.log('📊 [DRE-API] Buscando DRE com filtros:', { period, includeComparison, companyId, accountId });
@@ -54,10 +56,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId: sessionCompanyId } = await requireAuth();
     await initializeDatabase();
 
     const body = await request.json();
-    const { period, companyId, accountId } = body;
+    const { period, accountId } = body;
+    const companyId = sessionCompanyId; // Usar companyId da sessão
 
     console.log('📊 [DRE-API] Calculando DRE com filtros:', { period, companyId, accountId });
 

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireAuth();
     const { id: uploadId } = await params;
 
     console.log(`📊 [PROGRESS] Consultando progresso do upload: ${uploadId}`);

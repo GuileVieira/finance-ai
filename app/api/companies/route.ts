@@ -3,10 +3,13 @@ import { db } from '@/lib/db/connection';
 import { companies } from '@/lib/db/schema';
 import { eq, desc, like } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // GET - Listar empresas
 export async function GET(request: NextRequest) {
   try {
+    await requireAuth();
+
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
@@ -63,6 +66,8 @@ export async function GET(request: NextRequest) {
 // POST - Criar nova empresa
 export async function POST(request: NextRequest) {
   try {
+    await requireAuth();
+
     await initializeDatabase();
 
     const body = await request.json();

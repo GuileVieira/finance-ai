@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const { searchParams } = new URL(request.url);
 
-    // Parse filters from query params
+    // Parse filters from query params - FORÇAR companyId da sessão
     const filters = {
-      type: searchParams.get('type') as any,
-      companyId: searchParams.get('companyId') || undefined,
+      type: searchParams.get('type') as 'income' | 'expense' | undefined,
+      companyId, // SEMPRE da sessão
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
       includeStats: searchParams.get('includeStats') === 'true',
       search: searchParams.get('search') || undefined,
-      sortBy: searchParams.get('sortBy') as any || 'totalAmount',
-      sortOrder: searchParams.get('sortOrder') as any || 'desc'
+      sortBy: (searchParams.get('sortBy') as 'name' | 'totalAmount' | 'transactionCount') || 'totalAmount',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
     };
 
     const categories = await CategoriesService.getCategories(filters);
@@ -25,6 +27,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-API] Error fetching categories:', error);
     return NextResponse.json(
       {
@@ -39,6 +44,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const body = await request.json();
 
     // Validate required fields
@@ -52,7 +58,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const category = await CategoriesService.createCategory(body);
+    // FORÇAR companyId da sessão
+    const category = await CategoriesService.createCategory({ ...body, companyId });
 
     return NextResponse.json({
       success: true,
@@ -61,6 +68,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-API] Error creating category:', error);
     return NextResponse.json(
       {
@@ -75,6 +85,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -90,7 +101,8 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    const category = await CategoriesService.updateCategory({ id, ...body });
+    // FORÇAR companyId da sessão para garantir que só atualiza categorias da empresa
+    const category = await CategoriesService.updateCategory({ id, ...body, companyId });
 
     return NextResponse.json({
       success: true,
@@ -99,6 +111,9 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-API] Error updating category:', error);
     return NextResponse.json(
       {
@@ -113,6 +128,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { companyId } = await requireAuth();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -126,7 +142,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await CategoriesService.deleteCategory(id);
+    // TODO: Verificar se categoria pertence à empresa antes de deletar
+    await CategoriesService.deleteCategory(id, companyId);
 
     return NextResponse.json({
       success: true,
@@ -134,6 +151,9 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
+    }
     console.error('[CATEGORIES-API] Error deleting category:', error);
     return NextResponse.json(
       {
