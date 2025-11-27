@@ -285,7 +285,8 @@ export default function CategoriesPage() {
   }, [viewingCategory, transactionsPage, transactionsLimit]);
 
   // Tratamento de erros (depois de todos os hooks)
-  if (error) {
+  // Não mostra erro se simplesmente não há categorias
+  if (error && !error.message?.includes('fetch')) {
     return (
       <LayoutWrapper>
         <div className="flex items-center justify-center h-64">

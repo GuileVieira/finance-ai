@@ -109,6 +109,16 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
+
+    // Se não houver empresa configurada, retorna lista vazia ao invés de erro
+    if (error instanceof Error && (error.message.includes('companyId') || error.message.includes('empresa'))) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        count: 0
+      });
+    }
+
     console.error('[CATEGORIES-WITH-TRANSACTIONS-API] Error fetching categories with transactions:', error);
     return NextResponse.json(
       {
