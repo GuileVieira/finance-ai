@@ -42,18 +42,29 @@ export default function LoginPage() {
       return;
     }
 
-    // Mock login - aceita qualquer email válido + 8+ caracteres
-    setTimeout(() => {
-      if (email && password) {
-        // Simula login bem-sucedido
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userName', email.split('@')[0]);
+        localStorage.setItem('userName', data.user.name);
         router.push('/dashboard');
       } else {
-        setError('Por favor, preencha todos os campos');
+        setError(data.error || 'Erro ao fazer login');
       }
+    } catch (error) {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -175,21 +186,6 @@ export default function LoginPage() {
           </form>
         </Card>
 
-        {/* Demo Credentials Info */}
-        <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-          <p className="text-xs text-primary font-medium mb-2">
-            📋 Modo Demo - Credenciais de Teste:
-          </p>
-          <p className="text-xs text-info mb-1">
-            Email: demo@financeai.com
-          </p>
-          <p className="text-xs text-info mb-1">
-            Senha: FinanceAI123
-          </p>
-          <p className="text-xs text-primary/80 mt-2">
-            Ou use qualquer email válido + 8+ caracteres de senha
-          </p>
-        </div>
       </div>
     </div>
   );
