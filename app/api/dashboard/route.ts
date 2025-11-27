@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
-import { DashboardAPI, DashboardFilters } from '@/lib/api/dashboard';
+import { DashboardFilters } from '@/lib/api/dashboard';
 import DashboardService from '@/lib/services/dashboard.service';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // GET - Buscar dados completos do dashboard
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticação e obter companyId da sessão
+    const session = await requireAuth();
+
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
 
-    // Parse filtros
-    const filters: DashboardFilters = {};
+    // Parse filtros - FORÇAR companyId da sessão
+    const filters: DashboardFilters = {
+      companyId: session.companyId, // Sempre usar companyId da sessão
+    };
 
     if (searchParams.get('period')) {
       filters.period = searchParams.get('period')!;
     }
 
-    if (searchParams.get('companyId')) {
-      filters.companyId = searchParams.get('companyId')!;
-    }
+    // Ignorar companyId da query string - usar sempre o da sessão
 
     if (searchParams.get('accountId')) {
       filters.accountId = searchParams.get('accountId')!;
@@ -46,6 +50,14 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    // Verificar se é erro de autenticação
+    if (error instanceof Error && error.message === 'Não autenticado') {
+      return NextResponse.json({
+        success: false,
+        error: 'Não autenticado'
+      }, { status: 401 });
+    }
+
     console.error('❌ Erro ao buscar dados do dashboard:', error);
     return NextResponse.json({
       success: false,

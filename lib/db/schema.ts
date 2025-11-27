@@ -9,7 +9,8 @@ import {
   timestamp,
   integer,
   json,
-  index
+  index,
+  unique
 } from 'drizzle-orm/pg-core';
 
 // Empresas
@@ -167,18 +168,32 @@ export const transactions = pgTable('financeai_transactions', {
   categoryDateIdx: index('idx_transactions_category_date').on(table.categoryId, table.transactionDate.desc())
 }));
 
-// Usuários (simplificado para MVP)
+// Usuários
 export const users = pgTable('financeai_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }),
   active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
   emailIdx: index('idx_users_email').on(table.email),
   activeIdx: index('idx_users_active').on(table.active)
+}));
+
+// Relação usuário-empresa (multi-tenancy)
+export const userCompanies = pgTable('financeai_user_companies', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }).notNull(),
+  role: varchar('role', { length: 20 }).default('owner').notNull(),
+  isDefault: boolean('is_default').default(false),
+  createdAt: timestamp('created_at').defaultNow()
+}, (table) => ({
+  userIdIdx: index('idx_user_companies_user_id').on(table.userId),
+  companyIdIdx: index('idx_user_companies_company_id').on(table.companyId),
+  uniqueUserCompany: unique('unique_user_company').on(table.userId, table.companyId)
 }));
 
 // Regras de categorização automática
@@ -271,6 +286,22 @@ export const aiModelPricing = pgTable('financeai_ai_model_pricing', {
   activeIdx: index('idx_ai_pricing_active').on(table.active)
 }));
 
+// Thresholds configuráveis para insights
+export const insightThresholds = pgTable('financeai_insight_thresholds', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  insightType: varchar('insight_type', { length: 50 }).notNull(),
+  thresholdKey: varchar('threshold_key', { length: 50 }).notNull(),
+  thresholdValue: decimal('threshold_value', { precision: 15, scale: 4 }).notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  companyIdIdx: index('idx_insight_thresholds_company_id').on(table.companyId),
+  insightTypeIdx: index('idx_insight_thresholds_insight_type').on(table.insightType),
+  uniqueThreshold: index('idx_insight_thresholds_unique').on(table.companyId, table.insightType, table.thresholdKey)
+}));
+
 // Logs de uso de IA (detalhado por chamada)
 export const aiUsageLogs = pgTable('financeai_ai_usage_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -328,6 +359,9 @@ export type NewTransaction = typeof transactions.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
+export type UserCompany = typeof userCompanies.$inferSelect;
+export type NewUserCompany = typeof userCompanies.$inferInsert;
+
 export type CategoryRule = typeof categoryRules.$inferSelect;
 export type NewCategoryRule = typeof categoryRules.$inferInsert;
 
@@ -342,3 +376,6 @@ export type NewRuleFeedback = typeof ruleFeedback.$inferInsert;
 
 export type TransactionCluster = typeof transactionClusters.$inferSelect;
 export type NewTransactionCluster = typeof transactionClusters.$inferInsert;
+
+export type InsightThreshold = typeof insightThresholds.$inferSelect;
+export type NewInsightThreshold = typeof insightThresholds.$inferInsert;

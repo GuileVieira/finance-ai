@@ -7,14 +7,15 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -24,9 +25,9 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    // Validações básicas
-    if (!email || !password) {
-      setError('Preencha todos os campos');
+    // Validações
+    if (!name || !email || !password) {
+      setError('Preencha todos os campos obrigatórios');
       setLoading(false);
       return;
     }
@@ -43,7 +44,29 @@ export default function LoginPage() {
       return;
     }
 
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem');
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Criar conta
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, companyName }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.error || 'Erro ao criar conta');
+        setLoading(false);
+        return;
+      }
+
+      // Login automático após signup
       const result = await signIn('credentials', {
         email,
         password,
@@ -51,10 +74,10 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Email ou senha incorretos');
+        setError('Conta criada! Faça login para continuar.');
+        router.push('/login');
       } else {
         router.push('/dashboard');
-        router.refresh();
       }
     } catch (err) {
       setError('Erro de conexão. Tente novamente.');
@@ -79,10 +102,10 @@ export default function LoginPage() {
         <Card className="shadow-lg border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-foreground">
-              Bem-vindo!
+              Criar Conta
             </CardTitle>
             <CardDescription className="text-center text-muted-foreground">
-              Faça login na sua conta
+              Preencha os dados para começar
             </CardDescription>
           </CardHeader>
 
@@ -95,8 +118,24 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium text-foreground">
+                  Nome *
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Seu nome completo"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full"
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                  📧 Email
+                  Email *
                 </Label>
                 <Input
                   id="email"
@@ -112,12 +151,12 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                  🔒 Senha
+                  Senha *
                 </Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••••••••••••••"
+                  placeholder="Mínimo 8 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full"
@@ -127,19 +166,36 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+                  Confirmar Senha *
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Digite a senha novamente"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full"
+                  disabled={loading}
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyName" className="text-sm font-medium text-foreground">
+                  Nome da Empresa (opcional)
+                </Label>
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Nome da sua empresa"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className="w-full"
                   disabled={loading}
                 />
-                <Label
-                  htmlFor="remember"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  Manter conectado
-                </Label>
               </div>
             </CardContent>
 
@@ -152,36 +208,25 @@ export default function LoginPage() {
                 {loading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin" />
-                    <span>Entrando...</span>
+                    <span>Criando conta...</span>
                   </div>
                 ) : (
-                  "Entrar"
+                  "Criar Conta"
                 )}
               </Button>
 
-              <div className="text-center space-y-2 text-sm">
-                <div>
-                  <Link
-                    href="/forgot-password"
-                    className="text-primary hover:text-primary/80 hover:underline"
-                  >
-                    Esqueceu a senha?
-                  </Link>
-                </div>
-                <div className="text-muted-foreground">
-                  Não tem conta?{" "}
-                  <Link
-                    href="/signup"
-                    className="text-primary hover:text-primary/80 hover:underline"
-                  >
-                    Cadastre-se
-                  </Link>
-                </div>
+              <div className="text-center text-sm text-muted-foreground">
+                Já tem conta?{" "}
+                <Link
+                  href="/login"
+                  className="text-primary hover:text-primary/80 hover:underline"
+                >
+                  Faça login
+                </Link>
               </div>
             </CardFooter>
           </form>
         </Card>
-
       </div>
     </div>
   );
