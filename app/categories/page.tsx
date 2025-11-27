@@ -90,27 +90,6 @@ export default function CategoriesPage() {
   const deleteRule = useDeleteCategoryRule();
   const toggleRule = useToggleCategoryRuleActive();
 
-  // Tratamento de erros
-  if (error) {
-    return (
-      <LayoutWrapper>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-destructive mb-2">
-              Erro ao carregar categorias
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {error.message}
-            </p>
-            <Button onClick={() => refetch()} variant="outline">
-              Tentar novamente
-            </Button>
-          </div>
-        </div>
-      </LayoutWrapper>
-    );
-  }
-
   // Handlers para operações com categorias
   const handleCreateCategory = (categoryData: any) => {
     toast({
@@ -304,6 +283,27 @@ export default function CategoriesPage() {
       isCancelled = true;
     };
   }, [viewingCategory, transactionsPage, transactionsLimit]);
+
+  // Tratamento de erros (depois de todos os hooks)
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-destructive mb-2">
+              Erro ao carregar categorias
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {error.message}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
