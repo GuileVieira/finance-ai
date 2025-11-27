@@ -129,13 +129,10 @@ export const brazilianBanks: BrazilianBank[] = [
   { code: '747', ispb: '01023570', name: 'Banco Rabobank International Brasil S.A.', shortName: 'Rabobank', color: '#FF6600' },
   { code: '120', ispb: '33603457', name: 'Banco Rodobens S.A.', shortName: 'Rodobens', color: '#003366' },
   { code: '453', ispb: '60850229', name: 'Banco Rural S.A.', shortName: 'Rural', color: '#003366' },
-  { code: '422', ispb: '58160789', name: 'Banco Safra S.A.', shortName: 'Safra', color: '#003366' },
   { code: '751', ispb: '29030467', name: 'Scotiabank Brasil S.A. Banco Múltiplo', shortName: 'Scotiabank', color: '#EC111A' },
   { code: '366', ispb: '61182408', name: 'Banco Société Générale Brasil S.A.', shortName: 'Société Générale', color: '#E31837' },
-  { code: '637', ispb: '60889128', name: 'Banco Sofisa S.A.', shortName: 'Sofisa', color: '#FF6B00' },
   { code: '464', ispb: '60518222', name: 'Banco Sumitomo Mitsui Brasileiro S.A.', shortName: 'Sumitomo Mitsui', color: '#003366' },
   { code: '634', ispb: '17351180', name: 'Banco Triângulo S.A.', shortName: 'Triângulo', color: '#003366' },
-  { code: '655', ispb: '59588111', name: 'Banco Votorantim S.A.', shortName: 'Votorantim', color: '#FF6600' },
   { code: '610', ispb: '78626983', name: 'Banco VR S.A.', shortName: 'VR', color: '#003366' },
   { code: '119', ispb: '13720915', name: 'Banco Western Union do Brasil S.A.', shortName: 'Western Union', color: '#FFCC00' },
 
