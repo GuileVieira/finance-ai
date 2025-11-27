@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '../shared/header';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -8,20 +9,29 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+// Rotas públicas que não precisam de autenticação
+const PUBLIC_ROUTES = ['/login', '/signup'];
+
 export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
-  const { isLoggedIn, isLoading, redirectIfNotLoggedIn } = useAuth();
+  const router = useRouter();
+  const { isLoggedIn, isLoading } = useAuth();
 
-  // Redirecionar se não estiver logado (exceto na página de login)
-  if (!isLoading && !isLoggedIn && pathname !== '/login') {
-    redirectIfNotLoggedIn();
-  }
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
-  // Se for página de login, renderiza sem o header
-  if (pathname === '/login') {
+  // Redirecionar se não estiver logado (usando useEffect, não durante render)
+  useEffect(() => {
+    if (!isLoading && !isLoggedIn && !isPublicRoute) {
+      router.push('/login');
+    }
+  }, [isLoading, isLoggedIn, isPublicRoute, router]);
+
+  // Páginas públicas - renderiza sem header
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
+  // Loading
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -30,10 +40,12 @@ export function MainLayout({ children }: MainLayoutProps) {
     );
   }
 
+  // Não logado e não é rota pública - não renderiza nada (vai redirecionar)
   if (!isLoggedIn) {
-    return <>{children}</>;
+    return null;
   }
 
+  // Logado - renderiza com header
   return (
     <div className="min-h-screen bg-background">
       <Header />

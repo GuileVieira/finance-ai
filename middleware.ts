@@ -1,9 +1,8 @@
-import { auth } from '@/lib/auth/auth';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const { pathname } = req.nextUrl;
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
   // Rotas públicas que não precisam de autenticação
   const publicRoutes = ['/login', '/signup', '/api/auth'];
@@ -14,15 +13,19 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Verificar se existe token de sessão do NextAuth
+  const token = request.cookies.get('authjs.session-token') ||
+                request.cookies.get('__Secure-authjs.session-token');
+
   // Redirecionar para login se não autenticado
-  if (!isLoggedIn) {
-    const loginUrl = new URL('/login', req.url);
+  if (!token) {
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

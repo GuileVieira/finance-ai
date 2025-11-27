@@ -96,7 +96,7 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                  📧 Email
+                  Email
                 </Label>
                 <Input
                   id="email"
@@ -112,7 +112,7 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                  🔒 Senha
+                  Senha
                 </Label>
                 <Input
                   id="password"
