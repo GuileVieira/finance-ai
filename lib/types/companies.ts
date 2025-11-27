@@ -155,13 +155,15 @@ export const validateCNPJ = (cnpj: string): boolean => {
 };
 
 // Função para formatar CNPJ
-export const formatCNPJ = (cnpj: string): string => {
-  cnpj = cnpj.replace(/\D/g, '');
-  return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+export const formatCNPJ = (cnpj: string | null | undefined): string => {
+  if (!cnpj) return '';
+  const cleaned = cnpj.replace(/\D/g, '');
+  return cleaned.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 };
 
 // Função para formatar CEP
-export const formatCEP = (cep: string): string => {
-  cep = cep.replace(/\D/g, '');
-  return cep.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+export const formatCEP = (cep: string | null | undefined): string => {
+  if (!cep) return '';
+  const cleaned = cep.replace(/\D/g, '');
+  return cleaned.replace(/^(\d{5})(\d{3})$/, '$1-$2');
 };

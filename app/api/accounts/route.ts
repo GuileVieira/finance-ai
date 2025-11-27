@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { accounts, companies, transactions } from '@/lib/db/schema';
-import { eq, desc, like, sum, sql } from 'drizzle-orm';
+import { eq, desc, like, sum, sql, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
+import { requireAuth } from '@/lib/auth/get-session';
 
 // GET - Listar contas
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticação e obter companyId da sessão
+    const session = await requireAuth();
+
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
+    // FORÇAR companyId da sessão - ignorar query string
+    const companyId = session.companyId;
     const active = searchParams.get('active');
     const search = searchParams.get('search');
 
@@ -36,11 +41,9 @@ export async function GET(request: NextRequest) {
     .from(accounts)
     .leftJoin(companies, eq(accounts.companyId, companies.id));
 
-    // Filtros
-    const conditions = [];
-    if (companyId) {
-      conditions.push(eq(accounts.companyId, companyId));
-    }
+    // Filtros - SEMPRE filtrar por companyId da sessão
+    const conditions = [eq(accounts.companyId, companyId)];
+
     if (active !== null) {
       conditions.push(eq(accounts.active, active === 'true'));
     }
@@ -50,15 +53,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Aplicar filtros se existirem
-    if (conditions.length > 0) {
-      query = query.where(
-        conditions.length === 1
-          ? conditions[0]
-          : // @ts-ignore
-            conditions.reduce((acc, condition) => acc && condition)
-      );
-    }
+    // Aplicar filtros
+    query = query.where(and(...conditions));
 
     // Ordenação
     query = query.orderBy(desc(accounts.createdAt));
