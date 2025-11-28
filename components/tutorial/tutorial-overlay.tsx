@@ -80,15 +80,18 @@ export function TutorialOverlay({
     return null;
   }
 
+  // Se tooltip é centralizado, não mostrar spotlight (permite scroll livre)
+  const showSpotlight = step.tooltipPosition !== 'center';
+
   return createPortal(
     <div className="tutorial-overlay" role="dialog" aria-modal="true">
-      {/* Spotlight/Overlay escuro */}
-      <TutorialSpotlight targetRect={targetRect} />
+      {/* Spotlight/Overlay escuro - apenas se não for centralizado */}
+      {showSpotlight && <TutorialSpotlight targetRect={targetRect} />}
 
       {/* Tooltip com informações do step */}
       <TutorialTooltip
         step={step}
-        targetRect={targetRect}
+        targetRect={showSpotlight ? targetRect : null}
         onNext={onNext}
         onSkip={onSkip}
         onClose={onClose}
