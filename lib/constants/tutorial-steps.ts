@@ -72,7 +72,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'O sistema já vem com categorias pré-configuradas para classificar suas transações. Explore e personalize se necessário!',
     route: '/settings/categories',
     targetSelector: '[data-tutorial="categories-list"]',
-    tooltipPosition: 'top',
+    tooltipPosition: 'bottom',
     completionCheck: {
       type: 'localStorage',
       key: 'tutorial-categories-viewed',

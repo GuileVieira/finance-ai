@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import type {
   TutorialState,
   TutorialStepId,
@@ -16,13 +17,12 @@ import {
   createInitialTutorialState,
   getStepByIndex,
   isFirstStep,
-  isLastStep,
 } from '@/lib/constants/tutorial-steps';
 
 /**
- * Carregar estado do localStorage
+ * Carregar estado do localStorage (fallback para quando não está autenticado)
  */
-function loadState(): TutorialState | null {
+function loadStateFromLocalStorage(): TutorialState | null {
   if (typeof window === 'undefined') return null;
 
   try {
@@ -33,27 +33,61 @@ function loadState(): TutorialState | null {
 
     // Verificar versão para migração futura
     if (state.version !== TUTORIAL_VERSION) {
-      // Por enquanto, resetar se versão diferente
       return null;
     }
 
     return state;
   } catch (error) {
-    console.warn('[Tutorial] Erro ao carregar estado:', error);
+    console.warn('[Tutorial] Erro ao carregar estado do localStorage:', error);
     return null;
   }
 }
 
 /**
- * Salvar estado no localStorage
+ * Salvar estado no localStorage (fallback)
  */
-function saveState(state: TutorialState): void {
+function saveStateToLocalStorage(state: TutorialState): void {
   if (typeof window === 'undefined') return;
 
   try {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.warn('[Tutorial] Erro ao salvar estado:', error);
+    console.warn('[Tutorial] Erro ao salvar estado no localStorage:', error);
+  }
+}
+
+/**
+ * Buscar estado do tutorial da API
+ */
+async function fetchTutorialState(): Promise<TutorialState | null> {
+  try {
+    const response = await fetch('/api/tutorial');
+    if (!response.ok) {
+      console.warn('[Tutorial] Erro ao buscar estado da API:', response.status);
+      return null;
+    }
+    const data = await response.json();
+    return data.data?.tutorialState ?? null;
+  } catch (error) {
+    console.warn('[Tutorial] Erro ao buscar estado da API:', error);
+    return null;
+  }
+}
+
+/**
+ * Salvar estado do tutorial na API
+ */
+async function saveTutorialState(state: TutorialState): Promise<boolean> {
+  try {
+    const response = await fetch('/api/tutorial', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tutorialState: state }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('[Tutorial] Erro ao salvar estado na API:', error);
+    return false;
   }
 }
 
@@ -65,20 +99,88 @@ export function useTutorial(): UseTutorialReturn {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { status: sessionStatus } = useSession();
+  const isAuthenticated = sessionStatus === 'authenticated';
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedStateRef = useRef<string>('');
 
   // Carregar estado inicial
   useEffect(() => {
-    const loadedState = loadState();
-    setState(loadedState);
-    setIsLoading(false);
-  }, []);
+    async function loadState() {
+      setIsLoading(true);
 
-  // Persistir mudanças
-  useEffect(() => {
-    if (state && !isLoading) {
-      saveState(state);
+      if (isAuthenticated) {
+        // Tentar carregar da API primeiro
+        const apiState = await fetchTutorialState();
+        if (apiState) {
+          setState(apiState);
+          lastSavedStateRef.current = JSON.stringify(apiState);
+          setIsLoading(false);
+          return;
+        }
+
+        // Se não tem estado na API, verificar localStorage e migrar
+        const localState = loadStateFromLocalStorage();
+        if (localState) {
+          // Migrar localStorage para API
+          const saved = await saveTutorialState(localState);
+          if (saved) {
+            // Limpar localStorage após migração
+            localStorage.removeItem(TUTORIAL_STORAGE_KEY);
+          }
+          setState(localState);
+          lastSavedStateRef.current = JSON.stringify(localState);
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Não autenticado, usar localStorage
+        const localState = loadStateFromLocalStorage();
+        if (localState) {
+          setState(localState);
+          lastSavedStateRef.current = JSON.stringify(localState);
+        }
+      }
+
+      setIsLoading(false);
     }
-  }, [state, isLoading]);
+
+    loadState();
+  }, [isAuthenticated]);
+
+  // Persistir mudanças com debounce
+  useEffect(() => {
+    if (!state || isLoading) return;
+
+    const currentStateStr = JSON.stringify(state);
+
+    // Não salvar se o estado não mudou
+    if (currentStateStr === lastSavedStateRef.current) return;
+
+    // Cancelar timeout anterior se existir
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce de 500ms para evitar muitas chamadas
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (isAuthenticated) {
+        const saved = await saveTutorialState(state);
+        if (saved) {
+          lastSavedStateRef.current = currentStateStr;
+        }
+      } else {
+        saveStateToLocalStorage(state);
+        lastSavedStateRef.current = currentStateStr;
+      }
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [state, isLoading, isAuthenticated]);
 
   // Computed values
   const isActive = useMemo(() => {
@@ -328,13 +430,21 @@ export function useTutorial(): UseTutorialReturn {
     }
   }, [state, pathname, router]);
 
-  const resetTutorial = useCallback(() => {
+  const resetTutorial = useCallback(async () => {
+    // Limpar localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TUTORIAL_STORAGE_KEY);
       localStorage.removeItem('tutorial-categories-viewed');
     }
+
+    // Limpar no banco (salvar estado null)
+    if (isAuthenticated) {
+      await saveTutorialState(createInitialTutorialState());
+    }
+
     setState(null);
-  }, []);
+    lastSavedStateRef.current = '';
+  }, [isAuthenticated]);
 
   return {
     // Estado

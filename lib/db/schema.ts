@@ -174,6 +174,7 @@ export const users = pgTable('financeai_users', {
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }),
+  tutorialState: json('tutorial_state'), // Estado do tutorial do usuário (JSONB)
   active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
