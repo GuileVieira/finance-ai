@@ -49,16 +49,16 @@ export function TutorialOverlay({
     }
   }, [isOnCorrectRoute, step.route, router]);
 
-  // Scroll para o elemento quando mudar de step
+  // Scroll para o elemento quando mudar de step (apenas se não for posição center)
   useEffect(() => {
-    if (targetRect) {
+    if (targetRect && step.tooltipPosition !== 'center') {
       // Pequeno delay para animação suave
       const timeoutId = setTimeout(() => {
         scrollToElement(step.targetSelector);
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [step.id, targetRect, scrollToElement, step.targetSelector]);
+  }, [step.id, targetRect, scrollToElement, step.targetSelector, step.tooltipPosition]);
 
   // Keyboard navigation
   useEffect(() => {
