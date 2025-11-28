@@ -21,7 +21,8 @@ import { QueryClientProviderWrapper } from "@/components/providers/query-client-
 import { AuthProvider } from "@/components/providers/session-provider";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ThemeProvider } from "next-themes";
-import { TutorialProvider } from "@/components/tutorial";
+// Tutorial desativado temporariamente devido a bugs
+// import { TutorialProvider } from "@/components/tutorial";
 
 export default function RootLayout({
   children,
@@ -41,11 +42,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <QueryClientProviderWrapper>
-              <TutorialProvider>
-                <MainLayout>
-                  {children}
-                </MainLayout>
-              </TutorialProvider>
+              <MainLayout>
+                {children}
+              </MainLayout>
             </QueryClientProviderWrapper>
           </ThemeProvider>
         </AuthProvider>
