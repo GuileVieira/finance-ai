@@ -4,7 +4,7 @@ export interface TransactionFilters {
   accountId?: string;
   companyId?: string;
   categoryId?: string;
-  type?: 'income' | 'expense';
+  type?: 'income' | 'expense' | 'credit' | 'debit';
   verified?: boolean;
   startDate?: string;
   endDate?: string;
@@ -15,10 +15,12 @@ export interface TransactionFilters {
 
 export interface TransactionResponse {
   transactions: Transaction[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface TransactionStats {

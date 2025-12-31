@@ -8,13 +8,17 @@ import { memo } from 'react';
 
 interface MetricCardProps {
   metric: MetricCardType;
+  onClick?: () => void;
 }
 
-export const MetricCard = memo(function MetricCard({ metric }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCardProps) {
   const isPositive = metric.changeType === 'increase';
 
   return (
-    <Card>
+    <Card
+      className={onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}
+      onClick={onClick}
+    >
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">

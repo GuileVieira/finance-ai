@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo, useCallback } from 'react';
 import { TransactionsAPI, TransactionFilters, TransactionResponse, TransactionStats } from '@/lib/api/transactions';
 
@@ -181,6 +181,7 @@ export function useTransactions(
     refetch,
     invalidateCache,
     prefetchNextPage,
+    updateTransactionCategory,
 
     // Flags úteis
     isEmpty: !isLoading && transactions.length === 0,
@@ -195,6 +196,7 @@ export function useInfiniteTransactions(
   filters: UIFilters = {},
   options: UseTransactionsOptions = {}
 ) {
+  const queryClient = useQueryClient();
   const apiFilters = useMemo(() => {
     return TransactionsAPI.convertUIToAPIFilters(filters);
   }, [filters]);
@@ -207,10 +209,15 @@ export function useInfiniteTransactions(
     hasNextPage,
     isFetchingNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['transactions-infinite', apiFilters],
-    queryFn: ({ pageParam = 1 }) =>
-      TransactionsAPI.getTransactions({ ...apiFilters, page: pageParam }),
+    queryFn: ({ pageParam }) =>
+      TransactionsAPI.getTransactions({ ...apiFilters, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages
+        ? lastPage.pagination.page + 1
+        : undefined,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
     enabled: options.enabled !== false,
@@ -221,20 +228,17 @@ export function useInfiniteTransactions(
   // Transações concatenadas de todas as páginas
   const transactions = useMemo(() => {
     if (!data) return [];
-    if (Array.isArray(data)) {
-      return data.flatMap(page => page.transactions);
-    }
-    return data.transactions || [];
+    return data.pages.flatMap(page => page.transactions);
   }, [data]);
 
-  // Paginação
+  // Paginação - pegar da última página
   const pagination = useMemo(() => {
-    const lastPage = Array.isArray(data) ? data[data.length - 1] : data;
+    const lastPage = data?.pages[data.pages.length - 1];
     return lastPage ? {
-      total: lastPage.total,
-      page: lastPage.page,
-      limit: lastPage.limit,
-      totalPages: lastPage.totalPages,
+      total: lastPage.pagination.total,
+      page: lastPage.pagination.page,
+      limit: lastPage.pagination.limit,
+      totalPages: lastPage.pagination.totalPages,
     } : {
       total: 0,
       page: 1,
@@ -242,6 +246,80 @@ export function useInfiniteTransactions(
       totalPages: 0,
     };
   }, [data]);
+
+  // Mutação para atualizar categoria de uma transação
+  const updateTransactionCategory = useMutation({
+    mutationFn: async ({ transactionId, categoryId }: { transactionId: string; categoryId: string }) => {
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar transação');
+      }
+
+      const result = await response.json();
+      return result.data;
+    },
+    onSuccess: (updatedTransaction, { transactionId, categoryId }) => {
+      // Atualizar o cache local com a transação atualizada
+      queryClient.setQueriesData(
+        { queryKey: ['transactions'] },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+
+          if (Array.isArray(oldData)) {
+            // Para paginação múltipla (não aplicável diretamente aqui mas mantido por segurança)
+            return oldData.map(page => ({
+              ...page,
+              transactions: page.transactions.map((t: any) =>
+                t.id === transactionId
+                  ? { ...t, categoryId, categoryName: updatedTransaction.category?.name || 'Categoria atualizada' }
+                  : t
+              )
+            }));
+          } else {
+            // Estrutura TransactionResponse
+            return {
+              ...oldData,
+              transactions: oldData.transactions.map((t: any) =>
+                t.id === transactionId
+                  ? { ...t, categoryId, categoryName: updatedTransaction.category?.name || 'Categoria atualizada' }
+                  : t
+              )
+            };
+          }
+        }
+      );
+
+      // Atualizar cache infinito também
+      queryClient.setQueryData(
+        ['transactions-infinite', apiFilters],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              transactions: page.transactions.map((t: any) =>
+                t.id === transactionId
+                  ? { ...t, categoryId, categoryName: updatedTransaction.category?.name || 'Categoria atualizada' }
+                  : t
+              )
+            }))
+          };
+        }
+      );
+
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['transactions-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
 
   return {
     transactions,

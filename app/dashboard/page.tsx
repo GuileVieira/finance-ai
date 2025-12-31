@@ -11,31 +11,90 @@ import { Insights } from '@/components/dashboard/insights';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useDashboard } from '@/hooks/use-dashboard';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAvailablePeriods } from '@/hooks/use-periods';
+import { TransactionListSheet } from '@/components/dashboard/transaction-list-sheet';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
 
-  const [filters, setFilters] = useState({
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  /* eslint-enable @typescript-eslint/no-unused-vars */
+
+  const [filters, setFilters] = useState<{
+    period: string;
+    accountId: string;
+    companyId: string;
+    startDate?: string;
+    endDate?: string;
+  }>({
     period: 'all',
     accountId: 'all',
     companyId: 'all'
   });
 
+  const [drillDown, setDrillDown] = useState<{
+    isOpen: boolean;
+    title: string;
+    filters: any;
+  }>({
+    isOpen: false,
+    title: '',
+    filters: {}
+  });
+
   // Estabilizar funções com useCallback
   const handleFilterChange = useCallback((key: string, value: string) => {
     console.log('📝 Mudando filtro:', key, '=', value);
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => {
+      // Se mudou para período não-custom, limpa as datas
+      if (key === 'period' && value !== 'custom') {
+        return { ...prev, [key]: value, startDate: undefined, endDate: undefined };
+      }
+      return { ...prev, [key]: value };
+    });
+  }, []);
+
+  const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      setFilters(prev => ({
+        ...prev,
+        period: 'custom',
+        startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
+        endDate: range.to ? range.to.toISOString().split('T')[0] : undefined
+      }));
+    }
   }, []);
 
   const handleRefresh = useCallback(() => {
     console.log('🔄 Refresh solicitado');
     // refetch será adicionado depois
   }, []);
+
+  const handleMetricClick = useCallback((metricTitle: string) => {
+    let typeFilter = undefined;
+
+    // Mapear título do card para filtros de transação
+    if (metricTitle === 'Receitas') typeFilter = 'credit';
+    if (metricTitle === 'Despesas') typeFilter = 'debit';
+    // 'Saldo' e 'Transações' mostram tudo, ou poderíamos filtrar mais
+
+    setDrillDown({
+      isOpen: true,
+      title: `Detalhes: ${metricTitle}`,
+      filters: {
+        ...filters, // Herdamos os filtros atuais (período, conta)
+        type: typeFilter
+      }
+    });
+  }, [filters]);
 
   const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const periods = periodsResponse?.periods ?? [];
@@ -189,8 +248,17 @@ export default function DashboardPage() {
                 </SelectItem>
               ))}
               <SelectItem value="all">Todos os períodos</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
+
+          {filters.period === 'custom' && (
+            <DatePickerWithRange
+              date={dateRange}
+              onDateChange={handleDateRangeChange}
+              className="w-full sm:w-auto"
+            />
+          )}
           <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
             <SelectTrigger className="w-full sm:w-[220px]">
               <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
@@ -229,7 +297,13 @@ export default function DashboardPage() {
           ) : (
             dashboardMetrics.map((metric, index) => {
               console.log(`🎴 Renderizando card ${index}: ${metric.title}`);
-              return <MetricCard key={`${metric.title}-${index}`} metric={metric} />;
+              return (
+                <MetricCard
+                  key={`${metric.title}-${index}`}
+                  metric={metric}
+                  onClick={() => handleMetricClick(metric.title)}
+                />
+              );
             })
           )}
         </div>
@@ -272,6 +346,13 @@ export default function DashboardPage() {
             </div>
           </>
         )}
+
+        <TransactionListSheet
+          isOpen={drillDown.isOpen}
+          onClose={() => setDrillDown(prev => ({ ...prev, isOpen: false }))}
+          title={drillDown.title}
+          filters={drillDown.filters}
+        />
 
       </div>
     </LayoutWrapper>

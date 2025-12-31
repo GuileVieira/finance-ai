@@ -39,6 +39,58 @@ function categorizeRubric(rubrica: string) {
 }
 
 // Gerar categorias completas (57 = 53 rúbricas + 4 receitas)
+
+const revenueCategories = [
+  {
+    id: 'rev-1',
+    name: 'Receita de Vendas',
+    type: 'revenue',
+    color: '#10B981',
+    icon: '💰',
+    description: 'Receita operacional bruta',
+    examples: ['Venda de produtos', 'Faturamento'],
+    amount: 0,
+    transactions: 0,
+    percentage: 0
+  },
+  {
+    id: 'rev-2',
+    name: 'Receita de Serviços',
+    type: 'revenue',
+    color: '#34D399',
+    icon: '⚡',
+    description: 'Prestação de serviços',
+    examples: ['Serviços prestados', 'Mão de obra'],
+    amount: 0,
+    transactions: 0,
+    percentage: 0
+  },
+  {
+    id: 'rev-3',
+    name: 'Receitas Financeiras',
+    type: 'revenue',
+    color: '#60A5FA',
+    icon: '📈',
+    description: 'Juros e rendimentos',
+    examples: ['Rendimento de aplicação', 'Juros recebidos'],
+    amount: 0,
+    transactions: 0,
+    percentage: 0
+  },
+  {
+    id: 'rev-4',
+    name: 'Outras Receitas',
+    type: 'revenue',
+    color: '#A78BFA',
+    icon: '💎',
+    description: 'Receitas não operacionais',
+    examples: ['Venda de ativo', 'Aluguel recebido'],
+    amount: 0,
+    transactions: 0,
+    percentage: 0
+  }
+];
+
 const allCategories = [
   ...rubricas.map((rubrica: string, index: number) => {
     const categorization = categorizeRubric(rubrica);
@@ -61,23 +113,23 @@ const allCategories = [
 ];
 
 // Gerar conteúdo do arquivo mock-categories.ts
-const content = \`// Categorias geradas a partir das 53 rúbricas extraídas dos arquivos XMIND
+const content = `// Categorias geradas a partir das 53 rúbricas extraídas dos arquivos XMIND
 import { Category, AutoRule } from '@/lib/types';
 
 // 57 categorias: 53 rúbricas específicas + 4 categorias de receita
 export const mockCategories: Category[] = [
-\${allCategories.map(cat => \`  {
-    id: '\${cat.id}',
-    name: '\${cat.name}',
-    type: '\${cat.type}',
-    color: '\${cat.color}',
-    amount: \${cat.amount},
-    transactions: \${cat.transactions},
-    percentage: \${cat.percentage},
-    icon: '\${cat.icon}',
-    description: '\${cat.description}',
-    examples: \${JSON.stringify(cat.examples)}
-  }\`).join(',\n')}
+${allCategories.map(cat => `  {
+    id: '${cat.id}',
+    name: '${cat.name}',
+    type: '${cat.type}',
+    color: '${cat.color}',
+    amount: ${cat.amount},
+    transactions: ${cat.transactions},
+    percentage: ${cat.percentage},
+    icon: '${cat.icon}',
+    description: '${cat.description}',
+    examples: ${JSON.stringify(cat.examples)}
+  }`).join(',\n')}
 ];
 
 // Configuração dos tipos de categoria (mantido para compatibilidade)
@@ -110,14 +162,14 @@ export const categoryTypes = [
 
 // Regras automáticas baseadas nas 57 categorias
 export const mockAutoRules: AutoRule[] = [
-\${allCategories.filter(cat => cat.type !== 'non_operating').slice(0, 20).map((cat, index) => \`  {
-    id: '\${(index + 1).toString()}',
-    category: '\${cat.name}',
-    pattern: '\${cat.name}',
+${allCategories.filter(cat => cat.type !== 'non_operating').slice(0, 20).map((cat, index) => `  {
+    id: '${(index + 1).toString()}',
+    category: '${cat.name}',
+    pattern: '${cat.name}',
     type: 'exact',
     accuracy: 100,
     status: 'active'
-  }\`).join(',\n')}
+  }`).join(',\n')}
 ];
 
 // Sugestões para nova categoria
@@ -126,12 +178,12 @@ export const categorySuggestions = {
   descriptions: ['Categorias adicionais para organizar finanças'],
   colors: ['#10B981', '#F59E0B', '#EF4444']
 };
-\`;
+`;
 
 // Escrever arquivo
 fs.writeFileSync('./lib/mock-categories.ts', content, 'utf8');
 
-console.log(\`✅ Gerado mock-categories.ts com \${allCategories.length} categorias!\`);
+console.log(`✅ Gerado mock-categories.ts com ${allCategories.length} categorias!`);
 console.log('📊 Resumo das categorias por tipo:');
 
 const stats = allCategories.reduce((acc, cat) => {
@@ -146,17 +198,15 @@ Object.entries(stats).forEach(([type, count]) => {
     fixed_cost: 'Custos Fixos',
     non_operating: 'Não Operacionais'
   };
-  console.log(\`   \${typeNames[type as keyof typeof typeNames]}: \${count}`);
+  console.log(`   ${typeNames[type as keyof typeof typeNames] || type}: ${count}`);
 });
 
 console.log('\n🎉 Arquivo atualizado com sucesso!');
 console.log('💡 Execute: pnpm db:init para inserir as categorias no banco');
-\`;
 
 // Combinar com 4 categorias de receita para total de 57
 const finalCount = allCategories.length;
-console.log(\`📋 Total de categorias: \${finalCount} (\${53 rúbricas + 4 categorias de receita)\`);
-\`;
+console.log(`📋 Total de categorias: ${finalCount} (53 rúbricas + 4 categorias de receita)`);
 
 // Resetar cache e executar o script
 const folder = '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/.next';
@@ -164,6 +214,5 @@ if (fs.existsSync(folder)) {
   console.log('🗑️ Removendo cache do Next.js...');
   fs.rmSync(folder, { recursive: true, force: true });
 }
-\`;
 
 console.log('Script concluído com sucesso!');

@@ -31,11 +31,14 @@ export function useDashboard(
     if (filters.endDate) result.endDate = filters.endDate;
 
     // Converter período para datas se necessário
-    if (filters.period && filters.period !== 'all') {
+    if (filters.period && filters.period !== 'all' && filters.period !== 'custom') {
       const { startDate, endDate } = DashboardAPI.convertPeriodToDates(filters.period);
       result.startDate = startDate;
       result.endDate = endDate;
       console.log(`📅 Convertendo período ${filters.period} para ${startDate} até ${endDate}`);
+    } else if (filters.period === 'custom' && filters.startDate && filters.endDate) {
+      // Já estão definidos no result copiados acima, apenas logar
+      console.log(`📅 Período personalizado: ${filters.startDate} até ${filters.endDate}`);
     }
 
     return result;
@@ -88,7 +91,7 @@ export function useDashboard(
 
   // Verificar se tem filtros aplicados (período específico ou banco específico)
   const hasActiveFilters = (filters.period && filters.period !== 'all') ||
-                           (filters.accountId && filters.accountId !== 'all');
+    (filters.accountId && filters.accountId !== 'all');
 
   // isEmpty = true apenas quando NÃO tem filtros e não tem dados (usuário nunca importou)
   // Se tem filtros aplicados, não é "empty" - é só o filtro que não retornou resultados
