@@ -16,11 +16,11 @@ import { requireAuth } from '@/lib/auth/get-session';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAuth();
-    const ruleId = params.id;
+    const { id: ruleId } = await params;
 
     const [dbRule] = await db
       .select()
@@ -38,11 +38,11 @@ export async function GET(
     // Transformar para formato da API do frontend
     const rule = {
       id: dbRule.id,
-      name: dbRule.description || `Regra para ${dbRule.rulePattern}`,
-      description: dbRule.description || undefined,
+      name: `Regra para ${dbRule.rulePattern}`,
+      // description: undefined, // Field does not exist in schema
       pattern: dbRule.rulePattern,
       categoryId: dbRule.categoryId,
-      priority: dbRule.priority || 5,
+      // priority: 5, // Field does not exist in schema
       isActive: dbRule.active,
       createdAt: dbRule.createdAt,
       updatedAt: dbRule.updatedAt
@@ -70,11 +70,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAuth();
-    const ruleId = params.id;
+    const { id: ruleId } = await params;
     const body = await request.json();
 
     // Verificar se regra existe
@@ -118,13 +118,13 @@ export async function PATCH(
       updateData.active = body.active;
     }
 
-    if (body.priority !== undefined) {
-      updateData.priority = body.priority;
-    }
+    // if (body.priority !== undefined) {
+    //   updateData.priority = body.priority;
+    // }
 
-    if (body.name !== undefined || body.description !== undefined) {
-      updateData.description = body.description || body.name;
-    }
+    // if (body.name !== undefined || body.description !== undefined) {
+    //   // updateData.description = body.description || body.name; // Field does not exist
+    // }
 
     // Atualizar regra
     const [dbUpdatedRule] = await db
@@ -134,13 +134,14 @@ export async function PATCH(
       .returning();
 
     // Transformar resposta para formato da API
+    // Transformar resposta para formato da API
     const updatedRule = {
       id: dbUpdatedRule.id,
-      name: dbUpdatedRule.description || `Regra para ${dbUpdatedRule.rulePattern}`,
-      description: dbUpdatedRule.description || undefined,
+      name: `Regra para ${dbUpdatedRule.rulePattern}`,
+      // description: undefined,
       pattern: dbUpdatedRule.rulePattern,
       categoryId: dbUpdatedRule.categoryId,
-      priority: dbUpdatedRule.priority || 5,
+      // priority: 5,
       isActive: dbUpdatedRule.active,
       createdAt: dbUpdatedRule.createdAt,
       updatedAt: dbUpdatedRule.updatedAt
@@ -176,11 +177,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAuth();
-    const ruleId = params.id;
+    const { id: ruleId } = await params;
 
     // Verificar se regra existe
     const [existingRule] = await db

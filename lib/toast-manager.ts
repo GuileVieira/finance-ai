@@ -26,7 +26,7 @@ class ToastManager {
   private activeToasts: Map<string, any> = new Map();
   private updateIntervals: Map<string, NodeJS.Timeout> = new Map();
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): ToastManager {
     if (!ToastManager.instance) {
@@ -48,7 +48,7 @@ class ToastManager {
       action: data.action ? {
         label: data.action.label,
         onClick: () => {
-          data.action.onClick();
+          data.action?.onClick();
           this.clearToast(data.id);
         }
       } : undefined,

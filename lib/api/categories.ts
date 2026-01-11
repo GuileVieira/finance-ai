@@ -60,6 +60,7 @@ export interface CategoryFilters {
   search?: string;
   sortBy?: 'name' | 'createdAt' | 'transactionCount' | 'totalAmount';
   sortOrder?: 'asc' | 'desc';
+  id?: string;
 }
 
 export interface CreateCategoryData {
@@ -71,6 +72,8 @@ export interface CreateCategoryData {
   colorHex: string;
   icon: string;
   examples?: string[];
+  companyId?: string;
+  active?: boolean;
 }
 
 export interface UpdateCategoryData extends Partial<CreateCategoryData> {
@@ -131,7 +134,7 @@ export class CategoriesAPI {
   /**
    * Buscar categoria por ID
    */
-  static async getCategoryById(id: string): Promise<Category> {
+  static async getCategoryById(id: string): Promise<CategoryWithStats> {
     const response = await fetch(getApiUrl(`${API_BASE}/categories/${id}`));
 
     if (!response.ok) {

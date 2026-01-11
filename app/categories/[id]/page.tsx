@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryRulesManager } from '@/components/categories/category-rules-manager';
 import { categoryTypes } from '@/lib/mock-categories';
-import { Category, Transaction } from '@/lib/types';
+import { Category, Transaction, CategoryFormData } from '@/lib/types';
 import { useCategory } from '@/hooks/use-categories';
 import { ArrowLeft, Edit, Settings, Search, Filter, Download, Calendar, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -54,8 +54,8 @@ export default function CategoryDetailPage() {
           type: (tx.amount as number) >= 0 ? 'credit' : 'debit',
           date: tx.date as string,
           category: tx.categoryName as string || 'Sem categoria',
-          balance_after: tx.balanceAfter as number || 0,
-          account: tx.accountName as string || 'Conta',
+          balance_after: tx.balanceAfter ? Number(tx.balanceAfter) : 0,
+          account: { name: (tx.accountName as string) || 'Conta' },
           status: 'completed' as const,
         }));
         setTransactions(mappedTransactions);
@@ -119,7 +119,7 @@ export default function CategoryDetailPage() {
   const totalCredits = creditTransactions.reduce((sum, t) => sum + t.amount, 0);
   const totalDebits = debitTransactions.reduce((sum, t) => sum + t.amount, 0);
 
-  const handleUpdateCategory = async (data: Record<string, unknown>) => {
+  const handleUpdateCategory = async (data: CategoryFormData) => {
     try {
       const response = await fetch(`/api/categories?id=${categoryId}`, {
         method: 'PUT',
@@ -157,7 +157,7 @@ export default function CategoryDetailPage() {
 
   const getTypeColor = (type: string) => {
     const typeConfig = categoryTypes.find(t => t.value === type);
-    return typeConfig?.color || '#6B7280';
+    return typeConfig?.colorHex || '#6B7280';
   };
 
   const getTypeLabel = (type: string) => {
@@ -192,7 +192,7 @@ export default function CategoryDetailPage() {
             <div className="flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-full"
-                style={{ backgroundColor: category.color }}
+                style={{ backgroundColor: category.colorHex }}
               />
               <div>
                 <h1 className="text-2xl font-bold">{category.name}</h1>
@@ -408,19 +408,18 @@ export default function CategoryDetailPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {transaction.account}
+                            {transaction.account?.name}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={`font-semibold ${
-                            transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <span className={`font-semibold ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             {transaction.type === 'credit' ? '+' : '-'}
                             {formatCurrency(transaction.amount)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
-                          {formatCurrency(transaction.balance_after)}
+                          {formatCurrency(Number(transaction.balance_after || 0))}
                         </TableCell>
                       </TableRow>
                     ))}

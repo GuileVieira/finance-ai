@@ -67,6 +67,11 @@ export default class CategoriesService {
         );
       }
 
+      // Filtro por ID
+      if (filters.id) {
+        whereConditions.push(eq(categories.id, filters.id));
+      }
+
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
       // Buscar categorias básicas primeiro (sem JOIN para performance)
@@ -249,7 +254,7 @@ export default class CategoriesService {
         companyId = company.id;
       }
 
-      const [newCategory] = await db
+      const result = await db
         .insert(categories)
         .values({
           id: nanoid(),
@@ -266,6 +271,8 @@ export default class CategoriesService {
           active: true,
         })
         .returning();
+
+      const newCategory = (result as any[])[0];
 
       return {
         id: newCategory.id,
@@ -511,7 +518,7 @@ export default class CategoriesService {
       }
 
       if (filters.isActive !== undefined) {
-        whereConditions.push(eq(categoryRules.isActive, filters.isActive));
+        whereConditions.push(eq(categoryRules.active, filters.isActive));
       }
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
@@ -520,18 +527,18 @@ export default class CategoriesService {
         .select()
         .from(categoryRules)
         .where(whereClause)
-        .orderBy(desc(categoryRules.priority), desc(categoryRules.createdAt));
+        .orderBy(desc(categoryRules.usageCount), desc(categoryRules.createdAt));
 
       return rules.map(rule => ({
         id: rule.id,
-        name: rule.name,
-        description: rule.description,
-        pattern: rule.pattern,
-        categoryId: rule.categoryId,
-        priority: rule.priority,
-        isActive: rule.isActive,
-        createdAt: rule.createdAt,
-        updatedAt: rule.updatedAt,
+        name: `Regra: ${rule.rulePattern}`,
+        description: undefined,
+        pattern: rule.rulePattern,
+        categoryId: rule.categoryId || '',
+        priority: 5, // Default priority
+        isActive: rule.active ?? true,
+        createdAt: rule.createdAt ? rule.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: rule.updatedAt ? rule.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
     } catch (error) {
@@ -551,25 +558,28 @@ export default class CategoriesService {
         .insert(categoryRules)
         .values({
           id: nanoid(),
-          name: ruleData.name,
-          description: ruleData.description,
-          pattern: ruleData.pattern,
+          rulePattern: ruleData.pattern,
+          ruleType: 'contains', // Default type
+          confidenceScore: '0.95',
+          active: ruleData.isActive,
+          usageCount: 0,
           categoryId: ruleData.categoryId,
-          priority: ruleData.priority,
-          isActive: ruleData.isActive,
+          companyId: null, // Should ideally be passed in
+          sourceType: 'manual',
+          status: 'active'
         })
         .returning();
 
       return {
         id: newRule.id,
-        name: newRule.name,
-        description: newRule.description,
-        pattern: newRule.pattern,
-        categoryId: newRule.categoryId,
-        priority: newRule.priority,
-        isActive: newRule.isActive,
-        createdAt: newRule.createdAt,
-        updatedAt: newRule.updatedAt,
+        name: `Regra: ${newRule.rulePattern}`,
+        description: undefined,
+        pattern: newRule.rulePattern,
+        categoryId: newRule.categoryId || '',
+        priority: 5,
+        isActive: newRule.active ?? true,
+        createdAt: newRule.createdAt ? newRule.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: newRule.updatedAt ? newRule.updatedAt.toISOString() : new Date().toISOString(),
       };
 
     } catch (error) {
@@ -588,7 +598,8 @@ export default class CategoriesService {
       const [updatedRule] = await db
         .update(categoryRules)
         .set({
-          ...ruleData,
+          ...ruleData.pattern ? { rulePattern: ruleData.pattern } : {},
+          ...ruleData.isActive !== undefined ? { active: ruleData.isActive } : {},
           updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .where(eq(categoryRules.id, id))
@@ -600,14 +611,14 @@ export default class CategoriesService {
 
       return {
         id: updatedRule.id,
-        name: updatedRule.name,
-        description: updatedRule.description,
-        pattern: updatedRule.pattern,
-        categoryId: updatedRule.categoryId,
-        priority: updatedRule.priority,
-        isActive: updatedRule.isActive,
-        createdAt: updatedRule.createdAt,
-        updatedAt: updatedRule.updatedAt,
+        name: `Regra: ${updatedRule.rulePattern}`,
+        description: undefined,
+        pattern: updatedRule.rulePattern,
+        categoryId: updatedRule.categoryId || '',
+        priority: 5,
+        isActive: updatedRule.active ?? true,
+        createdAt: updatedRule.createdAt ? updatedRule.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: updatedRule.updatedAt ? updatedRule.updatedAt.toISOString() : new Date().toISOString(),
       };
 
     } catch (error) {

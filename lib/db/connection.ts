@@ -5,10 +5,10 @@ import * as schema from './schema';
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.warn('⚠️ DATABASE_URL não está configurado. Usando modo de desenvolvimento.');
+  throw new Error('DATABASE_URL environment variable is not set');
 }
 
 // Criar instância do Drizzle para PostgreSQL usando DATABASE_URL
-export const db = databaseUrl ? drizzle(databaseUrl, { schema }) : null;
+export const db = drizzle(databaseUrl, { schema });
 
 export default db;

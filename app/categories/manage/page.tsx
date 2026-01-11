@@ -39,12 +39,12 @@ export default function CategoriesManagePage() {
         const mappedCategories: Category[] = result.data.map((cat: Record<string, unknown>) => ({
           id: cat.id as string,
           name: cat.name as string,
-          type: cat.type as string,
-          color: cat.colorHex as string || '#6B7280',
+          type: cat.type as any,
+          colorHex: cat.colorHex as string || '#6B7280',
           icon: cat.icon as string || '📊',
           description: cat.description as string || '',
-          amount: cat.totalAmount as number || 0,
-          transactions: cat.transactionCount as number || 0,
+          totalAmount: cat.totalAmount as number || 0,
+          transactionCount: cat.transactionCount as number || 0,
           percentage: 0, // Calcular se necessário
           active: cat.isActive as boolean ?? true,
           examples: []
@@ -70,7 +70,7 @@ export default function CategoriesManagePage() {
   // Filtrar categorias
   const filteredCategories = categories.filter(category => {
     const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         category.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      category.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || category.type === filterType;
     return matchesSearch && matchesType;
   });
@@ -215,7 +215,7 @@ export default function CategoriesManagePage() {
 
   const getTypeColor = (type: string) => {
     const typeConfig = categoryTypes.find(t => t.value === type);
-    return typeConfig?.color || '#6B7280';
+    return typeConfig?.colorHex || '#6B7280';
   };
 
   const getTypeLabel = (type: string) => {
@@ -332,7 +332,7 @@ export default function CategoriesManagePage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
+                            style={{ backgroundColor: category.colorHex }}
                           />
                           <div>
                             <p className="font-medium">{category.name}</p>
@@ -361,17 +361,17 @@ export default function CategoriesManagePage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-6 h-6 rounded border"
-                            style={{ backgroundColor: category.color }}
+                            style={{ backgroundColor: category.colorHex }}
                           />
                           <span className="text-sm font-mono">
-                            {category.color}
+                            {category.colorHex}
                           </span>
                         </div>
                       </TableCell>
 
                       <TableCell>
                         <div className="text-sm">
-                          <p className="font-medium">{category.transactions}</p>
+                          <p className="font-medium">{category.transactionCount}</p>
                           <p className="text-muted-foreground">
                             {category.percentage}% do total
                           </p>
@@ -394,7 +394,7 @@ export default function CategoriesManagePage() {
                             <Eye className="h-4 w-4" />
                           </Button>
 
-                          <Dialog open={!!editingCategory?.id === category.id} onOpenChange={(open) => !open && setEditingCategory(null)}>
+                          <Dialog open={editingCategory?.id === category.id} onOpenChange={(open) => !open && setEditingCategory(null)}>
                             <DialogTrigger asChild>
                               <Button
                                 variant="outline"
@@ -418,7 +418,7 @@ export default function CategoriesManagePage() {
                             </DialogContent>
                           </Dialog>
 
-                          <Dialog open={!!managingRules?.id === category.id} onOpenChange={(open) => !open && setManagingRules(null)}>
+                          <Dialog open={managingRules?.id === category.id} onOpenChange={(open) => !open && setManagingRules(null)}>
                             <DialogTrigger asChild>
                               <Button
                                 variant="outline"
@@ -481,7 +481,7 @@ export default function CategoriesManagePage() {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-full"
-                    style={{ backgroundColor: viewingCategory.color }}
+                    style={{ backgroundColor: viewingCategory.colorHex }}
                   />
                   <div>
                     <h3 className="font-semibold">{viewingCategory.name}</h3>
@@ -507,7 +507,7 @@ export default function CategoriesManagePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium">Transações</p>
-                    <p className="text-2xl font-bold">{viewingCategory.transactions}</p>
+                    <p className="text-2xl font-bold">{viewingCategory.transactionCount}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium">Percentual</p>

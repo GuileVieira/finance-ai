@@ -41,8 +41,8 @@ async function seedCategories() {
         eq(categories.isSystem, true)
       ));
 
-    if (existingCategories.length > 0) {
-      console.log(`⚠️  Já existem ${existingCategories.length} categorias de sistema.`);
+    if ((existingCategories as any[]).length > 0) {
+      console.log(`⚠️  Já existem ${(existingCategories as any[]).length} categorias de sistema.`);
 
       // Perguntar se deseja recriar as categorias
       console.log('❓ Deseja recriar todas as categorias de sistema?');
@@ -72,7 +72,7 @@ async function seedCategories() {
       name: cat.name,
       description: cat.description,
       type: cat.type,
-      colorHex: cat.color,
+      colorHex: cat.colorHex,
       icon: cat.icon,
       examples: cat.examples,
       isSystem: true,
@@ -82,7 +82,7 @@ async function seedCategories() {
     // Inserir categorias em lote
     const result = await db.insert(categories).values(categoriesToInsert).returning();
 
-    console.log(`✅ ${result.length} categorias inseridas com sucesso!`);
+    console.log(`✅ ${(result as any[]).length} categorias inseridas com sucesso!`);
 
     // Estatísticas por tipo
     const stats = mockCategories.reduce((acc, cat) => {

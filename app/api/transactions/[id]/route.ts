@@ -6,12 +6,12 @@ import { requireAuth } from '@/lib/auth/get-session';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireAuth();
 
-    const transactionId = params.id;
+    const { id: transactionId } = await params;
     const { categoryId } = await request.json();
 
     if (!categoryId) {

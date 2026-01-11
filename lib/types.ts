@@ -4,13 +4,14 @@ export interface Category {
   id: string;
   name: string;
   type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
-  color: string;
-  amount: number;
-  transactions: number;
-  percentage: number;
+  colorHex: string;
+  totalAmount?: number;
+  transactionCount?: number;
+  percentage?: number;
   icon?: string;
   description?: string;
   examples?: string[];
+  active?: boolean;
 }
 
 export interface AutoRule {
@@ -48,11 +49,21 @@ export interface MetricCard {
 export interface Transaction {
   id: string;
   date: string;
+  transactionDate: string;
   description: string;
+  name?: string | null;
+  memo?: string | null;
   category: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
   amount: number;
-  type: 'income' | 'expense';
+  type: 'credit' | 'debit' | 'income' | 'expense';
   bank?: string;
+  bankName?: string;
+  balance_after?: number | string;
+  account?: { name: string };
+  accountId?: string;
+  verified?: boolean;
 }
 
 export interface UserData {

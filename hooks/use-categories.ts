@@ -40,7 +40,7 @@ export function useCategoriesWithTransactions(filters: CategoryFilters = {}, opt
 }
 
 // Hook para buscar categoria por ID
-export function useCategory(id: string, options?: Omit<UseQueryOptions<Category, Error>, 'queryKey' | 'queryFn'>) {
+export function useCategory(id: string, options?: Omit<UseQueryOptions<CategoryWithStats, Error>, 'queryKey' | 'queryFn'>) {
   return useQuery({
     queryKey: categoryKeys.detail(id),
     queryFn: () => CategoriesAPI.getCategoryById(id),

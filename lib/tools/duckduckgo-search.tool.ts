@@ -60,6 +60,9 @@ export interface ProcessedSearchResult {
   isFinancial?: boolean;
   isSupplier?: boolean;
   confidence: number;
+  query?: string;
+  searchType?: string;
+  error?: string;
 }
 
 // Ferramenta de pesquisa DuckDuckGo para empresas brasileiras

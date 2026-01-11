@@ -13,6 +13,7 @@ export interface TransactionFilters {
   category?: string;
   search?: string;
   verified?: boolean;
+  uploadId?: string;
 }
 
 export interface TransactionStats {
@@ -20,6 +21,8 @@ export interface TransactionStats {
   totalAmount: number;
   totalCredits: number;
   totalDebits: number;
+  totalCreditsValue: number;
+  totalDebitsValue: number;
   averageTransaction: number;
   categoryDistribution: Record<string, number>;
   monthlyTrend: Array<{
@@ -33,7 +36,7 @@ export interface TransactionStats {
 export class TransactionsService {
   private static instance: TransactionsService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): TransactionsService {
     if (!TransactionsService.instance) {
@@ -59,7 +62,7 @@ export class TransactionsService {
       console.log('📊 [TRANSACTIONS-SERVICE] Listando transações:', filters);
 
       // Construir query principal
-      let query = db.select({
+      let query: any = db.select({
         id: transactions.id,
         accountId: transactions.accountId,
         categoryId: transactions.categoryId,
@@ -88,11 +91,11 @@ export class TransactionsService {
         uploadFilename: uploads.filename,
         uploadOriginalName: uploads.originalName
       })
-      .from(transactions)
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-      .leftJoin(companies, eq(accounts.companyId, companies.id))
-      .leftJoin(categories, eq(transactions.categoryId, categories.id))
-      .leftJoin(uploads, eq(transactions.uploadId, uploads.id));
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(companies, eq(accounts.companyId, companies.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .leftJoin(uploads, eq(transactions.uploadId, uploads.id));
 
       // Aplicar filtros
       const conditions = [];
@@ -148,7 +151,7 @@ export class TransactionsService {
       const transactionsList = await query;
 
       // Contar total para paginação
-      let countQuery = db.select({ count: sql<number>`count(*)` })
+      let countQuery: any = db.select({ count: sql<number>`count(*)` })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id));
 
@@ -157,7 +160,7 @@ export class TransactionsService {
           conditions.length === 1
             ? conditions[0]
             : // @ts-ignore
-              conditions.reduce((acc, condition) => acc && condition)
+            conditions.reduce((acc, condition) => acc && condition)
         );
       }
 
@@ -193,7 +196,7 @@ export class TransactionsService {
 
       console.log('📈 [TRANSACTIONS-SERVICE] Calculando estatísticas:', filters);
 
-      let query = db.select({
+      let query: any = db.select({
         totalTransactions: sql<number>`count(*)`,
         totalAmount: sql<number>`sum(CAST(${transactions.amount} AS NUMERIC))`,
         incomeValue: sql<number>`sum(CASE WHEN CAST(${transactions.amount} AS NUMERIC) > 0 THEN CAST(${transactions.amount} AS NUMERIC) ELSE 0 END)`,
@@ -201,8 +204,8 @@ export class TransactionsService {
         incomeCount: sql<number>`count(*) FILTER (WHERE CAST(${transactions.amount} AS NUMERIC) > 0)`,
         expenseCount: sql<number>`count(*) FILTER (WHERE CAST(${transactions.amount} AS NUMERIC) < 0)`
       })
-      .from(transactions)
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
 
       // Aplicar filtros
       const conditions = [];
@@ -238,22 +241,22 @@ export class TransactionsService {
       const [stats] = await query;
 
       // Obter distribuição por categoria
-      let categoryQuery = db.select({
+      let categoryQuery: any = db.select({
         categoryName: categories.name,
         categoryType: categories.type,
         count: sql<number>`count(*)`,
         totalAmount: sql<number>`sum(abs(CAST(${transactions.amount} AS NUMERIC)))`
       })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.categoryId, categories.id))
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
 
       if (conditions.length > 0) {
         categoryQuery = categoryQuery.where(
           conditions.length === 1
             ? conditions[0]
             : // @ts-ignore
-              conditions.reduce((acc, condition) => acc && condition)
+            conditions.reduce((acc, condition) => acc && condition)
         );
       }
 
@@ -265,7 +268,7 @@ export class TransactionsService {
 
       // Converter para formato esperado
       const distribution: Record<string, number> = {};
-      categoryDistribution.forEach(cat => {
+      categoryDistribution.forEach((cat: any) => {
         distribution[cat.categoryName || 'Não classificado'] = cat.count;
       });
 
@@ -298,17 +301,6 @@ export class TransactionsService {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      let query = db.select({
-        month: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
-        credits: sql<number>`sum(CASE WHEN ${transactions.type} = 'credit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`,
-        debits: sql<number>`sum(CASE WHEN ${transactions.type} = 'debit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`
-      })
-      .from(transactions)
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-      .where(gte(transactions.transactionDate, sixMonthsAgo.toISOString().split('T')[0]))
-      .groupBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`)
-      .orderBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`);
-
       // Aplicar filtros adicionais
       const conditions = [];
 
@@ -324,17 +316,29 @@ export class TransactionsService {
         conditions.push(eq(transactions.type, filters.type));
       }
 
+      // Adicionar filtro de data (6 meses)
+      conditions.push(gte(transactions.transactionDate, sixMonthsAgo.toISOString().split('T')[0]));
+
+      let query: any = db.select({
+        month: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
+        credits: sql<number>`sum(CASE WHEN ${transactions.type} = 'credit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`,
+        debits: sql<number>`sum(CASE WHEN ${transactions.type} = 'debit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`
+      })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+
       if (conditions.length > 0) {
-        query = query.where(
-          conditions.length === 1
-            ? conditions[0]
-            : and(...conditions)
-        );
+        // @ts-ignore
+        query = query.where(and(...conditions));
       }
 
-      const results = await query;
+      const queryWithGroup = query
+        .groupBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`);
 
-      return results.map(item => ({
+      const results = await queryWithGroup;
+
+      return results.map((item: any) => ({
         month: item.month,
         credits: Number(item.credits),
         debits: Number(item.debits),
@@ -354,7 +358,7 @@ export class TransactionsService {
     try {
       await initializeDatabase();
 
-      let query = db
+      let query: any = db
         .select({
           period: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
           startDate: sql<string>`min(${transactions.transactionDate})`,
@@ -402,7 +406,7 @@ export class TransactionsService {
         'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
       ];
 
-      return results.map(result => {
+      return results.map((result: any) => {
         const [year, month] = result.period.split('-');
         const monthIndex = Math.max(0, Math.min(11, parseInt(month, 10) - 1));
         const label = `${monthNames[monthIndex]}/${year}`;

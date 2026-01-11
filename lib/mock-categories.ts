@@ -4,53 +4,53 @@ import { Category, AutoRule } from '@/lib/types';
 // 53 categorias específicas extraídas dos arquivos financeiros
 
 // Categorias de Receita (adicionadas manualmente, pois não existem no JSON original)
-const revenueCategories = [
+const revenueCategories: Category[] = [
   {
     id: '1',
     name: 'Vendas de Produtos',
-    type: 'revenue',
-    color: '#10B981',
+    type: 'revenue' as const,
+    colorHex: '#10B981',
     icon: '💰',
     description: 'Venda de mercadorias e produtos para clientes',
     examples: ['Venda Mercadorias', 'Receita Vendas', 'Faturamento Clientes'],
-    amount: 156000,
-    transactions: 248,
+    totalAmount: 156000,
+    transactionCount: 248,
     percentage: 42.1
   },
   {
     id: '2',
     name: 'Vendas de Serviços',
     type: 'revenue',
-    color: '#059669',
+    colorHex: '#059669',
     icon: '🛠️',
     description: 'Prestação de serviços especializados e consultoria',
     examples: ['Honorários de Serviços', 'Consultoria Empresarial', 'Serviços de TI', 'Manutenção de Software'],
-    amount: 89600,
-    transactions: 143,
+    totalAmount: 89600,
+    transactionCount: 143,
     percentage: 24.1
   },
   {
     id: '3',
     name: 'Receitas Financeiras',
     type: 'revenue',
-    color: '#8B5CF6',
+    colorHex: '#8B5CF6',
     icon: '📈',
     description: 'Rendimentos de aplicações financeiras, juros e investimentos',
     examples: ['Juros Ativos', 'Rendimentos Aplicações', 'Dividendos', 'Aluguél Recebido'],
-    amount: 75400,
-    transactions: 89,
+    totalAmount: 75400,
+    transactionCount: 89,
     percentage: 20.3
   },
   {
     id: '4',
     name: 'Receitas de Aluguéis',
     type: 'revenue',
-    color: '#047857',
+    colorHex: '#047857',
     icon: '🏠',
     description: 'Aluguel de imóveis e receitas de sublocação',
     examples: ['Aluguel Recebido', 'Sublocação Mensal', 'Aluguel Antecipado'],
-    amount: 12500,
-    transactions: 67,
+    totalAmount: 12500,
+    transactionCount: 67,
     percentage: 3.4
   }
 ];
@@ -63,578 +63,578 @@ export const mockCategories: Category[] = [
   {
     id: '101',
     name: '13º SALARIO',
-    type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 2632,
-    transactions: 22,
+    type: 'fixed_cost' as const,
+    colorHex: '#EF4444',
+    totalAmount: 2632,
+    transactionCount: 22,
     percentage: 6.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: 13º SALARIO',
-    examples: ["13º SALARIO","13º SALARIO"]
+    examples: ["13º SALARIO", "13º SALARIO"]
   },
-    {
+  {
     id: '5',
     name: 'ALUGUEL',
     type: 'fixed_cost',
-    color: '#DC2626',
-    amount: 10176,
-    transactions: 25,
+    colorHex: '#DC2626',
+    totalAmount: 10176,
+    transactionCount: 25,
     percentage: 7.1,
     icon: '🏠',
     description: 'Categoria extraída dos dados financeiros: ALUGUEL',
-    examples: ["ALUGUEL","ALUGUEL"]
+    examples: ["ALUGUEL", "ALUGUEL"]
   },
   {
     id: '6',
     name: 'ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
     type: 'fixed_cost',
-    color: '#DC2626',
-    amount: 7462,
-    transactions: 53,
+    colorHex: '#DC2626',
+    totalAmount: 7462,
+    transactionCount: 53,
     percentage: 7.1,
     icon: '🏠',
     description: 'Categoria extraída dos dados financeiros: ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
-    examples: ["ALUGUEL DE MÁQUINAS E EQUIPAMENTOS","ALUGUEL DE MÁQUINAS E EQUIPAMENTOS"]
+    examples: ["ALUGUEL DE MÁQUINAS E EQUIPAMENTOS", "ALUGUEL DE MÁQUINAS E EQUIPAMENTOS"]
   },
   {
     id: '7',
     name: 'ASSISTÊNCIA MÉDICA',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 5981,
-    transactions: 26,
+    colorHex: '#EF4444',
+    totalAmount: 5981,
+    transactionCount: 26,
     percentage: 7.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: ASSISTÊNCIA MÉDICA',
-    examples: ["ASSISTÊNCIA MÉDICA","ASSISTÊNCIA MÉDICA"]
+    examples: ["ASSISTÊNCIA MÉDICA", "ASSISTÊNCIA MÉDICA"]
   },
   {
     id: '8',
     name: 'ASSISTÊNCIA ODONTOLÓGICA',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 7131,
-    transactions: 10,
+    colorHex: '#EF4444',
+    totalAmount: 7131,
+    transactionCount: 10,
     percentage: 3.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: ASSISTÊNCIA ODONTOLÓGICA',
-    examples: ["ASSISTÊNCIA ODONTOLÓGICA","ASSISTÊNCIA ODONTOLÓGICA"]
+    examples: ["ASSISTÊNCIA ODONTOLÓGICA", "ASSISTÊNCIA ODONTOLÓGICA"]
   },
   {
     id: '9',
     name: 'CARTÓRIO',
     type: 'fixed_cost',
-    color: '#7F1D1D',
-    amount: 1055,
-    transactions: 45,
+    colorHex: '#7F1D1D',
+    totalAmount: 1055,
+    transactionCount: 45,
     percentage: 4.1,
     icon: '👔',
     description: 'Categoria extraída dos dados financeiros: CARTÓRIO',
-    examples: ["CARTÓRIO","CARTÓRIO"]
+    examples: ["CARTÓRIO", "CARTÓRIO"]
   },
   {
     id: '10',
     name: 'COFINS',
-    type: 'non_operating',
-    color: '#C2410C',
-    amount: 5943,
-    transactions: 41,
+    type: 'non_operating' as const,
+    colorHex: '#C2410C',
+    totalAmount: 5943,
+    transactionCount: 41,
     percentage: 1.1,
     icon: '📋',
     description: 'Categoria extraída dos dados financeiros: COFINS',
-    examples: ["COFINS","COFINS"]
+    examples: ["COFINS", "COFINS"]
   },
   {
     id: '11',
     name: 'COMISSÕES',
-    type: 'variable_cost',
-    color: '#D97706',
-    amount: 10214,
-    transactions: 24,
+    type: 'variable_cost' as const,
+    colorHex: '#D97706',
+    totalAmount: 10214,
+    transactionCount: 24,
     percentage: 8.1,
     icon: '💸',
     description: 'Categoria extraída dos dados financeiros: COMISSÕES',
-    examples: ["COMISSÕES","COMISSÕES"]
+    examples: ["COMISSÕES", "COMISSÕES"]
   },
   {
     id: '12',
     name: 'CONSERVAÇÃO E LIMPEZA',
     type: 'fixed_cost',
-    color: '#F59E0B',
-    amount: 9386,
-    transactions: 26,
+    colorHex: '#F59E0B',
+    totalAmount: 9386,
+    transactionCount: 26,
     percentage: 4.1,
     icon: '🔧',
     description: 'Categoria extraída dos dados financeiros: CONSERVAÇÃO E LIMPEZA',
-    examples: ["CONSERVAÇÃO E LIMPEZA","CONSERVAÇÃO E LIMPEZA"]
+    examples: ["CONSERVAÇÃO E LIMPEZA", "CONSERVAÇÃO E LIMPEZA"]
   },
   {
     id: '13',
     name: 'CONSULTORIA',
     type: 'fixed_cost',
-    color: '#7F1D1D',
-    amount: 5179,
-    transactions: 49,
+    colorHex: '#7F1D1D',
+    totalAmount: 5179,
+    transactionCount: 49,
     percentage: 6.1,
     icon: '👔',
     description: 'Categoria extraída dos dados financeiros: CONSULTORIA',
-    examples: ["CONSULTORIA","CONSULTORIA"]
+    examples: ["CONSULTORIA", "CONSULTORIA"]
   },
   {
     id: '14',
     name: 'CONTRIBUICAO SINDICAL',
     type: 'non_operating',
-    color: '#C2410C',
-    amount: 7063,
-    transactions: 51,
+    colorHex: '#C2410C',
+    totalAmount: 7063,
+    transactionCount: 51,
     percentage: 7.1,
     icon: '📋',
     description: 'Categoria extraída dos dados financeiros: CONTRIBUICAO SINDICAL',
-    examples: ["CONTRIBUICAO SINDICAL","CONTRIBUICAO SINDICAL"]
+    examples: ["CONTRIBUICAO SINDICAL", "CONTRIBUICAO SINDICAL"]
   },
   {
     id: '15',
     name: 'CORREIOS',
     type: 'variable_cost',
-    color: '#92400E',
-    amount: 7748,
-    transactions: 8,
+    colorHex: '#92400E',
+    totalAmount: 7748,
+    transactionCount: 8,
     percentage: 7.1,
     icon: '🚚',
     description: 'Categoria extraída dos dados financeiros: CORREIOS',
-    examples: ["CORREIOS","CORREIOS"]
+    examples: ["CORREIOS", "CORREIOS"]
   },
   {
     id: '16',
     name: 'CUSTAS JUDICIAIS',
     type: 'non_operating',
-    color: '#4B5563',
-    amount: 9451,
-    transactions: 37,
+    colorHex: '#4B5563',
+    totalAmount: 9451,
+    transactionCount: 37,
     percentage: 0.1,
     icon: '⚖️',
     description: 'Categoria extraída dos dados financeiros: CUSTAS JUDICIAIS',
-    examples: ["CUSTAS JUDICIAIS","CUSTAS JUDICIAIS"]
+    examples: ["CUSTAS JUDICIAIS", "CUSTAS JUDICIAIS"]
   },
-    {
+  {
     id: '18',
     name: 'DESP. LOCOMOÇÃO',
     type: 'variable_cost',
-    color: '#92400E',
-    amount: 9461,
-    transactions: 36,
+    colorHex: '#92400E',
+    totalAmount: 9461,
+    transactionCount: 36,
     percentage: 9.1,
     icon: '🚚',
     description: 'Categoria extraída dos dados financeiros: DESP. LOCOMOÇÃO',
-    examples: ["DESP. LOCOMOÇÃO","DESP. LOCOMOÇÃO"]
+    examples: ["DESP. LOCOMOÇÃO", "DESP. LOCOMOÇÃO"]
   },
   {
     id: '19',
     name: 'DESPESAS COM VIAGENS',
     type: 'variable_cost',
-    color: '#92400E',
-    amount: 9386,
-    transactions: 31,
+    colorHex: '#92400E',
+    totalAmount: 9386,
+    transactionCount: 31,
     percentage: 8.1,
     icon: '✈️',
     description: 'Categoria extraída dos dados financeiros: DESPESAS COM VIAGENS',
-    examples: ["DESPESAS COM VIAGENS","DESPESAS COM VIAGENS"]
+    examples: ["DESPESAS COM VIAGENS", "DESPESAS COM VIAGENS"]
   },
   {
     id: '20',
     name: 'ENERGIA ELETRICA',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 9187,
-    transactions: 6,
+    colorHex: '#6B7280',
+    totalAmount: 9187,
+    transactionCount: 6,
     percentage: 9.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: ENERGIA ELETRICA',
-    examples: ["ENERGIA ELETRICA","ENERGIA ELETRICA"]
+    examples: ["ENERGIA ELETRICA", "ENERGIA ELETRICA"]
   },
   {
     id: '21',
     name: 'EXAME ADMISSIONAL/PERIODICO',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 7999,
-    transactions: 50,
+    colorHex: '#EF4444',
+    totalAmount: 7999,
+    transactionCount: 50,
     percentage: 9.1,
     icon: '🩺',
     description: 'Categoria extraída dos dados financeiros: EXAME ADMISSIONAL/PERIODICO',
-    examples: ["EXAME ADMISSIONAL/PERIODICO","EXAME ADMISSIONAL/PERIODICO"]
+    examples: ["EXAME ADMISSIONAL/PERIODICO", "EXAME ADMISSIONAL/PERIODICO"]
   },
   {
     id: '22',
     name: 'FGTS',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 10101,
-    transactions: 17,
+    colorHex: '#EF4444',
+    totalAmount: 10101,
+    transactionCount: 17,
     percentage: 6.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: FGTS',
-    examples: ["FGTS","FGTS"]
+    examples: ["FGTS", "FGTS"]
   },
   {
     id: '23',
     name: 'FOLHA PJ',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 8550,
-    transactions: 9,
+    colorHex: '#EF4444',
+    totalAmount: 8550,
+    transactionCount: 9,
     percentage: 6.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: FOLHA PJ',
-    examples: ["FOLHA PJ","FOLHA PJ"]
+    examples: ["FOLHA PJ", "FOLHA PJ"]
   },
   {
     id: '24',
     name: 'FÉRIAS',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 5652,
-    transactions: 42,
+    colorHex: '#EF4444',
+    totalAmount: 5652,
+    transactionCount: 42,
     percentage: 9.1,
     icon: '🏖️',
     description: 'Categoria extraída dos dados financeiros: FÉRIAS',
-    examples: ["FÉRIAS","FÉRIAS"]
+    examples: ["FÉRIAS", "FÉRIAS"]
   },
   {
     id: '25',
     name: 'INSS',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 7249,
-    transactions: 20,
+    colorHex: '#EF4444',
+    totalAmount: 7249,
+    transactionCount: 20,
     percentage: 4.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: INSS',
-    examples: ["INSS","INSS"]
+    examples: ["INSS", "INSS"]
   },
   {
     id: '26',
     name: 'INTERNET',
     type: 'fixed_cost',
-    color: '#991B1B',
-    amount: 7259,
-    transactions: 42,
+    colorHex: '#991B1B',
+    totalAmount: 7259,
+    transactionCount: 42,
     percentage: 1.1,
     icon: '💻',
     description: 'Categoria extraída dos dados financeiros: INTERNET',
-    examples: ["INTERNET","INTERNET"]
+    examples: ["INTERNET", "INTERNET"]
   },
   {
     id: '27',
     name: 'LEASING / FINAME',
     type: 'non_operating',
-    color: '#374151',
-    amount: 7340,
-    transactions: 9,
+    colorHex: '#374151',
+    totalAmount: 7340,
+    transactionCount: 9,
     percentage: 5.1,
     icon: '🏛️',
     description: 'Categoria extraída dos dados financeiros: LEASING / FINAME',
-    examples: ["LEASING / FINAME","LEASING / FINAME"]
+    examples: ["LEASING / FINAME", "LEASING / FINAME"]
   },
   {
     id: '28',
     name: 'LICENÇAS DIVERSAS',
     type: 'fixed_cost',
-    color: '#991B1B',
-    amount: 8197,
-    transactions: 42,
+    colorHex: '#991B1B',
+    totalAmount: 8197,
+    transactionCount: 42,
     percentage: 0.1,
     icon: '💻',
     description: 'Categoria extraída dos dados financeiros: LICENÇAS DIVERSAS',
-    examples: ["LICENÇAS DIVERSAS","LICENÇAS DIVERSAS"]
+    examples: ["LICENÇAS DIVERSAS", "LICENÇAS DIVERSAS"]
   },
   {
     id: '29',
     name: 'MANUTENÇÃO DE EQUIPAMENTOS',
     type: 'fixed_cost',
-    color: '#F59E0B',
-    amount: 1448,
-    transactions: 43,
+    colorHex: '#F59E0B',
+    totalAmount: 1448,
+    transactionCount: 43,
     percentage: 9.1,
     icon: '🔧',
     description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO DE EQUIPAMENTOS',
-    examples: ["MANUTENÇÃO DE EQUIPAMENTOS","MANUTENÇÃO DE EQUIPAMENTOS"]
+    examples: ["MANUTENÇÃO DE EQUIPAMENTOS", "MANUTENÇÃO DE EQUIPAMENTOS"]
   },
   {
     id: '30',
     name: 'MANUTENÇÃO DE HARDWARE',
     type: 'fixed_cost',
-    color: '#F59E0B',
-    amount: 1789,
-    transactions: 7,
+    colorHex: '#F59E0B',
+    totalAmount: 1789,
+    transactionCount: 7,
     percentage: 4.1,
     icon: '🔧',
     description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO DE HARDWARE',
-    examples: ["MANUTENÇÃO DE HARDWARE","MANUTENÇÃO DE HARDWARE"]
+    examples: ["MANUTENÇÃO DE HARDWARE", "MANUTENÇÃO DE HARDWARE"]
   },
   {
     id: '31',
     name: 'MANUTENÇÃO PREDIAL',
     type: 'fixed_cost',
-    color: '#F59E0B',
-    amount: 8688,
-    transactions: 47,
+    colorHex: '#F59E0B',
+    totalAmount: 8688,
+    transactionCount: 47,
     percentage: 6.1,
     icon: '🔧',
     description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO PREDIAL',
-    examples: ["MANUTENÇÃO PREDIAL","MANUTENÇÃO PREDIAL"]
+    examples: ["MANUTENÇÃO PREDIAL", "MANUTENÇÃO PREDIAL"]
   },
   {
     id: '32',
     name: 'MARKETING E PUBLICIDADE',
     type: 'variable_cost',
-    color: '#D97706',
-    amount: 10741,
-    transactions: 27,
+    colorHex: '#D97706',
+    totalAmount: 10741,
+    transactionCount: 27,
     percentage: 0.1,
     icon: '📣',
     description: 'Categoria extraída dos dados financeiros: MARKETING E PUBLICIDADE',
-    examples: ["MARKETING E PUBLICIDADE","MARKETING E PUBLICIDADE"]
+    examples: ["MARKETING E PUBLICIDADE", "MARKETING E PUBLICIDADE"]
   },
   {
     id: '33',
     name: 'MATERIAL DE EMBALAGEM',
     type: 'variable_cost',
-    color: '#B45309',
-    amount: 4073,
-    transactions: 40,
+    colorHex: '#B45309',
+    totalAmount: 4073,
+    transactionCount: 40,
     percentage: 4.1,
     icon: '📦',
     description: 'Categoria extraída dos dados financeiros: MATERIAL DE EMBALAGEM',
-    examples: ["MATERIAL DE EMBALAGEM","MATERIAL DE EMBALAGEM"]
+    examples: ["MATERIAL DE EMBALAGEM", "MATERIAL DE EMBALAGEM"]
   },
   {
     id: '34',
     name: 'MATERIAL DE ESCRITÓRIO',
     type: 'variable_cost',
-    color: '#B45309',
-    amount: 1358,
-    transactions: 10,
+    colorHex: '#B45309',
+    totalAmount: 1358,
+    transactionCount: 10,
     percentage: 5.1,
     icon: '📦',
     description: 'Categoria extraída dos dados financeiros: MATERIAL DE ESCRITÓRIO',
-    examples: ["MATERIAL DE ESCRITÓRIO","MATERIAL DE ESCRITÓRIO"]
+    examples: ["MATERIAL DE ESCRITÓRIO", "MATERIAL DE ESCRITÓRIO"]
   },
   {
     id: '35',
     name: 'MATERIAL DE LIMPEZA',
     type: 'fixed_cost',
-    color: '#F59E0B',
-    amount: 2560,
-    transactions: 48,
+    colorHex: '#F59E0B',
+    totalAmount: 2560,
+    transactionCount: 48,
     percentage: 3.1,
     icon: '🔧',
     description: 'Categoria extraída dos dados financeiros: MATERIAL DE LIMPEZA',
-    examples: ["MATERIAL DE LIMPEZA","MATERIAL DE LIMPEZA"]
+    examples: ["MATERIAL DE LIMPEZA", "MATERIAL DE LIMPEZA"]
   },
   {
     id: '36',
     name: 'OPERADORES LOGÍSTICOS',
     type: 'variable_cost',
-    color: '#92400E',
-    amount: 3399,
-    transactions: 11,
+    colorHex: '#92400E',
+    totalAmount: 3399,
+    transactionCount: 11,
     percentage: 8.1,
     icon: '🚚',
     description: 'Categoria extraída dos dados financeiros: OPERADORES LOGÍSTICOS',
-    examples: ["OPERADORES LOGÍSTICOS","OPERADORES LOGÍSTICOS"]
+    examples: ["OPERADORES LOGÍSTICOS", "OPERADORES LOGÍSTICOS"]
   },
   {
     id: '37',
     name: 'OUTRAS DESPESAS NOP',
     type: 'non_operating',
-    color: '#9CA3AF',
-    amount: 2088,
-    transactions: 50,
+    colorHex: '#9CA3AF',
+    totalAmount: 2088,
+    transactionCount: 50,
     percentage: 9.1,
     icon: '📄',
     description: 'Categoria extraída dos dados financeiros: OUTRAS DESPESAS NOP',
-    examples: ["OUTRAS DESPESAS NOP","OUTRAS DESPESAS NOP"]
+    examples: ["OUTRAS DESPESAS NOP", "OUTRAS DESPESAS NOP"]
   },
   {
     id: '38',
     name: 'OUTROS TRIBUTOS',
     type: 'non_operating',
-    color: '#C2410C',
-    amount: 6833,
-    transactions: 53,
+    colorHex: '#C2410C',
+    totalAmount: 6833,
+    transactionCount: 53,
     percentage: 6.1,
     icon: '📋',
     description: 'Categoria extraída dos dados financeiros: OUTROS TRIBUTOS',
-    examples: ["OUTROS TRIBUTOS","OUTROS TRIBUTOS"]
+    examples: ["OUTROS TRIBUTOS", "OUTROS TRIBUTOS"]
   },
   {
     id: '39',
     name: 'PRO LABORE',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 5275,
-    transactions: 23,
+    colorHex: '#EF4444',
+    totalAmount: 5275,
+    transactionCount: 23,
     percentage: 3.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: PRO LABORE',
-    examples: ["PRO LABORE","PRO LABORE"]
+    examples: ["PRO LABORE", "PRO LABORE"]
   },
-    {
+  {
     id: '41',
     name: 'SALARIOS',
     type: 'fixed_cost',
-    color: '#EF4444',
-    amount: 2280,
-    transactions: 45,
+    colorHex: '#EF4444',
+    totalAmount: 2280,
+    transactionCount: 45,
     percentage: 3.1,
     icon: '👥',
     description: 'Categoria extraída dos dados financeiros: SALARIOS',
-    examples: ["SALARIOS","SALARIOS"]
+    examples: ["SALARIOS", "SALARIOS"]
   },
   {
     id: '42',
     name: 'SEGUROS DE VIDA',
     type: 'non_operating',
-    color: '#374151',
-    amount: 4964,
-    transactions: 21,
+    colorHex: '#374151',
+    totalAmount: 4964,
+    transactionCount: 21,
     percentage: 9.1,
     icon: '🏛️',
     description: 'Categoria extraída dos dados financeiros: SEGUROS DE VIDA',
-    examples: ["SEGUROS DE VIDA","SEGUROS DE VIDA"]
+    examples: ["SEGUROS DE VIDA", "SEGUROS DE VIDA"]
   },
   {
     id: '43',
     name: 'SEGUROS GERAIS',
     type: 'non_operating',
-    color: '#374151',
-    amount: 9250,
-    transactions: 40,
+    colorHex: '#374151',
+    totalAmount: 9250,
+    transactionCount: 40,
     percentage: 5.1,
     icon: '🏛️',
     description: 'Categoria extraída dos dados financeiros: SEGUROS GERAIS',
-    examples: ["SEGUROS GERAIS","SEGUROS GERAIS"]
+    examples: ["SEGUROS GERAIS", "SEGUROS GERAIS"]
   },
   {
     id: '44',
     name: 'SERVIÇOS DE ADVOCACIA',
     type: 'fixed_cost',
-    color: '#7F1D1D',
-    amount: 4970,
-    transactions: 49,
+    colorHex: '#7F1D1D',
+    totalAmount: 4970,
+    transactionCount: 49,
     percentage: 3.1,
     icon: '👔',
     description: 'Categoria extraída dos dados financeiros: SERVIÇOS DE ADVOCACIA',
-    examples: ["SERVIÇOS DE ADVOCACIA","SERVIÇOS DE ADVOCACIA"]
+    examples: ["SERVIÇOS DE ADVOCACIA", "SERVIÇOS DE ADVOCACIA"]
   },
   {
     id: '45',
     name: 'SERVIÇOS DE CONTABILIDADE',
     type: 'fixed_cost',
-    color: '#7F1D1D',
-    amount: 5573,
-    transactions: 25,
+    colorHex: '#7F1D1D',
+    totalAmount: 5573,
+    transactionCount: 25,
     percentage: 2.1,
     icon: '👔',
     description: 'Categoria extraída dos dados financeiros: SERVIÇOS DE CONTABILIDADE',
-    examples: ["SERVIÇOS DE CONTABILIDADE","SERVIÇOS DE CONTABILIDADE"]
+    examples: ["SERVIÇOS DE CONTABILIDADE", "SERVIÇOS DE CONTABILIDADE"]
   },
   {
     id: '46',
     name: 'SERVIÇOS PRESTADOS PF',
     type: 'variable_cost',
-    color: '#B45309',
-    amount: 1527,
-    transactions: 18,
+    colorHex: '#B45309',
+    totalAmount: 1527,
+    transactionCount: 18,
     percentage: 3.1,
     icon: '👷',
     description: 'Categoria extraída dos dados financeiros: SERVIÇOS PRESTADOS PF',
-    examples: ["SERVIÇOS PRESTADOS PF","SERVIÇOS PRESTADOS PF"]
+    examples: ["SERVIÇOS PRESTADOS PF", "SERVIÇOS PRESTADOS PF"]
   },
   {
     id: '47',
     name: 'SOFTWARES',
     type: 'fixed_cost',
-    color: '#991B1B',
-    amount: 8488,
-    transactions: 32,
+    colorHex: '#991B1B',
+    totalAmount: 8488,
+    transactionCount: 32,
     percentage: 4.1,
     icon: '💻',
     description: 'Categoria extraída dos dados financeiros: SOFTWARES',
-    examples: ["SOFTWARES","SOFTWARES"]
+    examples: ["SOFTWARES", "SOFTWARES"]
   },
   {
     id: '48',
     name: 'TARIFAS BANCÁRIAS',
     type: 'non_operating',
-    color: '#374151',
-    amount: 10489,
-    transactions: 36,
+    colorHex: '#374151',
+    totalAmount: 10489,
+    transactionCount: 36,
     percentage: 5.1,
     icon: '🏛️',
     description: 'Categoria extraída dos dados financeiros: TARIFAS BANCÁRIAS',
-    examples: ["TARIFAS BANCÁRIAS","TARIFAS BANCÁRIAS"]
+    examples: ["TARIFAS BANCÁRIAS", "TARIFAS BANCÁRIAS"]
   },
   {
     id: '49',
     name: 'TELEFONES FIXOS',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 8956,
-    transactions: 45,
+    colorHex: '#6B7280',
+    totalAmount: 8956,
+    transactionCount: 45,
     percentage: 2.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: TELEFONES FIXOS',
-    examples: ["TELEFONES FIXOS","TELEFONES FIXOS"]
+    examples: ["TELEFONES FIXOS", "TELEFONES FIXOS"]
   },
   {
     id: '50',
     name: 'TELEFONES MÓVEIS',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 8838,
-    transactions: 9,
+    colorHex: '#6B7280',
+    totalAmount: 8838,
+    transactionCount: 9,
     percentage: 3.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: TELEFONES MÓVEIS',
-    examples: ["TELEFONES MÓVEIS","TELEFONES MÓVEIS"]
+    examples: ["TELEFONES MÓVEIS", "TELEFONES MÓVEIS"]
   },
   {
     id: '51',
     name: 'VALE ALIMENTAÇÃO',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 4968,
-    transactions: 29,
+    colorHex: '#6B7280',
+    totalAmount: 4968,
+    transactionCount: 29,
     percentage: 8.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: VALE ALIMENTAÇÃO',
-    examples: ["VALE ALIMENTAÇÃO","VALE ALIMENTAÇÃO"]
+    examples: ["VALE ALIMENTAÇÃO", "VALE ALIMENTAÇÃO"]
   },
   {
     id: '52',
     name: 'VALE REFEIÇÃO',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 8222,
-    transactions: 50,
+    colorHex: '#6B7280',
+    totalAmount: 8222,
+    transactionCount: 50,
     percentage: 0.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: VALE REFEIÇÃO',
-    examples: ["VALE REFEIÇÃO","VALE REFEIÇÃO"]
+    examples: ["VALE REFEIÇÃO", "VALE REFEIÇÃO"]
   },
   {
     id: '53',
     name: 'VALE TRANSPORTE',
     type: 'fixed_cost',
-    color: '#6B7280',
-    amount: 2634,
-    transactions: 31,
+    colorHex: '#6B7280',
+    totalAmount: 2634,
+    transactionCount: 31,
     percentage: 8.1,
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: VALE TRANSPORTE',
-    examples: ["VALE TRANSPORTE","VALE TRANSPORTE"]
+    examples: ["VALE TRANSPORTE", "VALE TRANSPORTE"]
   }
 ];
 
@@ -643,25 +643,25 @@ export const categoryTypes = [
   {
     value: 'revenue',
     label: 'Receitas',
-    color: '#10B981',
+    colorHex: '#10B981',
     description: 'Todas as entradas de dinheiro'
   },
   {
     value: 'variable_cost',
     label: 'Custos Variáveis',
-    color: '#F59E0B',
+    colorHex: '#F59E0B',
     description: 'Custos que variam com o volume de vendas'
   },
   {
     value: 'fixed_cost',
     label: 'Custos Fixos',
-    color: '#EF4444',
+    colorHex: '#EF4444',
     description: 'Custos fixos mensais'
   },
   {
     value: 'non_operating',
     label: 'Não Operacionais',
-    color: '#6B7280',
+    colorHex: '#6B7280',
     description: 'Despesas não relacionadas à operação principal'
   }
 ];

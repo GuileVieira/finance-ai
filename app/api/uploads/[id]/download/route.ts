@@ -8,25 +8,27 @@ import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { companyId } = await requireAuth();
 
-    console.log(`\n=== [UPLOAD-DOWNLOAD] Requisição de download: ${params.id} ===`);
+
+    console.log(`\n=== [UPLOAD-DOWNLOAD] Requisição de download: ${id} ===`);
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
 
     // Validar ID do upload
-    if (!params.id) {
+    if (!id) {
       return NextResponse.json({
         success: false,
         error: 'ID do upload não fornecido'
       }, { status: 400 });
     }
 
-    console.log(`🔍 Buscando upload: ${params.id}`);
+    console.log(`🔍 Buscando upload: ${id}`);
 
     // Buscar upload no banco - VERIFICAR PROPRIEDADE
     const [upload] = await db.select({
@@ -48,13 +50,13 @@ export async function GET(
       .from(uploads)
       .leftJoin(companies, eq(uploads.companyId, companies.id))
       .where(and(
-        eq(uploads.id, params.id),
+        eq(uploads.id, id),
         eq(uploads.companyId, companyId) // Verificar propriedade
       ))
       .limit(1);
 
     if (!upload) {
-      console.log(`❌ Upload não encontrado: ${params.id}`);
+      console.log(`❌ Upload não encontrado: ${id}`);
       return NextResponse.json({
         success: false,
         error: 'Upload não encontrado'
@@ -88,21 +90,21 @@ export async function GET(
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Upload-ID': upload.id,
       'X-File-Hash': upload.fileHash || '',
-      'X-Upload-Date': upload.uploadedAt.toISOString(),
+      'X-Upload-Date': upload.uploadedAt ? upload.uploadedAt.toISOString() : new Date().toISOString(),
       'X-Company': upload.company?.name || 'Unknown'
     });
 
     console.log(`🚀 Enviando arquivo: ${upload.originalName}`);
 
     // Retornar arquivo
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers
     });
 
   } catch (error) {
     console.error('❌ Erro no download do arquivo:', {
-      uploadId: params.id,
+      uploadId: id,
       error: error instanceof Error ? error.message : 'Erro desconhecido',
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -128,12 +130,13 @@ function getMimeType(fileType: string): string {
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await requireAuth();
+  const { id } = await params;
   return NextResponse.json({
     message: 'API de Download de Uploads',
-    endpoint: `/api/uploads/${params.id}/download`,
+    endpoint: `/api/uploads/${id}/download`,
     method: 'GET',
     description: 'Baixa o arquivo original associado a um upload',
     parameters: {
@@ -148,6 +151,6 @@ export async function POST(
       'X-Company': 'Nome da empresa'
     },
     supportedFormats: ['OFX', 'XLSX', 'XLS', 'CSV'],
-    example: `GET /api/uploads/${params.id}/download`
+    example: `GET /api/uploads/${id}/download`
   });
 }

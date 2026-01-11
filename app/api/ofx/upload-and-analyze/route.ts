@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseOFXFile } from '@/lib/ofx-parser';
-import { categorizeTransaction } from '@/lib/transaction-classifier';
+
 import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads, transactions, categories } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Ler conteúdo do arquivo
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
     const ofxContent = fileBuffer.toString('utf-8');
 
     console.log('📋 Arquivo lido, tamanho:', ofxContent.length, 'caracteres');
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     // Salvar arquivo fisicamente
     console.log('💾 Salvando arquivo no sistema...');
     const storageResult = await FileStorageService.saveOFXFile(
-      fileBuffer,
+      arrayBuffer,
       file.name,
       defaultCompany.id
     );
@@ -165,8 +166,8 @@ export async function POST(request: NextRequest) {
     // Estratégia 1: Tentar encontrar conta exata pelo número da conta
     if (parseResult.bankInfo?.accountId) {
       const exactMatch = allAccounts.find(acc =>
-        acc.accountNumber === parseResult.bankInfo.accountId ||
-        acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo.accountId.replace(/[^0-9-]/g, '')
+        acc.accountNumber === parseResult.bankInfo!.accountId ||
+        acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo!.accountId!.replace(/[^0-9-]/g, '')
       );
 
       if (exactMatch) {
@@ -190,8 +191,8 @@ export async function POST(request: NextRequest) {
     // Estratégia 2: Tentar encontrar pelo banco se não encontrou pela conta
     if (!defaultAccount && parseResult.bankInfo?.bankName) {
       const bankMatch = allAccounts.find(acc =>
-        acc.bankName?.toLowerCase().includes(parseResult.bankInfo.bankName.toLowerCase()) ||
-        parseResult.bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || '')
+        acc.bankName?.toLowerCase().includes(parseResult.bankInfo!.bankName!.toLowerCase()) ||
+        parseResult.bankInfo!.bankName!.toLowerCase().includes(acc.bankName?.toLowerCase() || '')
       );
 
       if (bankMatch) {
@@ -221,12 +222,12 @@ export async function POST(request: NextRequest) {
       const similarAccount = allAccounts.find(acc => {
         const accountMatch = parseResult.bankInfo?.accountId &&
           (acc.accountNumber === parseResult.bankInfo.accountId ||
-           acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo.accountId.replace(/[^0-9-]/g, ''));
+            acc.accountNumber.replace(/[^0-9-]/g, '') === parseResult.bankInfo.accountId.replace(/[^0-9-]/g, ''));
 
         const bankMatch = parseResult.bankInfo?.bankName &&
           (acc.bankName?.toLowerCase() === parseResult.bankInfo.bankName.toLowerCase() ||
-           acc.bankName?.toLowerCase().includes(parseResult.bankInfo.bankName.toLowerCase()) ||
-           parseResult.bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || ''));
+            acc.bankName?.toLowerCase().includes(parseResult.bankInfo.bankName.toLowerCase()) ||
+            parseResult.bankInfo.bankName.toLowerCase().includes(acc.bankName?.toLowerCase() || ''));
 
         return accountMatch || bankMatch;
       });
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
           agencyNumber: parseResult.bankInfo?.branchId || '0000',
           accountNumber: parseResult.bankInfo?.accountId || '00000-0',
           accountType: parseResult.bankInfo?.accountType || 'checking',
-          openingBalance: 0,
+          openingBalance: '0',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -289,7 +290,7 @@ export async function POST(request: NextRequest) {
         agencyNumber: '0000',
         accountNumber: '00000-0',
         accountType: 'checking',
-        openingBalance: 0,
+        openingBalance: '0',
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -368,7 +369,7 @@ export async function POST(request: NextRequest) {
     // Converter transações para o formato esperado pelo batch service
     const formattedTransactions = parseResult.transactions.map(tx => ({
       description: tx.description,
-      name: tx.name,
+      name: tx.description, // OFXTransaction não tem name, usamos description
       memo: tx.memo,
       amount: tx.amount,
       date: tx.date,
