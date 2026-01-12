@@ -229,7 +229,7 @@ export default function DREStatementComponent({
             <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground font-medium">Receita Bruta</div>
-                <div className="text-2xl font-bold text-success">
+                <div className={`text-2xl font-bold ${(data.grossRevenue || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(data.grossRevenue || 0)}
                 </div>
               </CardContent>
@@ -238,7 +238,7 @@ export default function DREStatementComponent({
             <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground font-medium">Margem Contribuição</div>
-                <div className="text-2xl font-bold text-success">
+                <div className={`text-2xl font-bold ${(data.contributionMargin?.percentage || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {data.contributionMargin?.percentage ? formatPercentage(data.contributionMargin.percentage) : '0%'}
                 </div>
               </CardContent>
@@ -247,7 +247,7 @@ export default function DREStatementComponent({
             <Card>
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground font-medium">Resultado Operacional</div>
-                <div className="text-2xl font-bold text-success">
+                <div className={`text-2xl font-bold ${(data.operationalResult || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(data.operationalResult || 0)}
                 </div>
               </CardContent>
