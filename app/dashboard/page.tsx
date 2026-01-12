@@ -132,16 +132,21 @@ export default function DashboardPage() {
 
     if (periods.length === 0) {
       setFilters(prev => {
-        if (prev.period === 'all') return prev;
+        if (prev.period === 'all' || prev.period === 'custom') return prev;
         return { ...prev, period: 'all' };
       });
       return;
     }
 
     setFilters(prev => {
+      // Se for custom, manter
+      if (prev.period === 'custom') return prev;
+
+      // Se o período atual ainda existe na lista, manter
       if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
         return prev;
       }
+      // Se não, volta para o primeiro (default)
       if (prev.period === periods[0]?.id) return prev;
       return { ...prev, period: periods[0].id };
     });

@@ -14,6 +14,7 @@ export interface TransactionFilters {
   search?: string;
   verified?: boolean;
   uploadId?: string;
+  categoryType?: string;
 }
 
 export interface TransactionStats {
@@ -116,6 +117,10 @@ export class TransactionsService {
         conditions.push(eq(transactions.type, filters.type));
       }
 
+      if (filters.categoryType) {
+        conditions.push(eq(categories.type, filters.categoryType));
+      }
+
       if (filters.verified !== undefined) {
         conditions.push(eq(transactions.verified, filters.verified));
       }
@@ -205,7 +210,8 @@ export class TransactionsService {
         expenseCount: sql<number>`count(*) FILTER (WHERE CAST(${transactions.amount} AS NUMERIC) < 0)`
       })
         .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id));
 
       // Aplicar filtros
       const conditions = [];
@@ -220,6 +226,10 @@ export class TransactionsService {
 
       if (filters.type) {
         conditions.push(eq(transactions.type, filters.type));
+      }
+
+      if (filters.categoryType) {
+        conditions.push(eq(categories.type, filters.categoryType));
       }
 
       if (filters.startDate && filters.endDate) {

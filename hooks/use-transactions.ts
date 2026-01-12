@@ -9,6 +9,7 @@ interface UIFilters {
   bank?: string;
   category?: string;
   type?: string;
+  categoryType?: string;
   search?: string;
   accountId?: string;
   companyId?: string;

@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAllCategories } from "@/hooks/use-all-categories";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Filter } from "lucide-react";
+import { Filter } from "lucide-react";
+import { TransactionDetailsDialog } from "./transaction-details-dialog";
 // useTransactions already imported above
 
 interface TransactionListSheetProps {
@@ -43,11 +47,16 @@ export const TransactionListSheet = memo(function TransactionListSheet({
     title,
     filters
 }: TransactionListSheetProps) {
-    const { transactions, isLoading, updateTransactionCategory } = useTransactions({
+    const [categoryType, setCategoryType] = useState<string | undefined>(filters.categoryType);
+
+    const activeFilters = {
         ...filters,
+        categoryType,
         page: 1,
-        limit: 50 // Limit to 50 for quick view
-    });
+        limit: 50
+    };
+
+    const { transactions, isLoading, updateTransactionCategory } = useTransactions(activeFilters);
 
     const { categoryOptions } = useAllCategories(filters.companyId || '');
 
@@ -68,6 +77,18 @@ export const TransactionListSheet = memo(function TransactionListSheet({
         }
     };
 
+    const [selectedTransaction, setSelectedTransaction] = useState<ExtendedTransaction | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+    const handleTransactionClick = (transaction: ExtendedTransaction) => {
+        setSelectedTransaction(transaction);
+        setIsDetailsOpen(true);
+    };
+
+    const handleDetailsCategoryChange = async (transactionId: string, categoryId: string) => {
+        await updateTransactionCategory.mutateAsync({ transactionId, categoryId });
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-full sm:max-w-xl flex flex-col h-full">
@@ -76,6 +97,22 @@ export const TransactionListSheet = memo(function TransactionListSheet({
                     <SheetDescription>
                         Visualizando as últimas 50 transações.
                     </SheetDescription>
+                    <div className="pt-4 flex items-center gap-2">
+                        <Select value={categoryType || "all"} onValueChange={(v) => setCategoryType(v === "all" ? undefined : v)}>
+                            <SelectTrigger className="w-[180px] h-8 text-xs">
+                                <Filter className="w-3 h-3 mr-2" />
+                                <SelectValue placeholder="Tipo de Categoria" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas os Tipos</SelectItem>
+                                <SelectItem value="revenue">Receitas</SelectItem>
+                                <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
+                                <SelectItem value="fixed_cost">Custos Fixos</SelectItem>
+                                <SelectItem value="non_operating">Não Operacional</SelectItem>
+                                <SelectItem value="financial_movement">Mov. Financeira</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </SheetHeader>
 
                 <div className="mt-6 flex-1 overflow-hidden">

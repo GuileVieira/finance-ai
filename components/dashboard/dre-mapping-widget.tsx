@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useCategories, useUpdateCategory } from '@/hooks/use-categories';
+import { useCategories, useUpdateCategory, useCreateCategory } from '@/hooks/use-categories';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, Filter } from 'lucide-react';
-import { CategoryType } from '@/lib/api/categories';
+import { Loader2, Search, Filter, PlusCircle } from 'lucide-react';
+import { CategoryType, CreateCategoryData } from '@/lib/api/categories';
 import { toast } from 'sonner';
+import { CategoryDialog } from '@/components/categories/category-dialog';
 
 interface DREMappingWidgetProps {
     isOpen: boolean;
@@ -42,9 +43,11 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
     });
 
     const updateCategoryMutation = useUpdateCategory();
+    const createCategoryMutation = useCreateCategory();
 
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredCategories = useMemo(() => {
         if (!categories) return [];
@@ -69,11 +72,29 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
         });
     };
 
+    const handleCreateCategory = (data: CreateCategoryData) => {
+        createCategoryMutation.mutate(data, {
+            onSuccess: () => {
+                toast.success('Categoria criada com sucesso');
+                setIsCreateDialogOpen(false);
+            },
+            onError: () => {
+                toast.error('Erro ao criar categoria');
+            }
+        });
+    };
+
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="w-full sm:max-w-xl flex flex-col h-full">
                 <SheetHeader className="mb-4">
-                    <SheetTitle>Customização do Plano de Contas</SheetTitle>
+                    <div className="flex items-center justify-between">
+                        <SheetTitle>Customização do Plano de Contas</SheetTitle>
+                        <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+                            <PlusCircle className="w-4 h-4 mr-2" />
+                            Nova Categoria
+                        </Button>
+                    </div>
                     <SheetDescription>
                         Configure como suas categorias são mapeadas no DRE (Demonstrativo do Resultado do Exercício).
                     </SheetDescription>
@@ -158,6 +179,12 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                     Alterações são salvas automaticamente e refletem no DRE em tempo real.
                 </div>
             </SheetContent>
+
+            <CategoryDialog
+                open={isCreateDialogOpen}
+                onOpenChange={setIsCreateDialogOpen}
+                onSave={handleCreateCategory}
+            />
         </Sheet>
     );
 }

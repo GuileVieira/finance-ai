@@ -11,6 +11,7 @@ export interface TransactionFilters {
   search?: string;
   page?: number;
   limit?: number;
+  categoryType?: string;
 }
 
 export interface TransactionResponse {
@@ -112,6 +113,7 @@ export class TransactionsAPI {
     categoryId?: string;
     startDate?: string;
     endDate?: string;
+    categoryType?: string;
   }): TransactionFilters {
     const apiFilters: TransactionFilters = {};
 
@@ -141,6 +143,10 @@ export class TransactionsAPI {
     // Busca textual
     if (uiFilters.search) {
       apiFilters.search = uiFilters.search;
+    }
+
+    if (uiFilters.categoryType && uiFilters.categoryType !== 'all') {
+      apiFilters.categoryType = uiFilters.categoryType;
     }
 
     // Propagar IDs

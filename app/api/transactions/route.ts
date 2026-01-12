@@ -47,6 +47,10 @@ export async function GET(request: NextRequest) {
       filters.endDate = searchParams.get('endDate')!;
     }
 
+    if (searchParams.get('categoryType')) {
+      filters.categoryType = searchParams.get('categoryType')!;
+    }
+
     if (searchParams.get('search')) {
       filters.search = searchParams.get('search')!;
     }
@@ -127,6 +131,7 @@ export async function OPTIONS(request: NextRequest) {
       accountId: 'string (opcional) - ID da conta bancária',
       companyId: 'string (opcional) - ID da empresa',
       categoryId: 'string (opcional) - ID da categoria',
+      categoryType: 'string (opcional) - Tipo da categoria (revenue, fixed_cost, etc)',
       type: 'credit|debit (opcional) - Tipo da transação',
       verified: 'true|false (opcional) - Se a transação foi verificada',
       startDate: 'YYYY-MM-DD (opcional) - Data inicial',

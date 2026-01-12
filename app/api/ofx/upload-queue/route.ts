@@ -11,7 +11,7 @@ import { requireAuth } from '@/lib/auth/get-session';
 // Importar sistema de filas se disponível
 let QueueService: any = null;
 try {
-  QueueService = require('@/lib/services/queue.service').default;
+  // QueueService = require('@/lib/services/queue.service').default;
 } catch (error) {
   console.log('📋 [QUEUE] Sistema de filas não disponível, usando background processing');
 }
@@ -55,12 +55,13 @@ export async function POST(request: NextRequest) {
     console.log('📁 Arquivo recebido:', { name: file.name, size: file.size });
 
     // Processar arquivo
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
     const ofxContent = fileBuffer.toString('utf-8');
 
     // Salvar arquivo
     const storageResult = await FileStorageService.saveOFXFile(
-      fileBuffer,
+      arrayBuffer,
       file.name,
       defaultCompany.id
     );
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
           agencyNumber: parseResult.bankInfo.branchId || '0000',
           accountNumber: parseResult.bankInfo.accountId || '00000-0',
           accountType: parseResult.bankInfo.accountType || 'checking',
-          openingBalance: 0,
+          openingBalance: '0',
           active: true
         }).returning();
 
