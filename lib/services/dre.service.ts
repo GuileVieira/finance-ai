@@ -290,9 +290,9 @@ export default class DREService {
         .filter(cat => isFinancialRevenue(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Despesas não operacionais (excluindo custos financeiros já separados)
+      // Despesas não operacionais (excluindo custos financeiros e impostos)
       const totalNonOperational = dreCategories
-        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name))
+        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational + financialCosts;
@@ -362,46 +362,57 @@ export default class DREService {
       }));
 
       // Separar categorias por tipo para detalhamento
-      const revenueCategories = dreCategories.filter(cat => cat.type === 'revenue').map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
-      const variableCostCategories = dreCategories.filter(cat => cat.type === 'variable_cost').map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
-      const fixedCostCategories = dreCategories.filter(cat => cat.type === 'fixed_cost').map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
-      const nonOperationalCategories = dreCategories.filter(cat => cat.type === 'non_operating').map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
+      const revenueCategories = dreCategories
+        .filter(cat => cat.type === 'revenue' && !isFinancialRevenue(cat.name))
+        .map(cat => ({
+          name: cat.name,
+          id: cat.id,
+          value: cat.actual,
+          percentage: cat.percentage,
+          color: cat.color,
+          icon: cat.icon,
+          transactions: cat.transactions || 0,
+          drilldown: transactionsByCategory.get(cat.id) || []
+        }));
+
+      const variableCostCategories = dreCategories
+        .filter(cat => cat.type === 'variable_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .map(cat => ({
+          name: cat.name,
+          id: cat.id,
+          value: cat.actual,
+          percentage: cat.percentage,
+          color: cat.color,
+          icon: cat.icon,
+          transactions: cat.transactions || 0,
+          drilldown: transactionsByCategory.get(cat.id) || []
+        }));
+
+      const fixedCostCategories = dreCategories
+        .filter(cat => cat.type === 'fixed_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .map(cat => ({
+          name: cat.name,
+          id: cat.id,
+          value: cat.actual,
+          percentage: cat.percentage,
+          color: cat.color,
+          icon: cat.icon,
+          transactions: cat.transactions || 0,
+          drilldown: transactionsByCategory.get(cat.id) || []
+        }));
+
+      const nonOperationalCategories = dreCategories
+        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .map(cat => ({
+          name: cat.name,
+          id: cat.id,
+          value: cat.actual,
+          percentage: cat.percentage,
+          color: cat.color,
+          icon: cat.icon,
+          transactions: cat.transactions || 0,
+          drilldown: transactionsByCategory.get(cat.id) || []
+        }));
 
       // Filtrar categorias de impostos (detectadas por nome)
       const taxCategories = dreCategories.filter(cat => isTaxCategory(cat.name)).map(cat => ({
