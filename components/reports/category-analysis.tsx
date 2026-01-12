@@ -69,11 +69,11 @@ export default function CategoryAnalysis({
     return sorted.sort((a, b) => {
       switch (sortBy) {
         case 'value':
-          return b.value - a.value;
+          return (b.actual || 0) - (a.actual || 0);
         case 'percentage':
           return b.percentage - a.percentage;
         case 'transactions':
-          return b.transactions - a.transactions;
+          return (b.transactions || 0) - (a.transactions || 0);
         default:
           return 0;
       }
@@ -82,14 +82,14 @@ export default function CategoryAnalysis({
 
   const pieChartData = sortedCategories.map(category => ({
     name: category.name,
-    value: category.value,
+    value: category.actual || 0,
     color: category.color,
     percentage: category.percentage
   }));
 
   const barChartData = sortedCategories.map(category => ({
     name: category.name.length > 15 ? category.name.substring(0, 15) + '...' : category.name,
-    value: category.value,
+    value: category.actual || 0,
     percentage: category.percentage,
     transactions: category.transactions,
     color: category.color
@@ -130,7 +130,7 @@ export default function CategoryAnalysis({
   };
 
   const totalValue = useMemo(() => {
-    return categories.reduce((sum, cat) => sum + cat.value, 0);
+    return categories.reduce((sum, cat) => sum + (cat.actual || 0), 0);
   }, [categories]);
 
   const renderPieChart = () => (
@@ -152,7 +152,7 @@ export default function CategoryAnalysis({
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ percentage }: { percentage: number }) => percentage > 5 ? `${percentage.toFixed(0)}%` : ''}
+              label={(props: any) => props.percentage > 5 ? `${props.percentage.toFixed(0)}%` : ''}
               outerRadius={140}
               innerRadius={60}
               fill="#8884d8"
@@ -164,7 +164,7 @@ export default function CategoryAnalysis({
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number, name: string, props: { payload: { name: string; percentage: number } }) => [
+              formatter={(value: number, name: string, props: any) => [
                 `${formatCurrency(value)} (${props.payload.percentage.toFixed(1)}%)`,
                 props.payload.name
               ]}
@@ -183,7 +183,7 @@ export default function CategoryAnalysis({
                 />
                 <span className="truncate flex-1" title={category.name}>{category.name}</span>
                 <span className="text-muted-foreground text-xs">
-                  {formatCurrency(category.value)}
+                  {formatCurrency(category.actual || 0)}
                 </span>
               </div>
             ))}
@@ -213,7 +213,7 @@ export default function CategoryAnalysis({
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={barChartData} layout="horizontal">
             <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
-            <XAxis type="number" tickFormatter={(value) => `R$ ${(value/1000).toFixed(0)}k`} />
+            <XAxis type="number" tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
             <YAxis dataKey="name" type="category" width={120} />
             <Tooltip
               content={<CustomTooltip />}
@@ -245,13 +245,15 @@ export default function CategoryAnalysis({
         </div>
 
         <div className="flex gap-2">
-          <Input
-            placeholder="Buscar categorias..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-            prefix={<Search className="w-4 h-4 text-muted-foreground" />}
-          />
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar categorias..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
         </div>
       </div>
 
@@ -279,7 +281,7 @@ export default function CategoryAnalysis({
             </div>
             {sortedCategories[0] && (
               <div className="text-sm text-muted-foreground">
-                {formatCurrency(sortedCategories[0].value)}
+                {formatCurrency(sortedCategories[0].actual || 0)}
               </div>
             )}
           </CardContent>
@@ -382,7 +384,7 @@ export default function CategoryAnalysis({
                       <div>
                         <div className="text-muted-foreground">Valor</div>
                         <div className="font-semibold text-lg">
-                          {formatCurrency(category.value)}
+                          {formatCurrency(category.actual || 0)}
                         </div>
                       </div>
                       <div>
