@@ -16,6 +16,7 @@ import { TransactionsAPI } from '@/lib/api/transactions';
 import { CategoryWithStats, CategoryRule, CategoryRuleDB } from '@/lib/api/categories';
 import {
   useCategoriesWithTransactions,
+  useCategories,
   useCategoryRules,
   useCreateCategoryRule,
   useUpdateCategoryRule,
@@ -69,15 +70,18 @@ export default function CategoriesPage() {
     isLoading,
     error,
     refetch
-  } = useCategoriesWithTransactions({
+  } = useCategories({
     type: activeTab !== 'all' ? activeTab : undefined,
     includeStats: true,
     sortBy: 'totalAmount',
     sortOrder: 'desc'
   });
 
-  // Buscar regras automáticas
+  // Buscar categorias e regras
   const { data: autoRules, isLoading: isLoadingRules, refetch: refetchRules } = useCategoryRules({ isActive: true });
+
+  // Filtrar categorias zeradas (conforme solicitado)
+  const displayedCategories = categories.filter(cat => (cat.transactionCount || 0) > 0);
 
   // Hook combinado para operações com categorias
   const categoryOps = useCategoriesOperations({
@@ -121,7 +125,7 @@ export default function CategoriesPage() {
 
   // Handlers para operações com regras
   const handleCreateRule = (ruleData: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => {
-    createRule(ruleData, {
+    createRule.mutate(ruleData, {
       onSuccess: () => {
         toast({
           title: 'Regra Criada',
@@ -152,7 +156,7 @@ export default function CategoriesPage() {
 
   const handleUpdateRule = (ruleData: Omit<CategoryRule, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editingRule) {
-      updateRule({ id: editingRule.id, ...ruleData }, {
+      updateRule.mutate({ id: editingRule.id, ...ruleData }, {
         onSuccess: () => {
           toast({
             title: 'Regra Atualizada',
@@ -166,7 +170,7 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteRule = (ruleId: string) => {
-    deleteRule(ruleId, {
+    deleteRule.mutate(ruleId, {
       onSuccess: () => {
         toast({
           title: 'Regra Excluída',
@@ -177,7 +181,7 @@ export default function CategoriesPage() {
   };
 
   const handleToggleRule = (ruleId: string, isActive: boolean) => {
-    toggleRule({ id: ruleId, isActive }, {
+    toggleRule.mutate({ id: ruleId, isActive }, {
       onSuccess: () => {
         toast({
           title: `Regra ${isActive ? 'Ativada' : 'Desativada'}`,
@@ -331,9 +335,9 @@ export default function CategoriesPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
               {isLoading ? 'Carregando categorias...' :
-               categoryOps.summary ?
-                 `Baseado em ${categoryOps.summary.totalCategories} categorias financeiras (${categoryOps.summary.activeCategories} ativas)` :
-                 `Baseado em ${categories.length} categorias financeiras`}
+                categoryOps.summary ?
+                  `Baseado em ${categoryOps.summary.totalCategories} categorias financeiras (${displayedCategories.length} com movimentações)` :
+                  `Baseado em ${displayedCategories.length} categorias com movimentações`}
             </h2>
             <Button onClick={() => setIsDialogOpen(true)} disabled={categoryOps.isCreating}>
               <Plus className="h-4 w-4 mr-2" />
@@ -346,7 +350,7 @@ export default function CategoriesPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Carregando categorias...</p>
             </div>
-          ) : categories.length === 0 ? (
+          ) : displayedCategories.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">
                 {activeTab === 'all' ?
@@ -362,7 +366,7 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {categories.map((category) => (
+              {displayedCategories.map((category: CategoryWithStats) => (
                 <CategoryCard
                   key={category.id}
                   category={category}
@@ -370,7 +374,7 @@ export default function CategoriesPage() {
                   onView={() => handleViewCategory(category)}
                   showEditButton={true}
                   loading={categoryOps.isToggling || categoryOps.isDeleting}
-                    onRules={() => {
+                  onRules={() => {
                     toast({
                       title: 'Regras Temporariamente Indisponível',
                       description: 'Funcionalidade de regras está em manutenção',

@@ -103,6 +103,7 @@ export default class CategoriesService {
 
         // Criar mapa de estatísticas para lookup rápido
         const statsMap = new Map();
+
         statsQuery.forEach(stat => {
           statsMap.set(stat.categoryId, {
             transactionCount: stat.transactionCount || 0,
