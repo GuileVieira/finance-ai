@@ -128,12 +128,6 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                                             </div>
                                             <div>
                                                 <div className="font-medium text-sm">{category.name}</div>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`mt-1 text-[10px] uppercase font-normal ${TYPE_COLORS[category.type] || 'bg-gray-100 text-gray-800'}`}
-                                                >
-                                                    {TYPE_LABELS[category.type] || category.type}
-                                                </Badge>
                                             </div>
                                         </div>
 
