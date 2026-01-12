@@ -19,6 +19,9 @@ import { useDashboard } from '@/hooks/use-dashboard';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { TransactionListSheet } from '@/components/dashboard/transaction-list-sheet';
+import { CategorySummary, TopExpense } from '@/lib/api/dashboard';
+import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
+import { Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
@@ -49,6 +52,8 @@ export default function DashboardPage() {
     filters: {}
   });
 
+  const [isDREWidgetOpen, setIsDREWidgetOpen] = useState(false);
+
   // Estabilizar funções com useCallback
   const handleFilterChange = useCallback((key: string, value: string) => {
     console.log('📝 Mudando filtro:', key, '=', value);
@@ -63,12 +68,12 @@ export default function DashboardPage() {
 
   const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
     setDateRange(range);
-    if (range?.from && range?.to) {
+    if (range?.from) {
       setFilters(prev => ({
         ...prev,
         period: 'custom',
         startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
-        endDate: range.to ? range.to.toISOString().split('T')[0] : undefined
+        endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
       }));
     }
   }, []);
@@ -92,6 +97,29 @@ export default function DashboardPage() {
       filters: {
         ...filters, // Herdamos os filtros atuais (período, conta)
         type: typeFilter
+      }
+    });
+  }, [filters]);
+
+  const handleCategoryClick = useCallback((category: CategorySummary) => {
+    setDrillDown({
+      isOpen: true,
+      title: `Categoria: ${category.name}`,
+      filters: {
+        ...filters,
+        categoryId: category.id,
+      }
+    });
+  }, [filters]);
+
+  const handleExpenseClick = useCallback((expense: TopExpense) => {
+    setDrillDown({
+      isOpen: true,
+      title: `Despesa: ${expense.description}`,
+      filters: {
+        ...filters,
+        search: expense.description,
+        type: 'debit'
       }
     });
   }, [filters]);
@@ -278,6 +306,14 @@ export default function DashboardPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setIsDREWidgetOpen(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Plano de Contas
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={isLoading || isRefetching}
           >
@@ -323,6 +359,7 @@ export default function DashboardPage() {
                 categories={categorySummary}
                 isLoading={isLoading}
                 isEmpty={!categorySummary || categorySummary.length === 0}
+                onCategoryClick={handleCategoryClick}
               />
               <RecentTransactions
                 transactions={recentTransactions}
@@ -337,6 +374,7 @@ export default function DashboardPage() {
                 expenses={topExpenses}
                 isLoading={isLoading}
                 isEmpty={!topExpenses || topExpenses.length === 0}
+                onExpenseClick={handleExpenseClick}
               />
               <Insights
                 period={filters.period}
@@ -352,6 +390,11 @@ export default function DashboardPage() {
           onClose={() => setDrillDown(prev => ({ ...prev, isOpen: false }))}
           title={drillDown.title}
           filters={drillDown.filters}
+        />
+
+        <DREMappingWidget
+          isOpen={isDREWidgetOpen}
+          onClose={() => setIsDREWidgetOpen(false)}
         />
 
       </div>

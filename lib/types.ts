@@ -3,7 +3,7 @@
 export interface Category {
   id: string;
   name: string;
-  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
   colorHex: string;
   totalAmount?: number;
   transactionCount?: number;
@@ -25,7 +25,7 @@ export interface AutoRule {
 
 export interface CategoryFormData {
   name: string;
-  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
   color: string;
   description: string;
   active: boolean;
@@ -122,7 +122,7 @@ export interface DREStatement {
 export interface DRECategory {
   id: string;
   name: string;
-  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+  type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
   budget: number;
   actual: number;
   variance: number;

@@ -15,6 +15,8 @@ import { RefreshCw, Download, AlertTriangle, FileUp, Upload, ArrowRight } from '
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
+import { Settings } from 'lucide-react';
 import {
   DREStatement as DREType,
   CashFlowReport as CashFlowType,
@@ -32,6 +34,8 @@ export default function ReportsPage() {
     accountId: 'all',
     companyId: 'all'
   });
+
+  const [isDREWidgetOpen, setIsDREWidgetOpen] = useState(false);
 
   const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const availablePeriods = useMemo<ReportPeriod[]>(() => {

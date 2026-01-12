@@ -107,24 +107,35 @@ export class TransactionsAPI {
     category?: string;
     type?: string;
     search?: string;
+    accountId?: string;
+    companyId?: string;
+    categoryId?: string;
+    startDate?: string;
+    endDate?: string;
   }): TransactionFilters {
     const apiFilters: TransactionFilters = {};
 
-    // Converter período para startDate e endDate
-    if (uiFilters.period && uiFilters.period !== 'all') {
-      const [year, month] = uiFilters.period.split('-');
-      const startDate = `${year}-${month}-01`;
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-
-      apiFilters.startDate = startDate;
-      apiFilters.endDate = endDate;
+    // Converter período para startDate e endDate se fornecidos explicitamente
+    if (uiFilters.startDate && uiFilters.endDate) {
+      apiFilters.startDate = uiFilters.startDate;
+      apiFilters.endDate = uiFilters.endDate;
+    }
+    // Caso contrário, converter do string period
+    else if (uiFilters.period && uiFilters.period !== 'all' && uiFilters.period !== 'custom') {
+      const { startDate, endDate } = this.convertPeriodToDates(uiFilters.period);
+      if (startDate && endDate) {
+        apiFilters.startDate = startDate;
+        apiFilters.endDate = endDate;
+      }
     }
 
     // Mapear tipo da UI para tipo da API (income/expense → credit/debit)
     if (uiFilters.type && uiFilters.type !== 'all') {
       apiFilters.type = uiFilters.type === 'income' ? 'credit' : 'debit';
-      console.log('🔄 [API-FILTERS] Convertendo tipo:', uiFilters.type, '→', apiFilters.type);
+      // Mapeamento direto se já estiver em credit/debit
+      if (uiFilters.type === 'credit' || uiFilters.type === 'debit') {
+        apiFilters.type = uiFilters.type;
+      }
     }
 
     // Busca textual
@@ -132,14 +143,45 @@ export class TransactionsAPI {
       apiFilters.search = uiFilters.search;
     }
 
-    // Por enquanto, não implementamos filtros de banco e categoria
-    // Os selects estão funcionando mas a API ainda não suporta filtragem por estes campos
-    // TODO: Implementar filtragem por accountId e categoryId quando os hooks enviarem IDs
+    // Propagar IDs
+    if (uiFilters.accountId && uiFilters.accountId !== 'all') {
+      apiFilters.accountId = uiFilters.accountId;
+    }
+
+    if (uiFilters.categoryId && uiFilters.categoryId !== 'all') {
+      apiFilters.categoryId = uiFilters.categoryId;
+    }
+
+    if (uiFilters.companyId && uiFilters.companyId !== 'all') {
+      apiFilters.companyId = uiFilters.companyId;
+    }
+
+    // Fallback para bank/category antigos se existirem e os IDs não
+    if (!apiFilters.accountId && uiFilters.bank && uiFilters.bank !== 'all') {
+      // Nota: isso assume que 'bank' é um ID, o que geralmente é verdade nas selects atuais
+      apiFilters.accountId = uiFilters.bank;
+    }
 
     // Valores padrão de paginação
     apiFilters.page = 1;
     apiFilters.limit = 50;
 
     return apiFilters;
+  }
+
+  /**
+   * Helper param converter period string
+   */
+  private static convertPeriodToDates(period: string): { startDate: string, endDate: string } {
+    try {
+      const [year, month] = period.split('-');
+      const startDate = `${year}-${month}-01`;
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      return { startDate, endDate };
+    } catch (e) {
+      console.error("Erro ao converter periodo", period, e);
+      return { startDate: '', endDate: '' };
+    }
   }
 }

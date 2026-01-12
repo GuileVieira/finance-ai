@@ -161,11 +161,11 @@ export default class DREService {
           // So Net Flow = Income - Expense
           const netFlow = incomeAmount - expenseAmount;
 
-          let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+          let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
           let actualValue: number;
 
           if (cat.categoryType) {
-            resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+            resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
 
             // If it's a Revenue type, we expect positive NetFlow.
             // If it's a Cost type, we expect negative NetFlow.

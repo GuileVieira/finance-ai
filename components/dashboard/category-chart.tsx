@@ -12,9 +12,10 @@ interface CategoryChartProps {
   categories?: CategorySummary[];
   isLoading?: boolean;
   isEmpty?: boolean;
+  onCategoryClick?: (category: CategorySummary) => void;
 }
 
-export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartProps) {
+export function CategoryChart({ categories, isLoading, isEmpty, onCategoryClick }: CategoryChartProps) {
   if (isLoading) {
     return (
       <Card>
@@ -68,7 +69,11 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
       <CardContent>
         <div className="space-y-4">
           {categories.map((category) => (
-            <div key={category.id} className="space-y-2">
+            <div
+              key={category.id}
+              className={`space-y-2 transition-colors rounded-md p-1 -m-1 ${onCategoryClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+              onClick={() => onCategoryClick?.(category)}
+            >
               <div className="flex items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div
@@ -86,19 +91,17 @@ export function CategoryChart({ categories, isLoading, isEmpty }: CategoryChartP
                         {category.name}
                       </span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 self-start ${
-                      category.type === 'revenue'
+                    <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 self-start ${category.type === 'revenue'
                         ? 'bg-success/10 text-success dark:bg-success/20'
                         : 'bg-destructive/10 text-destructive dark:bg-destructive/20'
-                    }`}>
+                      }`}>
                       {category.type === 'revenue' ? 'RECEITA' : 'DESPESA'}
                     </span>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className={`text-xs sm:text-sm font-medium ${
-                    category.type === 'revenue' ? 'text-success' : 'text-destructive'
-                  }`}>
+                  <div className={`text-xs sm:text-sm font-medium ${category.type === 'revenue' ? 'text-success' : 'text-destructive'
+                    }`}>
                     {category.type === 'revenue' ? '+' : '-'} R$ {Math.abs(category.totalAmount).toLocaleString('pt-BR')}
                   </div>
                   <div className="text-xs text-muted-foreground">

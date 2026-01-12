@@ -16,9 +16,10 @@ interface TopExpensesProps {
   expenses?: TopExpense[];
   isLoading?: boolean;
   isEmpty?: boolean;
+  onExpenseClick?: (expense: TopExpense) => void;
 }
 
-export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) {
+export function TopExpenses({ expenses, isLoading, isEmpty, onExpenseClick }: TopExpensesProps) {
   if (isLoading) {
     return (
       <Card>
@@ -63,7 +64,11 @@ export function TopExpenses({ expenses, isLoading, isEmpty }: TopExpensesProps) 
       <CardContent>
         <div className="space-y-3">
           {expenses.slice(0, 5).map((expense, index) => (
-            <div key={expense.id} className="flex items-start sm:items-center justify-between gap-2">
+            <div
+              key={expense.id}
+              className={`flex items-start sm:items-center justify-between gap-2 rounded-md p-1 -m-1 transition-colors ${onExpenseClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+              onClick={() => onExpenseClick?.(expense)}
+            >
               <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
                 <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-destructive/10 text-destructive text-xs font-medium shrink-0 mt-0.5 sm:mt-0">
                   {index + 1}°

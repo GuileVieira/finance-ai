@@ -10,6 +10,11 @@ interface UIFilters {
   category?: string;
   type?: string;
   search?: string;
+  accountId?: string;
+  companyId?: string;
+  categoryId?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface UseTransactionsOptions {
