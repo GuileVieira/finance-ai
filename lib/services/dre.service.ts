@@ -151,28 +151,52 @@ export default class DREService {
           const incomeAmount = cat.incomeAmount || 0;
           const expenseAmount = cat.expenseAmount || 0;
 
-          // Determinar tipo e valor da categoria
+          // Calculate NET amount (income - expense)
+          // Income is positive, Expense is positive in this object but derived from DB sum.
+          // Let's rely on raw sums if possible, or trust these.
+          // The query returns:
+          // incomeAmount = sum(CASE WHEN type='credit' ...)
+          // expenseAmount = sum(CASE WHEN type='debit' ...) -> POSITIVE number
+
+          // So Net Flow = Income - Expense
+          const netFlow = incomeAmount - expenseAmount;
+
           let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
           let actualValue: number;
 
           if (cat.categoryType) {
-            // Se categoria tem tipo definido, usa ele
             resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
-            actualValue = (resolvedType === 'revenue') ? incomeAmount : expenseAmount;
-          } else {
-            // Se não tem tipo, decide baseado nos valores e nos tipos de transação
-            if (expenseAmount > incomeAmount) {
-              // Mais despesas do que receitas = é um custo
-              resolvedType = 'variable_cost';
-              actualValue = expenseAmount;
-            } else if (incomeAmount > 0) {
-              // Mais receitas = é receita
-              resolvedType = 'revenue';
-              actualValue = incomeAmount;
+
+            // If it's a Revenue type, we expect positive NetFlow.
+            // If it's a Cost type, we expect negative NetFlow.
+            // We want 'actualValue' to represent the MAGNITUDE in the context of the type, usually.
+            // BUT for the DRE calculation steps later (grossRevenue = sum(actual)), we need consistency.
+            // The original code passed 'incomeAmount' (pos) for revenue and 'expenseAmount' (pos) for costs.
+            // Later: netRevenue = grossRevenue - taxes.
+            //        operatingIncome = contributionMargin - totalFixedCosts.
+
+            // If we have mixed data (positive and negative in a Cost category):
+            // Old logic: took ONLY expenseAmount (ignoring credits).
+            // New logic: take NetFlow. 
+
+            if (resolvedType === 'revenue') {
+              actualValue = netFlow; // If negative, it reduces revenue.
             } else {
-              // Fallback seguro - usa o maior valor
+              // For costs, we usually want a positive number representing the "Cost Amount"
+              // So if NetFlow is -500 (Expense), ActualValue should be 500.
+              // If NetFlow is +100 (Refund), ActualValue should be -100 (Negative Cost).
+              actualValue = -netFlow;
+            }
+
+          } else {
+            // Logic for unknown types (heuristic)
+            if (netFlow < 0) {
+              // It's an expense
               resolvedType = 'variable_cost';
-              actualValue = Math.max(incomeAmount, expenseAmount);
+              actualValue = -netFlow;
+            } else {
+              resolvedType = 'revenue';
+              actualValue = netFlow;
             }
           }
 
@@ -322,11 +346,17 @@ export default class DREService {
 
       // Mapear categorias para o formato esperado pelo componente
       const mappedCategories = dreCategories.map(cat => ({
+        id: cat.id,
         name: cat.name,
-        value: cat.actual,
+        type: cat.type,
+        budget: cat.budget,
+        actual: cat.actual, // Was 'value: cat.actual' which was wrong
+        variance: cat.variance,
         percentage: cat.percentage,
         color: cat.color,
         icon: cat.icon,
+        subcategories: cat.subcategories,
+        growthRate: cat.growthRate,
         transactions: cat.transactions || 0,
         drilldown: transactionsByCategory.get(cat.id) || []
       }));
@@ -489,14 +519,14 @@ export default class DREService {
     if (!period || period === 'current') {
       const now = new Date();
       const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
       return `${months[now.getMonth()]} ${now.getFullYear()}`;
     }
 
     // Formato YYYY-MM
     const [year, month] = period.split('-').map(Number);
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return `${months[month - 1]} ${year}`;
   }
 

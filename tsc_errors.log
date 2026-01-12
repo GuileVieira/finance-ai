@@ -1,0 +1,779 @@
+.next/types/validator.ts(414,31): error TS2344: Type 'typeof import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/app/api/categories/rules/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/categories/rules/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; error: string; }> | NextResponse<{ success: boolean; data: { id: string; name: any; ... 6 more ...; updatedAt: Date | null; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(702,31): error TS2344: Type 'typeof import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/app/api/transactions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/transactions/[id]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; error: string; }> | NextResponse<{ success: boolean; data: { id: string; accountId: string | null; ... 18 more ...; updatedAt: Date | null; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(747,31): error TS2344: Type 'typeof import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/app/api/uploads/[id]/download/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/uploads/[id]/download">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+app/api/accounts/[id]/route.ts(23,29): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/[id]/route.ts(53,38): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/[id]/route.ts(97,37): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/[id]/route.ts(126,36): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/[id]/route.ts(164,37): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/[id]/route.ts(177,40): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/route.ts(24,17): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/route.ts(57,5): error TS2741: Property 'where' is missing in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_accounts", { id: import("/Users/guilherme/Documents/Projetos/finan...' but required in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_accounts", { id: import("/Users/guilherme/Documents/Projetos/finan...'.
+app/api/accounts/route.ts(60,5): error TS2741: Property 'orderBy' is missing in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_accounts", { id: import("/Users/guilherme/Documents/Projetos/finan...' but required in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_accounts", { id: import("/Users/guilherme/Documents/Projetos/finan...'.
+app/api/accounts/route.ts(67,35): error TS18047: 'db' is possibly 'null'.
+app/api/accounts/route.ts(147,32): error TS18047: 'db' is possibly 'null'.
+app/api/ai/batch-categorize/route.ts(34,7): error TS2322: Type '{ id: string; description: string; amount: number; date?: string | undefined; }[]' is not assignable to type '{ id: string; description: string; amount: number; date: string; }[]'.
+  Type '{ id: string; description: string; amount: number; date?: string | undefined; }' is not assignable to type '{ id: string; description: string; amount: number; date: string; }'.
+    Types of property 'date' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+app/api/ai/batch-categorize/route.ts(57,24): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+app/api/ai/batch-categorize/route.ts(57,35): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/api/ai/categorize/route.ts(27,32): error TS2341: Property 'classifyTransaction' is private and only accessible within class 'ClassificationAgent'.
+app/api/ai/categorize/route.ts(51,24): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+app/api/ai/categorize/route.ts(51,35): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/api/ai/costs/route.ts(92,22): error TS18047: 'db' is possibly 'null'.
+app/api/ai/costs/route.ts(101,31): error TS18047: 'db' is possibly 'null'.
+app/api/ai/costs/route.ts(154,22): error TS18047: 'db' is possibly 'null'.
+app/api/ai/costs/route.ts(242,22): error TS18047: 'db' is possibly 'null'.
+app/api/ai/costs/route.ts(332,22): error TS18047: 'db' is possibly 'null'.
+app/api/ai/history/route.ts(87,24): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+app/api/ai/history/route.ts(87,35): error TS7006: Parameter 'err' implicitly has an 'any' type.
+app/api/ai/work-categorize/route.ts(642,9): error TS2322: Type '{ role: string; content: string; }[]' is not assignable to type 'AIMessage[]'.
+  Type '{ role: string; content: string; }' is not assignable to type 'AIMessage'.
+    Types of property 'role' are incompatible.
+      Type 'string' is not assignable to type '"user" | "system" | "assistant"'.
+app/api/auth/signup/route.ts(51,34): error TS18047: 'db' is possibly 'null'.
+app/api/auth/signup/route.ts(65,32): error TS18047: 'db' is possibly 'null'.
+app/api/auth/signup/route.ts(75,29): error TS18047: 'db' is possibly 'null'.
+app/api/auth/signup/route.ts(86,11): error TS18047: 'db' is possibly 'null'.
+app/api/auth/signup/route.ts(94,11): error TS18047: 'db' is possibly 'null'.
+app/api/auth/signup/route.ts(117,11): error TS18047: 'db' is possibly 'null'.
+app/api/categories/distinct/route.ts(28,17): error TS18047: 'db' is possibly 'null'.
+app/api/categories/distinct/route.ts(40,25): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/categories/distinct/route.ts(47,36): error TS18047: 'db' is possibly 'null'.
+app/api/categories/distinct/route.ts(65,53): error TS2488: Type 'Omit<PgSelectBase<any, { id: any; name: any; type: any; colorHex: any; transactionCount: Aliased<number>; }, "partial", { financeai_transactions: "not-null"; } | (Record<any, "not-null"> & { ...; }), false, "where" | ... 1 more ... | "orderBy", ({ ...; } | { ...; })[], { ...; }>, "where" | ... 1 more ... | "orderBy">' must have a '[Symbol.iterator]()' method that returns an iterator.
+app/api/categories/route.ts(21,62): error TS2345: Argument of type '{ type: "income" | "expense" | undefined; companyId: string; isActive: boolean | undefined; includeStats: boolean; search: string | undefined; sortBy: "name" | "transactionCount" | "totalAmount"; sortOrder: "asc" | "desc"; }' is not assignable to parameter of type 'CategoryFilters'.
+  Types of property 'type' are incompatible.
+    Type '"income" | "expense" | undefined' is not assignable to type 'CategoryType | "all" | undefined'.
+      Type '"income"' is not assignable to type 'CategoryType | "all" | undefined'.
+app/api/categories/route.ts(146,48): error TS2554: Expected 1 arguments, but got 2.
+app/api/categories/rules/[id]/route.ts(25,28): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/[id]/route.ts(41,20): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(42,27): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(45,24): error TS2339: Property 'priority' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(81,34): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/[id]/route.ts(130,35): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/[id]/route.ts(139,27): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(140,34): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(143,31): error TS2339: Property 'priority' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+app/api/categories/rules/[id]/route.ts(186,34): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/[id]/route.ts(200,11): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/export/route.ts(70,29): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/export/route.ts(90,34): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/export/route.ts(106,11): error TS2322: Type '{ id: string; categoryId: string | null; categoryName: any; rulePattern: string; ruleType: string; confidenceScore: number; active: boolean; sourceType: string; usageCount: number; examples: string[]; createdAt: string; lastUsedAt: string | null; }[]' is not assignable to type 'ExportedRule[]'.
+  Type '{ id: string; categoryId: string | null; categoryName: any; rulePattern: string; ruleType: string; confidenceScore: number; active: boolean; sourceType: string; usageCount: number; examples: string[]; createdAt: string; lastUsedAt: string | null; }' is not assignable to type 'ExportedRule'.
+    Types of property 'categoryId' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+app/api/categories/rules/import/route.ts(131,23): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/import/route.ts(151,25): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/import/route.ts(174,17): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/import/route.ts(271,30): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/import/route.ts(289,37): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/import/route.ts(325,28): error TS18047: 'db' is possibly 'null'.
+app/api/categories/rules/preview/route.ts(189,30): error TS18047: 'db' is possibly 'null'.
+app/api/categories/suggest/route.ts(33,13): error TS18047: 'db' is possibly 'null'.
+app/api/categories/suggest/route.ts(60,41): error TS18047: 'db' is possibly 'null'.
+app/api/categories/suggest/route.ts(70,27): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/categories/with-transactions/route.ts(38,39): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(23,29): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(36,35): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(73,37): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(87,40): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(120,36): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(156,37): error TS18047: 'db' is possibly 'null'.
+app/api/companies/[id]/route.ts(169,40): error TS18047: 'db' is possibly 'null'.
+app/api/companies/route.ts(21,17): error TS18047: 'db' is possibly 'null'.
+app/api/companies/route.ts(34,7): error TS2740: Type 'Omit<PgSelectBase<"financeai_companies", { id: PgColumn<{ name: "id"; tableName: "financeai_companies"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 12 more ...; updatedAt: PgColumn<...>; }, ... 5 m...' is missing the following properties from type 'PgSelectBase<"financeai_companies", { id: PgColumn<{ name: "id"; tableName: "financeai_companies"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 12 more ...; updatedAt: PgColumn<...>; }, ... 5 more ....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.
+app/api/companies/route.ts(43,5): error TS2740: Type 'Omit<PgSelectBase<"financeai_companies", { id: PgColumn<{ name: "id"; tableName: "financeai_companies"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 12 more ...; updatedAt: PgColumn<...>; }, ... 5 m...' is missing the following properties from type 'PgSelectBase<"financeai_companies", { id: PgColumn<{ name: "id"; tableName: "financeai_companies"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 12 more ...; updatedAt: PgColumn<...>; }, ... 5 more ....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.
+app/api/companies/route.ts(92,35): error TS18047: 'db' is possibly 'null'.
+app/api/companies/route.ts(105,32): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(16,37): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(23,34): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(38,37): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(46,34): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(64,38): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(86,13): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(93,32): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(94,20): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(95,21): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(96,23): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(134,27): error TS18047: 'db' is possibly 'null'.
+app/api/db-init/route.ts(135,20): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(136,19): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(137,21): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/db-init/route.ts(138,23): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Aliased<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}>'.
+app/api/ofx/upload-and-analyze/route.ts(3,39): error TS2307: Cannot find module '@/lib/transaction-classifier' or its corresponding type declarations.
+app/api/ofx/upload-and-analyze/route.ts(31,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(87,7): error TS2345: Argument of type 'Buffer<ArrayBuffer>' is not assignable to parameter of type 'ArrayBuffer'.
+  Type 'Buffer<ArrayBuffer>' is missing the following properties from type 'ArrayBuffer': maxByteLength, resizable, resize, detached, and 2 more.
+app/api/ofx/upload-and-analyze/route.ts(107,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(159,31): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(168,31): error TS18048: 'parseResult.bankInfo' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(169,55): error TS18048: 'parseResult.bankInfo' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(169,55): error TS18048: 'parseResult.bankInfo.accountId' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(193,46): error TS18048: 'parseResult.bankInfo' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(193,46): error TS18048: 'parseResult.bankInfo.bankName' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(194,9): error TS18048: 'parseResult.bankInfo' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(194,9): error TS18048: 'parseResult.bankInfo.bankName' is possibly 'undefined'.
+app/api/ofx/upload-and-analyze/route.ts(251,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(251,56): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'companyId' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+app/api/ofx/upload-and-analyze/route.ts(284,34): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(284,54): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'companyId' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+app/api/ofx/upload-and-analyze/route.ts(307,31): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-and-analyze/route.ts(371,16): error TS2339: Property 'name' does not exist on type 'OFXTransaction'.
+app/api/ofx/upload-and-analyze/route.ts(426,37): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-async/route.ts(25,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-async/route.ts(69,7): error TS2345: Argument of type 'Buffer<ArrayBuffer>' is not assignable to parameter of type 'ArrayBuffer'.
+  Type 'Buffer<ArrayBuffer>' is missing the following properties from type 'ArrayBuffer': maxByteLength, resizable, resize, detached, and 2 more.
+app/api/ofx/upload-async/route.ts(85,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-async/route.ts(165,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-async/route.ts(165,56): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'companyId' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+app/api/ofx/upload-async/route.ts(197,31): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-async/route.ts(347,11): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-queue/route.ts(29,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-queue/route.ts(63,7): error TS2345: Argument of type 'Buffer<ArrayBuffer>' is not assignable to parameter of type 'ArrayBuffer'.
+  Type 'Buffer<ArrayBuffer>' is missing the following properties from type 'ArrayBuffer': maxByteLength, resizable, resize, detached, and 2 more.
+app/api/ofx/upload-queue/route.ts(77,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-queue/route.ts(134,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-queue/route.ts(134,56): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'companyId' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+app/api/ofx/upload-queue/route.ts(166,31): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-simple/route.ts(17,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-simple/route.ts(74,36): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-simple/route.ts(85,34): error TS18047: 'db' is possibly 'null'.
+app/api/ofx/upload-simple/route.ts(85,54): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'companyId' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; bankName: string | SQL<unknown> | Placeholder<string, any>; bankCode: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; lastSyncAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+app/api/ofx/upload-simple/route.ts(103,31): error TS18047: 'db' is possibly 'null'.
+app/api/reports/export/route.ts(27,31): error TS2345: Argument of type 'Uint8Array<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+app/api/reports/export/route.ts(36,31): error TS2345: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+app/api/reports/export/route.ts(117,10): error TS2352: Conversion of type 'ArrayBuffer' to type 'Uint8Array<ArrayBufferLike>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'ArrayBuffer' is missing the following properties from type 'Uint8Array<ArrayBufferLike>': BYTES_PER_ELEMENT, buffer, byteOffset, copyWithin, and 29 more.
+app/api/test/route.ts(24,38): error TS18047: 'db' is possibly 'null'.
+app/api/test/route.ts(31,33): error TS18047: 'db' is possibly 'null'.
+app/api/test/route.ts(37,33): error TS18047: 'db' is possibly 'null'.
+app/api/test/route.ts(52,38): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/apply-retroactive/route.ts(25,26): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/apply-retroactive/route.ts(49,30): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/apply-retroactive/route.ts(71,25): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/transaction-rules/apply-retroactive/route.ts(83,25): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/transaction-rules/apply-retroactive/route.ts(99,40): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/apply-retroactive/route.ts(134,39): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/apply-retroactive/route.ts(144,11): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/preview/route.ts(25,30): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/preview/route.ts(47,25): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/transaction-rules/preview/route.ts(59,25): error TS2339: Property 'companyId' does not exist on type 'PgTableWithColumns<{ name: "financeai_transactions"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; ...'.
+app/api/transaction-rules/preview/route.ts(75,30): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/preview/route.ts(81,38): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/preview/route.ts(98,10): error TS2339: Property 'currentCategoryId' does not exist on type '{ count: string; }'.
+app/api/transaction-rules/preview/route.ts(98,33): error TS2339: Property 'currentCategoryId' does not exist on type '{ count: string; }'.
+app/api/transaction-rules/route.ts(15,25): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/route.ts(68,29): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/route.ts(77,30): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/route.ts(98,32): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/route.ts(116,29): error TS18047: 'db' is possibly 'null'.
+app/api/transaction-rules/route.ts(175,33): error TS18047: 'db' is possibly 'null'.
+app/api/transactions/[id]/route.ts(27,38): error TS18047: 'db' is possibly 'null'.
+app/api/transactions/batch-update/route.ts(41,26): error TS18047: 'db' is possibly 'null'.
+app/api/transactions/periods/route.ts(28,17): error TS2367: This comparison appears to be unintentional because the types '"credit" | "debit"' and '"all"' have no overlap.
+app/api/transactions/route.ts(71,37): error TS2551: Property 'totalCreditsValue' does not exist on type 'TransactionStats'. Did you mean 'totalCredits'?
+app/api/transactions/route.ts(72,39): error TS2551: Property 'totalDebitsValue' does not exist on type 'TransactionStats'. Did you mean 'totalDebits'?
+app/api/tutorial/route.ts(20,26): error TS18047: 'db' is possibly 'null'.
+app/api/tutorial/route.ts(72,33): error TS18047: 'db' is possibly 'null'.
+app/api/uploads/[id]/download/route.ts(32,28): error TS18047: 'db' is possibly 'null'.
+app/api/uploads/[id]/download/route.ts(91,24): error TS18047: 'upload.uploadedAt' is possibly 'null'.
+app/api/uploads/[id]/download/route.ts(98,29): error TS2345: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+app/api/uploads/route.ts(18,36): error TS18047: 'db' is possibly 'null'.
+app/api/uploads/route.ts(51,9): error TS2345: Argument of type 'SQL<unknown> | undefined' is not assignable to parameter of type 'SQL<unknown>'.
+  Type 'undefined' is not assignable to type 'SQL<unknown>'.
+app/api/uploads/route.ts(60,7): error TS18047: 'db' is possibly 'null'.
+app/api/uploads/route.ts(91,7): error TS18047: 'db' is possibly 'null'.
+app/api/uploads/route.ts(101,24): error TS18047: 'upload.totalTransactions' is possibly 'null'.
+app/api/uploads/route.ts(102,23): error TS18047: 'upload.successfulTransactions' is possibly 'null'.
+app/api/uploads/route.ts(102,55): error TS18047: 'upload.totalTransactions' is possibly 'null'.
+app/api/uploads/route.ts(103,23): error TS18047: 'upload.failedTransactions' is possibly 'null'.
+app/api/uploads/route.ts(103,51): error TS18047: 'upload.totalTransactions' is possibly 'null'.
+app/api/uploads/route.ts(105,20): error TS18047: 'upload.failedTransactions' is possibly 'null'.
+app/api/uploads/route.ts(115,33): error TS18047: 'db' is possibly 'null'.
+app/categories/[id]/page.tsx(117,55): error TS2367: This comparison appears to be unintentional because the types '"income" | "expense"' and '"credit"' have no overlap.
+app/categories/[id]/page.tsx(118,54): error TS2367: This comparison appears to be unintentional because the types '"income" | "expense"' and '"debit"' have no overlap.
+app/categories/[id]/page.tsx(195,52): error TS2339: Property 'color' does not exist on type 'Category'.
+app/categories/[id]/page.tsx(233,19): error TS2322: Type '(data: Record<string, unknown>) => Promise<void>' is not assignable to type '(data: CategoryFormData) => void'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'CategoryFormData' is not assignable to type 'Record<string, unknown>'.
+      Index signature for type 'string' is missing in type 'CategoryFormData'.
+app/categories/[id]/page.tsx(251,19): error TS2739: Type 'Category' is missing the following properties from type 'Category': color, amount, transactions, percentage
+app/categories/[id]/page.tsx(313,63): error TS2339: Property 'percentage' does not exist on type 'Category'.
+app/categories/[id]/page.tsx(411,42): error TS2339: Property 'account' does not exist on type 'Transaction'.
+app/categories/[id]/page.tsx(416,29): error TS2367: This comparison appears to be unintentional because the types '"income" | "expense"' and '"credit"' have no overlap.
+app/categories/[id]/page.tsx(418,30): error TS2367: This comparison appears to be unintentional because the types '"income" | "expense"' and '"credit"' have no overlap.
+app/categories/[id]/page.tsx(423,55): error TS2339: Property 'balance_after' does not exist on type 'Transaction'.
+app/categories/manage/page.tsx(196,31): error TS2339: Property 'active' does not exist on type 'Category'.
+app/categories/manage/page.tsx(330,70): error TS2339: Property 'active' does not exist on type 'Category'.
+app/categories/manage/page.tsx(382,50): error TS2339: Property 'active' does not exist on type 'Category'.
+app/categories/manage/page.tsx(383,37): error TS2339: Property 'active' does not exist on type 'Category'.
+app/categories/manage/page.tsx(397,41): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+app/categories/manage/page.tsx(421,41): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+app/categories/manage/page.tsx(449,39): error TS2339: Property 'active' does not exist on type 'Category'.
+app/categories/page.tsx(124,5): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<CategoryRule, Error, Omit<CategoryRule, "id" | "createdAt" | "updatedAt">, unknown>' is callable.
+app/categories/page.tsx(155,7): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<CategoryRule, Error, { id: string; } & Partial<Omit<CategoryRule, "id" | "createdAt" | "updatedAt">>, unknown>' is callable.
+app/categories/page.tsx(169,5): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<void, Error, string, unknown>' is callable.
+app/categories/page.tsx(180,5): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<CategoryRule, Error, { id: string; isActive: boolean; }, unknown>' is callable.
+app/settings/categories/page.tsx(133,7): error TS2353: Object literal may only specify known properties, and 'active' does not exist in type 'Category'.
+app/settings/categories/page.tsx(134,22): error TS2339: Property 'examples' does not exist on type 'CategoryFormData'.
+app/settings/categories/page.tsx(181,34): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/categories/page.tsx(376,47): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/categories/page.tsx(490,70): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/categories/page.tsx(560,50): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/categories/page.tsx(561,37): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/categories/page.tsx(575,41): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+app/settings/categories/page.tsx(599,41): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+app/settings/categories/page.tsx(627,39): error TS2339: Property 'active' does not exist on type 'Category'.
+app/settings/companies/[id]/page.tsx(68,18): error TS2345: Argument of type '{ id: any; name: any; corporate_name: any; cnpj: any; email: any; phone: any; address: any; city: any; state: any; zip_code: any; industry: any; monthly_revenue_range: any; active: any; logo_url: any; created_at: any; updated_at: any; }' is not assignable to parameter of type 'SetStateAction<Company | null>'.
+  Property 'created_by' is missing in type '{ id: any; name: any; corporate_name: any; cnpj: any; email: any; phone: any; address: any; city: any; state: any; zip_code: any; industry: any; monthly_revenue_range: any; active: any; logo_url: any; created_at: any; updated_at: any; }' but required in type 'Company'.
+app/settings/companies/[id]/page.tsx(228,39): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/settings/companies/[id]/page.tsx(277,37): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/settings/companies/page.tsx(496,45): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/settings/uploads/page.tsx(121,32): error TS2339: Property 'error' does not exist on type 'UploadsResponse'.
+app/test-ai-agent/page.tsx(94,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(119,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(124,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(131,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(143,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(179,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(184,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(191,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(221,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-ai-agent/page.tsx(229,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-simple-agent/page.tsx(47,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-simple-agent/page.tsx(75,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-simple-agent/page.tsx(81,11): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-simple-agent/page.tsx(90,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/test-simple-agent/page.tsx(230,49): error TS2339: Property 'timestamp' does not exist on type 'SimpleClassificationResult'.
+app/transactions/page.tsx(345,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+app/transactions/page.tsx(361,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+app/transactions/page.tsx(378,40): error TS2551: Property 'categoryName' does not exist on type 'Transaction'. Did you mean 'category'?
+app/transactions/page.tsx(380,42): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+app/transactions/page.tsx(622,45): error TS7006: Parameter 'option' implicitly has an 'any' type.
+app/transactions/page.tsx(762,78): error TS2339: Property 'transactionDate' does not exist on type 'Transaction'.
+app/transactions/page.tsx(768,83): error TS2339: Property 'name' does not exist on type 'Transaction'.
+app/transactions/page.tsx(780,89): error TS2339: Property 'memo' does not exist on type 'Transaction'.
+app/transactions/page.tsx(787,46): error TS2339: Property 'bankName' does not exist on type 'Transaction'.
+app/transactions/page.tsx(813,48): error TS2551: Property 'categoryName' does not exist on type 'Transaction'. Did you mean 'category'?
+app/transactions/page.tsx(938,68): error TS2551: Property 'categoryId' does not exist on type 'Transaction'. Did you mean 'category'?
+app/transactions/page.tsx(950,49): error TS2339: Property 'transactionDate' does not exist on type 'Transaction'.
+app/transactions/page.tsx(954,83): error TS2339: Property 'name' does not exist on type 'Transaction'.
+app/transactions/page.tsx(965,40): error TS2339: Property 'memo' does not exist on type 'Transaction'.
+app/transactions/page.tsx(966,107): error TS2339: Property 'memo' does not exist on type 'Transaction'.
+app/transactions/page.tsx(967,46): error TS2339: Property 'memo' does not exist on type 'Transaction'.
+app/transactions/page.tsx(1020,70): error TS2551: Property 'categoryId' does not exist on type 'Transaction'. Did you mean 'category'?
+app/transactions/page.tsx(1024,42): error TS2551: Property 'categoryName' does not exist on type 'Transaction'. Did you mean 'category'?
+app/transactions/page.tsx(1030,40): error TS2339: Property 'bankName' does not exist on type 'Transaction'.
+components/categories/category-card.tsx(217,15): error TS2322: Type '((category: CategoryWithStats) => void) | undefined' is not assignable to type 'MouseEventHandler<HTMLButtonElement> | undefined'.
+  Type '(category: CategoryWithStats) => void' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+    Types of parameters 'category' and 'event' are incompatible.
+      Type 'MouseEvent<HTMLButtonElement, MouseEvent>' is missing the following properties from type 'CategoryWithStats': transactionCount, totalAmount, percentage, averageAmount, and 9 more.
+components/categories/category-dialog.tsx(274,47): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'string'.
+components/categories/category-form.tsx(26,26): error TS2339: Property 'active' does not exist on type 'Partial<Category>'.
+components/categories/category-form.tsx(27,5): error TS2353: Object literal may only specify known properties, and 'parent_category_id' does not exist in type 'CategoryFormData | (() => CategoryFormData)'.
+components/categories/category-form.tsx(27,38): error TS2339: Property 'parent_category_id' does not exist on type 'Partial<Category>'.
+components/categories/category-form.tsx(34,27): error TS2353: Object literal may only specify known properties, and 'examples' does not exist in type 'CategoryFormData'.
+components/categories/category-form.tsx(128,27): error TS2339: Property 'parent_category_id' does not exist on type 'CategoryFormData'.
+components/categories/category-form.tsx(129,55): error TS2345: Argument of type '"parent_category_id"' is not assignable to parameter of type 'keyof CategoryFormData'.
+components/categories/category-rules-manager.tsx(266,31): error TS2339: Property 'companyId' does not exist on type 'Category'.
+components/categories/category-rules-manager.tsx(478,56): error TS2339: Property 'confidence_score' does not exist on type 'AutoRule'.
+components/ofx-upload-analyzer.tsx(261,135): error TS2339: Property 'originalName' does not exist on type '{ id: string; filename: string; filePath: string; totalTransactions: number; successfulTransactions: number; failedTransactions: number; status: string; }'.
+components/ofx-upload-analyzer.tsx(262,44): error TS2339: Property 'originalName' does not exist on type '{ id: string; filename: string; filePath: string; totalTransactions: number; successfulTransactions: number; failedTransactions: number; status: string; }'.
+components/reports/category-analysis.tsx(72,20): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(72,30): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(76,20): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(76,37): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(85,21): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(92,21): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(94,28): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(133,54): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(155,15): error TS2322: Type '({ percentage }: { percentage: number; }) => string' is not assignable to type 'PieLabel | undefined'.
+  Type '({ percentage }: { percentage: number; }) => string' is not assignable to type '(props: PieLabelRenderProps) => ReactNode | ReactElement<SVGElement, string | JSXElementConstructor<any>>'.
+    Types of parameters '__0' and 'props' are incompatible.
+      Property 'percentage' is missing in type 'PieLabelRenderProps' but required in type '{ percentage: number; }'.
+components/reports/category-analysis.tsx(167,15): error TS2322: Type '(value: number, name: string, props: { payload: { name: string; percentage: number; }; }) => [string, string]' is not assignable to type 'Formatter<number, string>'.
+  Types of parameters 'props' and 'item' are incompatible.
+    Type 'Payload<number, string>' is not assignable to type '{ payload: { name: string; percentage: number; }; }'.
+      Property 'payload' is optional in type 'Payload<number, string>' but required in type '{ payload: { name: string; percentage: number; }; }'.
+components/reports/category-analysis.tsx(186,44): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(253,13): error TS2322: Type 'Element' is not assignable to type 'string'.
+components/reports/category-analysis.tsx(282,53): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(385,52): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/category-analysis.tsx(403,74): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(152,56): error TS7006: Parameter 'transaction' implicitly has an 'any' type.
+components/reports/dre-statement.tsx(413,37): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(418,52): error TS2339: Property 'value' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(432,75): error TS2339: Property 'drilldown' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(435,47): error TS2339: Property 'drilldown' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(438,35): error TS2339: Property 'drilldown' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(438,63): error TS7006: Parameter 'transaction' implicitly has an 'any' type.
+components/reports/dre-statement.tsx(454,35): error TS2339: Property 'drilldown' does not exist on type 'DRECategory'.
+components/reports/dre-statement.tsx(456,50): error TS2339: Property 'drilldown' does not exist on type 'DRECategory'.
+components/reports/period-comparison.tsx(115,15): error TS2352: Conversion of type 'DREStatement' to type 'Record<string, number>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'DREStatement'.
+components/reports/period-comparison.tsx(180,12): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ revenue: { label: string; color: string; }; costs: { label: string; color: string; }; result: { label: string; color: string; }; margin: { label: string; color: string; }; }'.
+  No index signature with a parameter of type 'string' was found on type '{ revenue: { label: string; color: string; }; costs: { label: string; color: string; }; result: { label: string; color: string; }; margin: { label: string; color: string; }; }'.
+components/tutorial/hooks/use-completion-watcher.ts(164,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof DocumentEventMap, listener: (this: Document, ev: ClipboardEvent | Event | CompositionEvent | UIEvent | FocusEvent | ... 14 more ... | SecurityPolicyViolationEvent) => any, options?: boolean | ... 1 more ... | undefined): void', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'keyof DocumentEventMap'.
+      Type 'undefined' is not assignable to type 'keyof DocumentEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+components/ui/calendar.tsx(57,17): error TS2353: Object literal may only specify known properties, and 'IconLeft' does not exist in type 'Partial<CustomComponents>'.
+components/ui/custom-tooltip.tsx(5,41): error TS2339: Property 'payload' does not exist on type 'TooltipProps<number, string>'.
+components/ui/custom-tooltip.tsx(5,50): error TS2339: Property 'label' does not exist on type 'TooltipProps<number, string>'.
+components/ui/custom-tooltip.tsx(26,23): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+components/ui/custom-tooltip.tsx(26,30): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/uploads/upload-details.tsx(201,42): error TS7006: Parameter 'log' implicitly has an 'any' type.
+components/uploads/upload-details.tsx(201,47): error TS7006: Parameter 'index' implicitly has an 'any' type.
+hooks/use-all-categories.ts(55,40): error TS7006: Parameter 'a' implicitly has an 'any' type.
+hooks/use-all-categories.ts(55,43): error TS7006: Parameter 'b' implicitly has an 'any' type.
+hooks/use-all-categories.ts(57,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operating: number; }'.
+hooks/use-all-categories.ts(58,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operating: number; }'.
+hooks/use-all-categories.ts(84,35): error TS7006: Parameter 'category' implicitly has an 'any' type.
+hooks/use-all-categories.ts(94,14): error TS7006: Parameter 'a' implicitly has an 'any' type.
+hooks/use-all-categories.ts(94,17): error TS7006: Parameter 'b' implicitly has an 'any' type.
+hooks/use-all-categories.ts(118,37): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+hooks/use-all-categories.ts(118,42): error TS7006: Parameter 'category' implicitly has an 'any' type.
+hooks/use-async-upload.ts(65,5): error TS2353: Object literal may only specify known properties, and 'onProgress' does not exist in type 'UsePersistentToastOptions'.
+hooks/use-async-upload.ts(65,18): error TS7006: Parameter 'progressData' implicitly has an 'any' type.
+hooks/use-async-upload.ts(190,11): error TS2353: Object literal may only specify known properties, and 'percentage' does not exist in type '{ current: number; total: number; }'.
+hooks/use-dashboard-full.ts(137,61): error TS2339: Property 'transactionCount' does not exist on type 'DashboardData'.
+hooks/use-periods.ts(31,27): error TS2367: This comparison appears to be unintentional because the types '"credit" | "debit"' and '"all"' have no overlap.
+hooks/use-persistent-toast.ts(30,7): error TS2322: Type '{ current: number; total: number; } | { current: number; total: number; percentage: number; }' is not assignable to type '{ current: number; total: number; percentage: number; estimatedTime?: number | undefined; } | undefined'.
+  Property 'percentage' is missing in type '{ current: number; total: number; }' but required in type '{ current: number; total: number; percentage: number; estimatedTime?: number | undefined; }'.
+lib/agent/agent.ts(72,17): error TS2554: Expected 2-3 arguments, but got 1.
+lib/agent/agent.ts(202,46): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(key: "classify_transaction", action: NodeAction<string, ClassificationResult, StateDefinition, unknown, unknown>, options?: StateGraphAddNodeOptions<string> | undefined): StateGraph<...>', gave the following error.
+    Argument of type '{ (state: { description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ......' is not assignable to parameter of type 'NodeAction<string, ClassificationResult, StateDefinition, unknown, unknown>'.
+      Type '{ (state: { description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ......' is not assignable to type 'RunnableFunc$1<string, ClassificationResult & Record<string, any>, Runtime<StateType<StateDefinition>, unknown, unknown>>'.
+        Types of parameters 'state' and 'input' are incompatible.
+          Type 'string' is not assignable to type '{ description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ...; error?: ...'.
+  Overload 2 of 4, '(key: "classify_transaction", action: NodeAction<string, UpdateType<InteropZodToStateDefinition<ZodObject<{ description: ZodString; amount: ZodNumber; transactionId: ZodString; normalizedDescription: ZodOptional<...>; ... 6 more ...; error: ZodOptional<...>; }, $strip>, { ...; }>>, StateDefinition, unknown, unknown>, options?: StateGraphAddNodeOptions<...> | undefined): StateGraph<...>', gave the following error.
+    Argument of type '{ (state: { description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ......' is not assignable to parameter of type 'NodeAction<string, UpdateType<InteropZodToStateDefinition<ZodObject<{ description: ZodString; amount: ZodNumber; transactionId: ZodString; normalizedDescription: ZodOptional<ZodString>; ... 6 more ...; error: ZodOptional<...>; }, $strip>, { ...; }>>, StateDefinition, unknown, unknown>'.
+      Type '{ (state: { description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ......' is not assignable to type 'RunnableFunc$1<string, UpdateType<InteropZodToStateDefinition<ZodObject<{ description: ZodString; amount: ZodNumber; transactionId: ZodString; normalizedDescription: ZodOptional<ZodString>; ... 6 more ...; error: ZodOptional<...>; }, $strip>, { ...; }>> & Record<...>, Runtime<...>>'.
+        Types of parameters 'state' and 'input' are incompatible.
+          Type 'string' is not assignable to type '{ description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ...; error?: ...'.
+lib/agent/agent.ts(208,29): error TS2345: Argument of type '"check_history"' is not assignable to parameter of type '"__start__" | "__end__"'.
+lib/agent/agent.ts(209,34): error TS2345: Argument of type '"check_history"' is not assignable to parameter of type '"__start__"'.
+lib/agent/agent.ts(213,34): error TS2345: Argument of type '"check_cache"' is not assignable to parameter of type '"__start__"'.
+lib/agent/agent.ts(217,22): error TS2345: Argument of type '"normalize_description"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(218,22): error TS2345: Argument of type '"extract_info"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(219,22): error TS2345: Argument of type '"search_company"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(220,22): error TS2345: Argument of type '"classify_transaction"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(221,34): error TS2345: Argument of type '"validate_classification"' is not assignable to parameter of type '"__start__"'.
+lib/agent/agent.ts(225,22): error TS2345: Argument of type '"create_result"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(226,22): error TS2345: Argument of type '"handle_error"' is not assignable to parameter of type '"__start__" | "__start__"[]'.
+lib/agent/agent.ts(228,5): error TS2322: Type 'CompiledStateGraph<{ description: string; amount: number; transactionId: string; normalizedDescription: string | undefined; extractedInfo: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 5 more ...; error: string |...' is not assignable to type 'void'.
+lib/agent/agent.ts(283,11): error TS2353: Object literal may only specify known properties, and 'rawData' does not exist in type 'Partial<{ description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ...; ...'.
+lib/agent/agent.ts(294,11): error TS2353: Object literal may only specify known properties, and 'rawData' does not exist in type 'Partial<{ description: string; amount: number; transactionId: string; processingTime: number; normalizedDescription?: string | undefined; extractedInfo?: { companyName?: string | undefined; cnpj?: string | undefined; keywords?: string[] | undefined; patterns?: Record<...> | undefined; } | undefined; ... 4 more ...; ...'.
+lib/agent/agent.ts(402,16): error TS2322: Type '{ name: string; cnpj: string | undefined; website: string | undefined; description: string | undefined; } | { name: string; cnpj: string; category: string; } | null' is not assignable to type '{ name?: string | undefined; cnpj?: string | undefined; website?: string | undefined; description?: string | undefined; category?: string | undefined; } | undefined'.
+  Type 'null' is not assignable to type '{ name?: string | undefined; cnpj?: string | undefined; website?: string | undefined; description?: string | undefined; category?: string | undefined; } | undefined'.
+lib/agent/agent.ts(410,17): error TS2393: Duplicate function implementation.
+lib/agent/agent.ts(484,9): error TS2322: Type '{ isValid: boolean; warnings: never[]; suggestions: never[]; } | null' is not assignable to type '{ isValid: boolean; warnings: string[]; suggestions: string[]; } | undefined'.
+  Type 'null' is not assignable to type '{ isValid: boolean; warnings: string[]; suggestions: string[]; } | undefined'.
+lib/agent/agent.ts(601,9): error TS2393: Duplicate function implementation.
+lib/agent/agent.ts(629,39): error TS2339: Property 'invoke' does not exist on type 'void'.
+lib/agent/tools.ts(278,32): error TS2345: Argument of type '"Baixa confiança na classificação"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(279,35): error TS2345: Argument of type '"Considere buscar mais informações sobre a empresa"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(286,32): error TS2345: Argument of type '"Valor muito alto para salário"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(287,35): error TS2345: Argument of type '"Verifique se é pagamento de salários consolidados ou bonificação"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(291,32): error TS2345: Argument of type '"Valor muito baixo para aluguel"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(292,35): error TS2345: Argument of type '"Pode ser taxa ou imposto relacionado, não aluguel principal"' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(307,36): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+lib/agent/tools.ts(308,39): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+lib/api/categories.ts(352,38): error TS2353: Object literal may only specify known properties, and 'active' does not exist in type 'UpdateCategoryData'.
+lib/auth/auth.ts(27,30): error TS18047: 'db' is possibly 'null'.
+lib/auth/auth.ts(47,28): error TS18047: 'db' is possibly 'null'.
+lib/auth/auth.ts(66,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+lib/auth/auth.ts(67,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+lib/classification/cache.ts(2,31): error TS7016: Could not find a declaration file for module 'node-persist'. '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/node-persist@4.0.4/node_modules/node-persist/src/node-persist.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/node-persist` if it exists or add a new declaration (.d.ts) file containing `declare module 'node-persist';`
+lib/classification/cache.ts(180,51): error TS2339: Property 'confidence' does not exist on type 'ClassificationResult'.
+lib/classification/cache.ts(207,37): error TS2339: Property 'confidence' does not exist on type 'ClassificationResult'.
+lib/classification/cache.ts(207,52): error TS2339: Property 'confidence' does not exist on type 'ClassificationResult'.
+lib/classification/cache.ts(262,46): error TS2339: Property 'confidence' does not exist on type 'ClassificationResult'.
+lib/classification/cache.ts(275,34): error TS2339: Property 'confidence' does not exist on type 'ClassificationResult'.
+lib/classification/history.ts(3,31): error TS7016: Could not find a declaration file for module 'node-persist'. '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/node-persist@4.0.4/node_modules/node-persist/src/node-persist.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/node-persist` if it exists or add a new declaration (.d.ts) file containing `declare module 'node-persist';`
+lib/classification/history.ts(10,11): error TS2564: Property 'fuseSearch' has no initializer and is not definitely assigned in the constructor.
+lib/db/init-db.ts(11,35): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(17,34): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(28,34): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(59,9): error TS2322: Type '"expense"' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/db/init-db.ts(67,13): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(89,11): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(90,11): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(91,11): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(105,27): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(124,27): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(147,27): error TS18047: 'db' is possibly 'null'.
+lib/db/init-db.ts(190,34): error TS18047: 'db' is possibly 'null'.
+lib/db/schema.ts(58,14): error TS7022: 'categories' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+lib/db/schema.ts(65,59): error TS7024: Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+lib/mock-categories.ts(61,3): error TS2322: Type '{ id: string; name: string; type: string; color: string; icon: string; description: string; examples: string[]; amount: number; transactions: number; percentage: number; }' is not assignable to type 'Category'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(66,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(78,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(90,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(102,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(114,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(126,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(138,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(150,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(162,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(174,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(186,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(198,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(210,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(222,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(234,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(246,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(258,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(270,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(282,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(294,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(306,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(318,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(330,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(342,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(354,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(366,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(378,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(390,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(402,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(414,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(426,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(438,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(450,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(462,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(474,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(486,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(498,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(510,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(522,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(534,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(546,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(558,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(570,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(582,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(594,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(606,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(618,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/mock-categories.ts(630,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/services/ai-categorization-adapter.service.ts(132,11): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+lib/services/ai-categorization-adapter.service.ts(145,51): error TS18048: 'context.amount' is possibly 'undefined'.
+lib/services/ai-categorization-adapter.service.ts(173,15): error TS18048: 'context.amount' is possibly 'undefined'.
+lib/services/ai-categorization-adapter.service.ts(187,80): error TS18048: 'context.amount' is possibly 'undefined'.
+lib/services/anomaly.service.ts(84,41): error TS18047: 'db' is possibly 'null'.
+lib/services/anomaly.service.ts(143,41): error TS18047: 'db' is possibly 'null'.
+lib/services/anomaly.service.ts(236,37): error TS18047: 'db' is possibly 'null'.
+lib/services/async-upload-processor.service.ts(82,13): error TS18047: 'db' is possibly 'null'.
+lib/services/async-upload-processor.service.ts(104,18): error TS2339: Property 'name' does not exist on type 'OFXTransaction'.
+lib/services/async-upload-processor.service.ts(160,13): error TS18047: 'db' is possibly 'null'.
+lib/services/async-upload-processor.service.ts(164,11): error TS2353: Object literal may only specify known properties, and 'errorMessage' does not exist in type '{ filename?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; originalName?: string | SQL<...> | PgColumn<...> | undefined; ... 19 more ...; processedAt?: SQL<...> | ... 3 more ... | undefined; }'.
+lib/services/bank-lookup.service.ts(127,42): error TS2307: Cannot find module '@anthropic-ai/sdk' or its corresponding type declarations.
+lib/services/bank-lookup.service.ts(142,49): error TS7006: Parameter 'c' implicitly has an 'any' type.
+lib/services/batch-processing.service.ts(75,11): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(100,27): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(152,11): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(197,15): error TS2322: Type 'Date' is not assignable to type 'string'.
+lib/services/batch-processing.service.ts(215,19): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(243,13): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(273,13): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(341,40): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(367,11): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(380,28): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(387,24): error TS18047: 'upload.totalTransactions' is possibly 'null'.
+lib/services/batch-processing.service.ts(388,21): error TS18047: 'upload.processedTransactions' is possibly 'null'.
+lib/services/batch-processing.service.ts(388,52): error TS18047: 'upload.totalTransactions' is possibly 'null'.
+lib/services/batch-processing.service.ts(410,27): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(438,11): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(468,28): error TS18047: 'db' is possibly 'null'.
+lib/services/batch-processing.service.ts(478,40): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(73,37): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(87,34): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(198,30): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(239,36): error TS2339: Property 'companyId' does not exist on type 'CreateCategoryData'.
+lib/services/categories.service.ts(241,33): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(252,13): error TS2488: Type 'any[] | QueryResult<never>' must have a '[Symbol.iterator]()' method that returns an iterator.
+lib/services/categories.service.ts(252,35): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(302,39): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(346,40): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(353,41): error TS2353: Object literal may only specify known properties, and 'active' does not exist in type 'UpdateCategoryData'.
+lib/services/categories.service.ts(357,13): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(387,38): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(397,45): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(448,38): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(514,47): error TS2551: Property 'isActive' does not exist on type 'PgTableWithColumns<{ name: "financeai_category_rules"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_category_rules"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<.....'. Did you mean 'active'?
+lib/services/categories.service.ts(519,27): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(523,37): error TS2339: Property 'priority' does not exist on type 'PgTableWithColumns<{ name: "financeai_category_rules"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "financeai_category_rules"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<.....'.
+lib/services/categories.service.ts(525,7): error TS2322: Type '{ id: string; name: any; description: any; pattern: any; categoryId: string | null; priority: any; isActive: any; createdAt: Date | null; updatedAt: Date | null; }[]' is not assignable to type 'CategoryRule[]'.
+  Type '{ id: string; name: any; description: any; pattern: any; categoryId: string | null; priority: any; isActive: any; createdAt: Date | null; updatedAt: Date | null; }' is not assignable to type 'CategoryRule'.
+    Types of property 'categoryId' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(527,20): error TS2339: Property 'name' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(528,27): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(529,23): error TS2339: Property 'pattern' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(531,24): error TS2339: Property 'priority' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(532,24): error TS2551: Property 'isActive' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'. Did you mean 'active'?
+lib/services/categories.service.ts(550,31): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(552,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type '{ rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }'.
+  Overload 2 of 2, '(values: { rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }[]'.
+lib/services/categories.service.ts(565,23): error TS2339: Property 'name' does not exist on type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }'.
+lib/services/categories.service.ts(566,30): error TS2339: Property 'description' does not exist on type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }'.
+lib/services/categories.service.ts(567,26): error TS2339: Property 'pattern' does not exist on type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }'.
+lib/services/categories.service.ts(568,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(569,27): error TS2339: Property 'priority' does not exist on type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }'.
+lib/services/categories.service.ts(570,27): error TS2551: Property 'isActive' does not exist on type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }'. Did you mean 'active'?
+lib/services/categories.service.ts(571,9): error TS2322: Type 'Date | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(572,9): error TS2322: Type 'Date | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(588,35): error TS18047: 'db' is possibly 'null'.
+lib/services/categories.service.ts(603,27): error TS2339: Property 'name' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(604,34): error TS2339: Property 'description' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(605,30): error TS2339: Property 'pattern' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(606,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(607,31): error TS2339: Property 'priority' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'.
+lib/services/categories.service.ts(608,31): error TS2551: Property 'isActive' does not exist on type '{ id: string; categoryId: string | null; companyId: string | null; rulePattern: string; ruleType: string; confidenceScore: string | null; active: boolean | null; usageCount: number | null; ... 13 more ...; updatedAt: Date | null; }'. Did you mean 'active'?
+lib/services/categories.service.ts(609,9): error TS2322: Type 'Date | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(610,9): error TS2322: Type 'Date | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/categories.service.ts(626,13): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(48,33): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(70,24): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/category-rules.service.ts(79,13): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/category-rules.service.ts(136,47): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(157,17): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(330,30): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(358,7): error TS2322: Type '{ rule1: { id: string; rulePattern: string; categoryId: string | null; }; rule2: { id: string; rulePattern: string; categoryId: string | null; }; similarity: number; isCrossCategory: boolean; }[]' is not assignable to type '{ rule1: { id: string; rulePattern: string; categoryId: string; }; rule2: { id: string; rulePattern: string; categoryId: string; }; similarity: number; isCrossCategory: boolean; }[]'.
+  Type '{ rule1: { id: string; rulePattern: string; categoryId: string | null; }; rule2: { id: string; rulePattern: string; categoryId: string | null; }; similarity: number; isCrossCategory: boolean; }' is not assignable to type '{ rule1: { id: string; rulePattern: string; categoryId: string; }; rule2: { id: string; rulePattern: string; categoryId: string; }; similarity: number; isCrossCategory: boolean; }'.
+    The types of 'rule1.categoryId' are incompatible between these types.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+lib/services/category-rules.service.ts(381,41): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(401,7): error TS2322: Type '{ id: string; rulePattern: string; categoryId: string | null; }[]' is not assignable to type '{ id: string; rulePattern: string; categoryId: string; }[]'.
+  Type '{ id: string; rulePattern: string; categoryId: string | null; }' is not assignable to type '{ id: string; rulePattern: string; categoryId: string; }'.
+    Types of property 'categoryId' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+lib/services/category-rules.service.ts(423,15): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(494,19): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(521,9): error TS2741: Property 'where' is missing in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_category_rules", { id: import("/Users/guilherme/Documents/Projetos...' but required in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_category_rules", { id: import("/Users/guilherme/Documents/Projetos...'.
+lib/services/category-rules.service.ts(563,30): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(603,7): error TS2322: Type '{ id: string; rulePattern: string; categoryId: string | null; categoryName: any; similarity: number; isExact: boolean; isSameCategory: boolean; }[]' is not assignable to type '{ id: string; rulePattern: string; categoryId: string; categoryName: string; similarity: number; isExact: boolean; isSameCategory: boolean; }[]'.
+  Type '{ id: string; rulePattern: string; categoryId: string | null; categoryName: any; similarity: number; isExact: boolean; isSameCategory: boolean; }' is not assignable to type '{ id: string; rulePattern: string; categoryId: string; categoryName: string; similarity: number; isExact: boolean; isSameCategory: boolean; }'.
+    Types of property 'categoryId' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+lib/services/category-rules.service.ts(702,41): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(721,31): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(723,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }): PgInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | null | undefined'.
+  Overload 2 of 2, '(values: { rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'rulePattern' does not exist in type '{ rulePattern: string | SQL<unknown> | Placeholder<string, any>; ruleType: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 18 more ...; patternVariants?: unknown; }[]'.
+lib/services/category-rules.service.ts(736,16): error TS2322: Type '{ id: string; active: boolean | null; createdAt: Date | null; updatedAt: Date | null; companyId: string | null; examples: unknown; status: string | null; categoryId: string | null; ... 13 more ...; patternVariants: unknown; }' is not assignable to type 'never'.
+lib/services/category-rules.service.ts(757,35): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(759,14): error TS2345: Argument of type '{ updatedAt: Date; rulePattern?: string | undefined; ruleType?: string | undefined; categoryId?: string | undefined; confidenceScore?: number | undefined; active?: boolean | undefined; }' is not assignable to parameter of type '{ rulePattern?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; ruleType?: string | SQL<...> | PgColumn<...> | undefined; ... 19 more ...; patternVariants?: unknown; }'.
+  Types of property 'confidenceScore' are incompatible.
+    Type 'number | undefined' is not assignable to type 'string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+      Type 'number' is not assignable to type 'string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+lib/services/category-rules.service.ts(785,13): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(808,9): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(809,9): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(810,9): error TS18047: 'db' is possibly 'null'.
+lib/services/category-rules.service.ts(822,66): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/dashboard.service.ts(145,35): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(214,36): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(278,31): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(333,33): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(385,40): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(418,7): error TS2322: Type '({ categoryName: string; id: string; accountId: string | null; categoryId: string | null; uploadId: string | null; description: string; amount: string; type: string; transactionDate: string; ... 11 more ...; categoryIcon: any; } | { ...; })[]' is not assignable to type '{ name: string | null; id: string; createdAt: Date | null; updatedAt: Date | null; description: string; type: string; accountId: string | null; uploadId: string | null; categoryId: string | null; ... 11 more ...; ruleId: string | null; }[]'.
+  Type '{ categoryName: string; id: string; accountId: string | null; categoryId: string | null; uploadId: string | null; description: string; amount: string; type: string; transactionDate: string; ... 11 more ...; categoryIcon: any; } | { ...; }' is not assignable to type '{ name: string | null; id: string; createdAt: Date | null; updatedAt: Date | null; description: string; type: string; accountId: string | null; uploadId: string | null; categoryId: string | null; ... 11 more ...; ruleId: string | null; }'.
+    Type '{ categoryName: string; id: string; accountId: string | null; categoryId: string | null; uploadId: string | null; description: string; amount: string; type: string; transactionDate: string; ... 11 more ...; categoryIcon: any; }' is missing the following properties from type '{ name: string | null; id: string; createdAt: Date | null; updatedAt: Date | null; description: string; type: string; accountId: string | null; uploadId: string | null; categoryId: string | null; ... 11 more ...; ruleId: string | null; }': name, memo, categorizationSource, ruleId
+lib/services/dashboard.service.ts(494,42): error TS18047: 'db' is possibly 'null'.
+lib/services/dashboard.service.ts(511,43): error TS18047: 'db' is possibly 'null'.
+lib/services/dre.service.ts(125,34): error TS18047: 'db' is possibly 'null'.
+lib/services/dre.service.ts(215,11): error TS2353: Object literal may only specify known properties, and 'transactions' does not exist in type 'DRECategory'.
+lib/services/dre.service.ts(232,11): error TS2353: Object literal may only specify known properties, and 'transactions' does not exist in type 'DRECategory'.
+lib/services/dre.service.ts(330,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(342,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(352,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(362,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(372,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(384,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(396,27): error TS2339: Property 'transactions' does not exist on type 'DRECategory'.
+lib/services/dre.service.ts(425,9): error TS2322: Type '{ name: string; value: number; percentage: number; color: string; icon: string; transactions: any; drilldown: DrilldownTransaction[]; }[]' is not assignable to type 'DRECategory[]'.
+  Type '{ name: string; value: number; percentage: number; color: string; icon: string; transactions: any; drilldown: DrilldownTransaction[]; }' is missing the following properties from type 'DRECategory': id, type, budget, actual, and 3 more.
+lib/services/dre.service.ts(537,35): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(265,27): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(277,36): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(294,31): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(576,41): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(592,38): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(659,33): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(673,39): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(707,33): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(713,34): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(734,32): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(774,41): error TS18047: 'db' is possibly 'null'.
+lib/services/insights.service.ts(784,39): error TS18047: 'db' is possibly 'null'.
+lib/services/ofx-parser.service.ts(88,58): error TS18046: 'error' is of type 'unknown'.
+lib/services/ofx-parser.service.ts(129,50): error TS18046: 'error' is of type 'unknown'.
+lib/services/reclassification.service.ts(57,40): error TS18047: 'db' is possibly 'null'.
+lib/services/reclassification.service.ts(73,31): error TS18047: 'db' is possibly 'null'.
+lib/services/reclassification.service.ts(128,28): error TS18047: 'db' is possibly 'null'.
+lib/services/reclassification.service.ts(144,35): error TS18047: 'db' is possibly 'null'.
+lib/services/reclassification.service.ts(160,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/reclassification.service.ts(188,19): error TS18047: 'db' is possibly 'null'.
+lib/services/reclassification.service.ts(293,32): error TS18047: 'db' is possibly 'null'.
+lib/services/recurrence.service.ts(44,37): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(726,33): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(910,32): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(945,13): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(1000,26): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(1014,11): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-generation.service.ts(1036,29): error TS18047: 'db' is possibly 'null'.
+lib/services/rule-scoring.service.ts(96,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/seasonality.service.ts(224,28): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(29,38): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(113,30): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(127,15): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(136,15): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(155,13): error TS18047: 'db' is possibly 'null'.
+lib/services/threshold.service.ts(169,20): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(222,28): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(250,31): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(313,39): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(367,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/services/transaction-categorization.service.ts(397,30): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(506,32): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-categorization.service.ts(654,38): error TS18047: 'db' is possibly 'null'.
+lib/services/transaction-clustering.service.ts(366,38): error TS2345: Argument of type '{ id: string; companyId: string | null; centroidDescription: string; commonPattern: string | null; transactionCount: number | null; categoryId: string | null; categoryName: string | null; ... 5 more ...; processedAt: Date | null; }' is not assignable to parameter of type '{ commonTokens: string[] | null; centroidDescription: string; transactionCount: number; }'.
+  Types of property 'commonTokens' are incompatible.
+    Type 'unknown' is not assignable to type 'string[] | null'.
+lib/services/transactions.service.ts(62,19): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(135,9): error TS2741: Property 'where' is missing in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_transactions", { id: import("/Users/guilherme/Documents/Projetos/f...' but required in type 'Omit<import("/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/drizzle-orm@0.44.7_@electric-sql+pglite@0.3.11_@types+pg@8.15.5_pg@8.16.3/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"financeai_transactions", { id: import("/Users/guilherme/Documents/Projetos/f...'.
+lib/services/transactions.service.ts(143,7): error TS2739: Type 'Omit<PgSelectBase<"financeai_transactions", { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 25 more ...; uploadOriginalName: PgColumn<....' is missing the following properties from type 'Omit<PgSelectBase<"financeai_transactions", { id: PgColumn<{ name: "id"; tableName: "financeai_transactions"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 25 more ...; uploadOriginalName: PgColumn<....': limit, orderBy, offset
+lib/services/transactions.service.ts(151,24): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(156,9): error TS2741: Property 'where' is missing in type 'Omit<PgSelectBase<"financeai_transactions", { count: SQL<number>; }, "partial", Record<"financeai_transactions", "not-null"> & { financeai_accounts: "nullable"; }, false, "where", { ...; }[], { ...; }>, "where">' but required in type 'Omit<PgSelectBase<"financeai_transactions", { count: SQL<number>; }, "partial", Record<"financeai_transactions", "not-null"> & { financeai_accounts: "nullable"; }, false, never, { ...; }[], { ...; }>, never>'.
+lib/services/transactions.service.ts(196,19): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(231,9): error TS2741: Property 'where' is missing in type 'Omit<PgSelectBase<"financeai_transactions", { totalTransactions: SQL<number>; totalAmount: SQL<number>; incomeValue: SQL<number>; expensesValue: SQL<number>; incomeCount: SQL<...>; expenseCount: SQL<...>; }, ... 5 more ..., { ...; }>, "where">' but required in type 'Omit<PgSelectBase<"financeai_transactions", { totalTransactions: SQL<number>; totalAmount: SQL<number>; incomeValue: SQL<number>; expensesValue: SQL<number>; incomeCount: SQL<...>; expenseCount: SQL<...>; }, ... 5 more ..., { ...; }>, never>'.
+lib/services/transactions.service.ts(241,27): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(252,9): error TS2741: Property 'where' is missing in type 'Omit<PgSelectBase<"financeai_transactions", { categoryName: any; categoryType: any; count: SQL<number>; totalAmount: SQL<number>; }, "partial", (Record<"financeai_transactions", "not-null"> | (Record<...> & { ...; })) & { ...; }, false, "where", ({ ...; } | { ...; })[], { ...; }>, "where">' but required in type 'Omit<PgSelectBase<"financeai_transactions", { categoryName: any; categoryType: any; count: SQL<number>; totalAmount: SQL<number>; }, "partial", (Record<"financeai_transactions", "not-null"> | (Record<...> & { ...; })) & { ...; }, false, never, ({ ...; } | { ...; })[], { ...; }>, never>'.
+lib/services/transactions.service.ts(260,7): error TS2739: Type 'Omit<PgSelectBase<"financeai_transactions", { categoryName: any; categoryType: any; count: SQL<number>; totalAmount: SQL<number>; }, "partial", (Record<"financeai_transactions", "not-null"> | (Record<...> & { ...; })) & { ...; }, false, "groupBy" | "orderBy", ({ ...; } | { ...; })[], { ...; }>, "groupBy" | "orderBy">' is missing the following properties from type 'Omit<PgSelectBase<"financeai_transactions", { categoryName: any; categoryType: any; count: SQL<number>; totalAmount: SQL<number>; }, "partial", (Record<"financeai_transactions", "not-null"> | (Record<...> & { ...; })) & { ...; }, false, never, ({ ...; } | { ...; })[], { ...; }>, never>': groupBy, orderBy
+lib/services/transactions.service.ts(280,9): error TS2561: Object literal may only specify known properties, but 'totalCreditsValue' does not exist in type 'TransactionStats'. Did you mean to write 'totalCredits'?
+lib/services/transactions.service.ts(301,19): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(328,23): error TS2339: Property 'where' does not exist on type 'Omit<PgSelectBase<"financeai_transactions", { month: SQL<string>; credits: SQL<number>; debits: SQL<number>; }, "partial", Record<"financeai_transactions", "not-null"> & { ...; }, false, "where" | ... 1 more ... | "orderBy", { ...; }[], { ...; }>, "where" | ... 1 more ... | "orderBy">'.
+lib/services/transactions.service.ts(357,19): error TS18047: 'db' is possibly 'null'.
+lib/services/transactions.service.ts(389,9): error TS2741: Property 'where' is missing in type 'Omit<PgSelectBase<"financeai_transactions", { period: SQL<string>; startDate: SQL<string>; endDate: SQL<string>; }, "partial", Record<"financeai_transactions", "not-null"> & { ...; }, false, "where", { ...; }[], { ...; }>, "where">' but required in type 'Omit<PgSelectBase<"financeai_transactions", { period: SQL<string>; startDate: SQL<string>; endDate: SQL<string>; }, "partial", Record<"financeai_transactions", "not-null"> & { ...; }, false, never, { ...; }[], { ...; }>, never>'.
+lib/services/transactions.service.ts(428,35): error TS2353: Object literal may only specify known properties, and 'uploadId' does not exist in type 'TransactionFilters & { page?: number | undefined; limit?: number | undefined; }'.
+lib/toast-manager.ts(51,11): error TS18048: 'data.action' is possibly 'undefined'.
+lib/tools/duckduckgo-search.tool.ts(110,9): error TS2353: Object literal may only specify known properties, and 'query' does not exist in type 'ProcessedSearchResult'.
+scripts/apply-migration.ts(16,11): error TS18047: 'db' is possibly 'null'.
+scripts/apply-migration.ts(32,11): error TS18047: 'db' is possibly 'null'.
+scripts/apply-migration.ts(67,15): error TS18047: 'db' is possibly 'null'.
+scripts/apply-migration.ts(97,15): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(15,26): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(37,23): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(70,26): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(93,27): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(94,29): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(95,32): error TS18047: 'db' is possibly 'null'.
+scripts/check-clusters.ts(96,32): error TS18047: 'db' is possibly 'null'.
+scripts/generate-rules-from-clusters.ts(24,38): error TS18047: 'db' is possibly 'null'.
+scripts/generate-rules-from-clusters.ts(39,26): error TS2352: Conversion of type 'Record<string, unknown>[]' to type 'TransactionRow[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'TransactionRow': id, description, category_id, category_name, and 2 more.
+scripts/generate-rules-from-clusters.ts(90,37): error TS18047: 'db' is possibly 'null'.
+scripts/generate-rules-from-clusters.ts(95,25): error TS2352: Conversion of type 'Record<string, unknown>[]' to type 'RuleRow[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Record<string, unknown>' is missing the following properties from type 'RuleRow': rule_pattern, category_id
+scripts/generate-rules-from-clusters.ts(122,13): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(23,37): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(34,40): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(58,34): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(71,13): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(80,31): error TS18047: 'db' is possibly 'null'.
+scripts/migrate-to-multitenancy.ts(95,11): error TS18047: 'db' is possibly 'null'.
+scripts/recategorize-transactions.ts(86,27): error TS18047: 'db' is possibly 'null'.
+scripts/recategorize-transactions.ts(120,37): error TS18047: 'db' is possibly 'null'.
+scripts/recategorize-transactions.ts(131,27): error TS18047: 'db' is possibly 'null'.
+scripts/recategorize-transactions.ts(206,41): error TS18047: 'db' is possibly 'null'.
+scripts/recategorize-transactions.ts(213,15): error TS18047: 'db' is possibly 'null'.
+scripts/seed-categories.ts(25,37): error TS18047: 'db' is possibly 'null'.
+scripts/seed-categories.ts(37,38): error TS18047: 'db' is possibly 'null'.
+scripts/seed-categories.ts(60,13): error TS18047: 'db' is possibly 'null'.
+scripts/seed-categories.ts(83,26): error TS18047: 'db' is possibly 'null'.
+scripts/seed-categories.ts(85,29): error TS2339: Property 'length' does not exist on type 'any[] | QueryResult<never>'.
+  Property 'length' does not exist on type 'QueryResult<never>'.

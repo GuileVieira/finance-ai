@@ -131,6 +131,8 @@ export interface DRECategory {
   icon: string;
   subcategories: string[];
   growthRate: number;
+  transactions?: number;
+  drilldown?: any[];
 }
 
 export interface DRELineItem {

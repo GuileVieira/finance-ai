@@ -78,11 +78,9 @@ export default function DREStatementComponent({
     return (
       <div className="space-y-1">
         <div
-          className={`flex justify-between items-center py-2 px-3 rounded ${
-            isResult ? (value >= 0 ? 'bg-success/10 dark:bg-success/10' : 'bg-destructive/10 dark:bg-destructive/10') : ''
-          } ${indent > 0 ? `ml-${indent * 4}` : ''} ${
-            hasDetails ? 'cursor-pointer hover:bg-muted/50' : ''
-          }`}
+          className={`flex justify-between items-center py-2 px-3 rounded ${isResult ? (value >= 0 ? 'bg-success/10 dark:bg-success/10' : 'bg-destructive/10 dark:bg-destructive/10') : ''
+            } ${indent > 0 ? `ml-${indent * 4}` : ''} ${hasDetails ? 'cursor-pointer hover:bg-muted/50' : ''
+            }`}
           style={color ? { color } : {}}
           onClick={() => {
             if (hasDetails) {
@@ -103,17 +101,15 @@ export default function DREStatementComponent({
                 </Badge>
               </>
             )}
-            <span className={`${indent > 0 ? 'ml-8' : ''} font-medium ${
-              isResult ? 'text-lg' : ''
-            }`}>
+            <span className={`${indent > 0 ? 'ml-8' : ''} font-medium ${isResult ? 'text-lg' : ''
+              }`}>
               {label}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {variation && (
-              <div className={`flex items-center gap-1 text-sm ${
-                variation.isPositive ? 'text-success' : 'text-destructive'
-              }`}>
+              <div className={`flex items-center gap-1 text-sm ${variation.isPositive ? 'text-success' : 'text-destructive'
+                }`}>
                 {variation.isPositive ? (
                   <TrendingUp className="w-4 h-4" />
                 ) : (
@@ -122,9 +118,8 @@ export default function DREStatementComponent({
                 {formatPercentage(variation.value)}
               </div>
             )}
-            <span className={`font-bold ${
-              isResult ? (value >= 0 ? 'text-success' : 'text-destructive') : ''
-            }`}>
+            <span className={`font-bold ${isResult ? (value >= 0 ? 'text-success' : 'text-destructive') : ''
+              }`}>
               {value >= 0 ? '+' : ''}{formatCurrency(value)}
             </span>
           </div>
@@ -245,9 +240,8 @@ export default function DREStatementComponent({
           <Card>
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground font-medium">Resultado Líquido</div>
-              <div className={`text-2xl font-bold ${
-                (data.netResult || 0) >= 0 ? 'text-success' : 'text-destructive'
-              }`}>
+              <div className={`text-2xl font-bold ${(data.netResult || 0) >= 0 ? 'text-success' : 'text-destructive'
+                }`}>
                 {formatCurrency(data.netResult || 0)}
               </div>
             </CardContent>
@@ -415,7 +409,7 @@ export default function DREStatementComponent({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">
-                          {formatCurrency(category.value)}
+                          {formatCurrency(category.actual)}
                         </span>
                         {expandedCategories.includes(category.name) ? (
                           <ChevronDown className="w-4 h-4" />

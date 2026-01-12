@@ -1,0 +1,144 @@
+
+> mvp_finance@0.1.0 build
+> next build --turbopack
+
+   ▲ Next.js 15.5.6 (Turbopack)
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ✓ Finished writing to disk in 717ms
+Turbopack build encountered 1 warnings:
+./app/api/ofx/upload-queue/route.ts:14:18
+Module not found: Can't resolve '@/lib/services/queue.service'
+[0m [90m 12 |[39m [36mlet[39m [33mQueueService[39m[33m:[39m any [33m=[39m [36mnull[39m[33m;[39m
+ [90m 13 |[39m [36mtry[39m {
+[31m[1m>[22m[39m[90m 14 |[39m   [33mQueueService[39m [33m=[39m require([32m'@/lib/services/queue.service'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                  [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m } [36mcatch[39m (error) {
+ [90m 16 |[39m   console[33m.[39mlog([32m'📋 [QUEUE] Sistema de filas não disponível, usando background processing'[39m)[33m;[39m
+ [90m 17 |[39m }[0m
+
+Import map: aliased to relative './lib/services/queue.service' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled successfully in 4.0s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+🚀 Storage provider: Supabase (com admin)
+📋 [QUEUE] Sistema de filas não disponível, usando background processing
+🚀 Storage provider: Supabase (com admin)
+🚀 Storage provider: Supabase (com admin)
+🚀 Storage provider: Supabase (com admin)
+   Generating static pages (0/72) ...
+🚀 Storage provider: Supabase (com admin)
+   Generating static pages (18/72) 
+🚀 Storage provider: Supabase (com admin)
+📋 [QUEUE] Sistema de filas não disponível, usando background processing
+   Generating static pages (36/72) 
+   Generating static pages (54/72) 
+ ✓ Generating static pages (72/72)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                      Size  First Load JS
+┌ ○ /                                         2.87 kB         180 kB
+├ ○ /_not-found                                   0 B         177 kB
+├ ƒ /api/accounts                                 0 B            0 B
+├ ƒ /api/accounts/[id]                            0 B            0 B
+├ ƒ /api/ai/batch-categorize                      0 B            0 B
+├ ƒ /api/ai/categorize                            0 B            0 B
+├ ƒ /api/ai/costs                                 0 B            0 B
+├ ƒ /api/ai/history                               0 B            0 B
+├ ƒ /api/ai/simple-categorize                     0 B            0 B
+├ ƒ /api/ai/work-categorize                       0 B            0 B
+├ ƒ /api/auth/[...nextauth]                       0 B            0 B
+├ ƒ /api/auth/login                               0 B            0 B
+├ ƒ /api/auth/signup                              0 B            0 B
+├ ƒ /api/categories                               0 B            0 B
+├ ƒ /api/categories/distinct                      0 B            0 B
+├ ƒ /api/categories/rules                         0 B            0 B
+├ ƒ /api/categories/rules/[id]                    0 B            0 B
+├ ƒ /api/categories/rules/[id]/reclassify         0 B            0 B
+├ ƒ /api/categories/rules/export                  0 B            0 B
+├ ƒ /api/categories/rules/health                  0 B            0 B
+├ ƒ /api/categories/rules/import                  0 B            0 B
+├ ƒ /api/categories/rules/preview                 0 B            0 B
+├ ƒ /api/categories/suggest                       0 B            0 B
+├ ƒ /api/categories/summary                       0 B            0 B
+├ ƒ /api/categories/with-transactions             0 B            0 B
+├ ƒ /api/companies                                0 B            0 B
+├ ƒ /api/companies/[id]                           0 B            0 B
+├ ƒ /api/dashboard                                0 B            0 B
+├ ƒ /api/dashboard/categories                     0 B            0 B
+├ ƒ /api/dashboard/insights                       0 B            0 B
+├ ƒ /api/dashboard/metrics                        0 B            0 B
+├ ƒ /api/dashboard/top-expenses                   0 B            0 B
+├ ƒ /api/dashboard/trends                         0 B            0 B
+├ ƒ /api/database-view                            0 B            0 B
+├ ƒ /api/db-init                                  0 B            0 B
+├ ƒ /api/ofx/upload-and-analyze                   0 B            0 B
+├ ƒ /api/ofx/upload-async                         0 B            0 B
+├ ƒ /api/ofx/upload-queue                         0 B            0 B
+├ ƒ /api/ofx/upload-simple                        0 B            0 B
+├ ƒ /api/reports/cash-flow                        0 B            0 B
+├ ƒ /api/reports/dre                              0 B            0 B
+├ ƒ /api/reports/export                           0 B            0 B
+├ ƒ /api/reports/insights                         0 B            0 B
+├ ƒ /api/test                                     0 B            0 B
+├ ƒ /api/test-upload                              0 B            0 B
+├ ƒ /api/transaction-rules                        0 B            0 B
+├ ƒ /api/transaction-rules/apply-retroactive      0 B            0 B
+├ ƒ /api/transaction-rules/preview                0 B            0 B
+├ ƒ /api/transactions                             0 B            0 B
+├ ƒ /api/transactions/[id]                        0 B            0 B
+├ ƒ /api/transactions/batch-update                0 B            0 B
+├ ƒ /api/transactions/periods                     0 B            0 B
+├ ƒ /api/tutorial                                 0 B            0 B
+├ ƒ /api/uploads                                  0 B            0 B
+├ ƒ /api/uploads/[id]/download                    0 B            0 B
+├ ƒ /api/uploads/[id]/progress                    0 B            0 B
+├ ○ /categories                               26.9 kB         222 kB
+├ ƒ /categories/[id]                          21.6 kB         207 kB
+├ ○ /categories/manage                        9.17 kB         201 kB
+├ ○ /dashboard                                 153 kB         348 kB
+├ ○ /database                                 2.44 kB         180 kB
+├ ○ /login                                    3.44 kB         181 kB
+├ ○ /ofx-analyzer                             5.05 kB         182 kB
+├ ○ /reports                                   141 kB         318 kB
+├ ○ /settings                                  3.6 kB         181 kB
+├ ○ /settings/accounts                          15 kB         200 kB
+├ ƒ /settings/accounts/[id]                   14.1 kB         199 kB
+├ ○ /settings/categories                      11.5 kB         203 kB
+├ ○ /settings/categories/rules-health         5.83 kB         183 kB
+├ ○ /settings/companies                         13 kB         198 kB
+├ ƒ /settings/companies/[id]                  12.6 kB         198 kB
+├ ○ /settings/uploads                         5.19 kB         190 kB
+├ ○ /signup                                   2.11 kB         179 kB
+├ ○ /test-ai-agent                            8.91 kB         186 kB
+├ ○ /test-async-upload                        11.4 kB         189 kB
+├ ○ /test-categories                          15.2 kB         192 kB
+├ ○ /test-ofx                                 8.99 kB         186 kB
+├ ○ /test-simple-agent                        6.67 kB         184 kB
+├ ○ /test-upload                              3.62 kB         181 kB
+├ ○ /transactions                             25.5 kB         220 kB
+└ ○ /upload                                   27.6 kB         205 kB
++ First Load JS shared by all                  196 kB
+  ├ chunks/0ca68f53f999081f.js                  13 kB
+  ├ chunks/17e7daa9d350fb92.js                12.4 kB
+  ├ chunks/1e470375f6ba3cab.js                17.2 kB
+  ├ chunks/29ea7152a25f9d5a.js                10.2 kB
+  ├ chunks/de334c0f2b7da1e6.js                59.2 kB
+  ├ chunks/eed7935346439ed6.js                  13 kB
+  ├ chunks/a8a05c8c0f2d0302.css                 18 kB
+  └ other shared chunks (total)                 53 kB
+
+
+ƒ Middleware                                  39.2 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
