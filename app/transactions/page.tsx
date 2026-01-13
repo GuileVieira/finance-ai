@@ -748,19 +748,7 @@ export default function TransactionsPage() {
           }}
           transaction={selectedTransaction as import("@/lib/types").Transaction}
           onCategoryChange={async (transactionId, categoryId) => {
-            try {
-              await updateTransactionCategory.mutateAsync({ transactionId, categoryId });
-              toast({
-                title: "Categoria atualizada",
-                description: "A categoria da transação foi alterada com sucesso."
-              });
-            } catch (e) {
-              toast({
-                title: "Erro",
-                description: "Erro ao atualizar categoria.",
-                variant: "destructive"
-              });
-            }
+            handleUpdateSingleTransaction(transactionId, categoryId);
           }}
           companyId={companyId}
         />
