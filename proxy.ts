@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rotas públicas que não precisam de autenticação
@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   // Verificar se existe token de sessão do NextAuth
   const token = request.cookies.get('authjs.session-token') ||
-                request.cookies.get('__Secure-authjs.session-token');
+    request.cookies.get('__Secure-authjs.session-token');
 
   // Redirecionar para login se não autenticado
   if (!token) {
