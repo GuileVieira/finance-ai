@@ -184,7 +184,7 @@ export function CompanyForm({ initialData, onSave, onCancel }: CompanyFormProps)
           <div className="space-y-2">
             <Label htmlFor="monthly_revenue_range">Faturamento Mensal</Label>
             <Select
-              value={formData.monthly_revenue_range?.toString()}
+              value={revenueRanges.find(r => r.max === formData.monthly_revenue_range)?.value || undefined}
               onValueChange={(value) => {
                 const range = revenueRanges.find(r => r.value === value);
                 handleInputChange('monthly_revenue_range', range?.max || 0);
