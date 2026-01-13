@@ -24,6 +24,7 @@ import { MetricCardSkeleton } from '@/components/transactions/metric-card-skelet
 import { TableSkeleton } from '@/components/transactions/table-skeleton';
 import { CategoryRuleDialog } from '@/components/transactions/category-rule-dialog';
 import { useAvailablePeriods } from '@/hooks/use-periods';
+import { TransactionDetailsDialog } from '@/components/dashboard/transaction-details-dialog';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState({
@@ -439,7 +440,7 @@ export default function TransactionsPage() {
   return (
     <LayoutWrapper>
       <div className="space-y-6">
-    
+
         {/* Cards Métricos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card de Receitas */}
@@ -449,10 +450,10 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Receitas</CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-success">
+                <div className="text-2xl font-bold text-emerald-500">
                   {formatCurrency(stats?.income || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground/70">
@@ -489,10 +490,10 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Saldo</CardTitle>
-                <DollarSign className="h-4 w-4 text-success" />
+                <DollarSign className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${(stats?.total || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <div className={`text-2xl font-bold ${(stats?.total || 0) >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
                   {formatCurrency(stats?.total || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground/70">
@@ -726,142 +727,32 @@ export default function TransactionsPage() {
           </Card>
         )}
 
-        {/* Card de Edição Individual */}
-        {editingTransaction && !isGroupMode && selectedTransaction && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-2">
-                  <Edit className="h-5 w-5 text-primary" />
-                  <span className="font-medium text-foreground">
-                    Detalhes da Transação
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setEditingTransaction(null);
-                    setSingleTransactionCategory('');
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
 
-              {/* Grid com detalhes da transação */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Coluna da esquerda - Detalhes da transação */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Informações da Transação</h3>
-
-                  <div className="space-y-3">
-                    {/* Data */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Data</label>
-                      <p className="text-sm">{formatDate(selectedTransaction.transactionDate)}</p>
-                    </div>
-
-                    {/* Nome */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Nome</label>
-                      <p className="text-sm text-foreground">{selectedTransaction.name || '-'}</p>
-                    </div>
-
-                    {/* Descrição */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Descrição</label>
-                      <p className="text-sm text-foreground">{selectedTransaction.description}</p>
-                    </div>
-
-                    {/* Memo */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Memo</label>
-                      <p className="text-sm text-muted-foreground">{selectedTransaction.memo || '-'}</p>
-                    </div>
-
-                    {/* Banco */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Banco</label>
-                      <Badge variant="outline" className="text-xs">
-                        {selectedTransaction.bankName || 'Não identificado'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coluna da direita - Valor e Categoria */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Valores e Categoria</h3>
-
-                  <div className="space-y-3">
-                    {/* Valor */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Valor</label>
-                      <p className={`text-lg font-bold ${
-                        selectedTransaction.amount > 0 ? 'text-success' : 'text-destructive'
-                      }`}>
-                        {selectedTransaction.amount > 0 ? '+' : ''}{formatCurrency(selectedTransaction.amount)}
-                      </p>
-                    </div>
-
-                    {/* Categoria Atual */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground">Categoria Atual</label>
-                      <div className="mt-1">
-                        <Badge variant="secondary" className="text-xs capitalize">
-                          {selectedTransaction.categoryName || 'Sem categoria'}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Nova Categoria */}
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground block mb-2">
-                        Alterar categoria:
-                      </label>
-                      <Combobox
-                        options={categoryOptions}
-                        value={singleTransactionCategory}
-                        onValueChange={setSingleTransactionCategory}
-                        placeholder="Buscar categoria..."
-                        searchPlaceholder="Digite o nome da categoria..."
-                        emptyMessage="Nenhuma categoria encontrada"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botões de ação */}
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingTransaction(null);
-                    setSingleTransactionCategory('');
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    if (singleTransactionCategory && editingTransaction) {
-                      handleUpdateSingleTransaction(editingTransaction, singleTransactionCategory);
-                    }
-                  }}
-                  disabled={!singleTransactionCategory}
-                >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Aplicar Alteração
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Modal de Detalhes da Transação (Substitui o card antigo) */}
+        <TransactionDetailsDialog
+          open={!!editingTransaction && !isGroupMode}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingTransaction(null);
+            }
+          }}
+          transaction={selectedTransaction as unknown as import("@/lib/types").Transaction}
+          onCategoryChange={async (transactionId, categoryId) => {
+            try {
+              await updateTransactionCategory.mutateAsync({ transactionId, categoryId });
+              toast({
+                title: "Categoria atualizada",
+                description: "A categoria da transação foi alterada com sucesso."
+              });
+            } catch (e) {
+              toast({
+                title: "Erro",
+                description: "Erro ao atualizar categoria.",
+                variant: "destructive"
+              });
+            }
+          }}
+        />
 
         {/* Tabela de Transações */}
         <Card>
@@ -1030,9 +921,8 @@ export default function TransactionsPage() {
                           {transaction.bankName || 'Não identificado'}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-bold ${
-                        transaction.amount > 0 ? 'text-success' : 'text-destructive'
-                      }`}>
+                      <TableCell className={`text-right font-bold ${transaction.amount > 0 ? 'text-emerald-500' : 'text-destructive'
+                        }`}>
                         {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                       </TableCell>
                     </TableRow>
@@ -1076,29 +966,31 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
 
-      </div>
+      </div >
 
       {/* Diálogo de configuração de regras */}
-      {transactionForRule && (
-        <CategoryRuleDialog
-          open={ruleDialogOpen}
-          onOpenChange={setRuleDialogOpen}
-          transaction={{
-            id: transactionForRule.id,
-            description: transactionForRule.description,
-            amount: transactionForRule.amount,
-            categoryName: transactionForRule.categoryName,
-          }}
-          selectedCategory={{
-            id: transactionForRule.selectedCategoryId,
-            name: transactionForRule.categoryName || '',
-          }}
-          companyId={companyId}
-          onConfirm={handleRuleDialogConfirm}
-        />
-      )}
+      {
+        transactionForRule && (
+          <CategoryRuleDialog
+            open={ruleDialogOpen}
+            onOpenChange={setRuleDialogOpen}
+            transaction={{
+              id: transactionForRule.id,
+              description: transactionForRule.description,
+              amount: transactionForRule.amount,
+              categoryName: transactionForRule.categoryName,
+            }}
+            selectedCategory={{
+              id: transactionForRule.selectedCategoryId,
+              name: transactionForRule.categoryName || '',
+            }}
+            companyId={companyId}
+            onConfirm={handleRuleDialogConfirm}
+          />
+        )
+      }
 
       <Toaster />
-    </LayoutWrapper>
+    </LayoutWrapper >
   );
 }

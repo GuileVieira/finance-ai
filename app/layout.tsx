@@ -23,6 +23,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { ThemeProvider } from "next-themes";
 // Tutorial desativado temporariamente devido a bugs
 // import { TutorialProvider } from "@/components/tutorial";
+import { TransactionDetailsProvider } from "@/components/providers/transaction-details-provider";
 
 export default function RootLayout({
   children,
@@ -42,9 +43,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <QueryClientProviderWrapper>
-              <MainLayout>
-                {children}
-              </MainLayout>
+              <TransactionDetailsProvider>
+                <MainLayout>
+                  {children}
+                </MainLayout>
+              </TransactionDetailsProvider>
             </QueryClientProviderWrapper>
           </ThemeProvider>
         </AuthProvider>

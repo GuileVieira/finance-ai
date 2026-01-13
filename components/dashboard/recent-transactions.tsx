@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Transaction } from '@/lib/db/schema';
+import { useTransactionDetails } from '@/components/providers/transaction-details-provider';
 
 interface RecentTransactionsProps {
   transactions?: Transaction[];
@@ -19,6 +20,8 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
     // Todas as categorias usam variantes monocromáticas
     return 'outline' as const;
   };
+
+  const { openTransaction } = useTransactionDetails();
 
   if (isLoading) {
     return (
@@ -73,7 +76,11 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
             <div className="w-24 text-right">Valor</div>
           </div>
           {transactions.filter(transaction => transaction != null).map((transaction) => (
-            <div key={transaction.id} className="flex items-center text-sm">
+            <div
+              key={transaction.id}
+              className="flex items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors -mx-2"
+              onClick={() => openTransaction(transaction as unknown as import('@/lib/types').Transaction)}
+            >
               <div className="w-20 font-medium text-xs">
                 {transaction.transactionDate
                   ? new Date(transaction.transactionDate).toLocaleDateString('pt-BR')
@@ -89,9 +96,8 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
                   {(transaction as any).categoryName || 'Sem Categoria'}
                 </Badge>
               </div>
-              <div className={`w-24 text-right font-medium text-xs ${
-                Number(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div className={`w-24 text-right font-medium text-xs ${Number(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
                 {Number(transaction.amount) > 0 ? '+' : ''}R$ {Math.abs(Number(transaction.amount)).toLocaleString('pt-BR')}
               </div>
             </div>
@@ -102,7 +108,7 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
                 Ver todas
               </Button>
             </Link>
-            
+
           </div>
         </div>
       </CardContent>

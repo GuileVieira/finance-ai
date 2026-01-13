@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import { useAllCategories } from "@/hooks/use-all-categories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter } from "lucide-react";
-import { Filter } from "lucide-react";
 import { TransactionDetailsDialog } from "./transaction-details-dialog";
 // useTransactions already imported above
+import { useTransactionDetails } from "@/components/providers/transaction-details-provider";
 
 interface TransactionListSheetProps {
     isOpen: boolean;
@@ -77,16 +77,10 @@ export const TransactionListSheet = memo(function TransactionListSheet({
         }
     };
 
-    const [selectedTransaction, setSelectedTransaction] = useState<ExtendedTransaction | null>(null);
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const { openTransaction } = useTransactionDetails();
 
     const handleTransactionClick = (transaction: ExtendedTransaction) => {
-        setSelectedTransaction(transaction);
-        setIsDetailsOpen(true);
-    };
-
-    const handleDetailsCategoryChange = async (transactionId: string, categoryId: string) => {
-        await updateTransactionCategory.mutateAsync({ transactionId, categoryId });
+        openTransaction(transaction as unknown as import("@/lib/types").Transaction);
     };
 
     return (
@@ -130,7 +124,8 @@ export const TransactionListSheet = memo(function TransactionListSheet({
                                 {(transactions as unknown as ExtendedTransaction[]).map((transaction) => (
                                     <div
                                         key={transaction.id}
-                                        className="flex flex-col gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-muted/50"
+                                        className="flex flex-col gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-muted/50 cursor-pointer"
+                                        onClick={() => handleTransactionClick(transaction)}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="grid gap-0.5">
@@ -156,55 +151,57 @@ export const TransactionListSheet = memo(function TransactionListSheet({
                                                         currency: "BRL",
                                                     }).format(Number(transaction.amount))}
                                                 </span>
-                                                <Popover
-                                                    open={openStates[transaction.id] || false}
-                                                    onOpenChange={(open) => toggleOpen(transaction.id, open)}
-                                                >
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            aria-expanded={openStates[transaction.id] || false}
-                                                            className="text-[10px] h-6 px-2 justify-between"
-                                                            style={
-                                                                (transaction.category?.name || transaction.categoryName) ? {
-                                                                    borderColor: transaction.category?.colorHex || transaction.categoryColor || undefined,
-                                                                    color: transaction.category?.colorHex || transaction.categoryColor || undefined
-                                                                } : {}
-                                                            }
-                                                        >
-                                                            {transaction.category?.name || transaction.categoryName || "Sem categoria"}
-                                                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[200px] p-0" align="end">
-                                                        <Command>
-                                                            <CommandInput placeholder="Buscar categoria..." />
-                                                            <CommandList>
-                                                                <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
-                                                                <CommandGroup>
-                                                                    {categoryOptions.map((category: any) => (
-                                                                        <CommandItem
-                                                                            key={category.value}
-                                                                            value={category.name} // Usar label/nome para busca
-                                                                            onSelect={() => handleCategorySelect(transaction.id, category.value)}
-                                                                        >
-                                                                            <Check
-                                                                                className={cn(
-                                                                                    "mr-2 h-4 w-4",
-                                                                                    (transaction.category?.name || transaction.categoryName) === category.label
-                                                                                        ? "opacity-100"
-                                                                                        : "opacity-0"
-                                                                                )}
-                                                                            />
-                                                                            {category.label}
-                                                                        </CommandItem>
-                                                                    ))}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                    <Popover
+                                                        open={openStates[transaction.id] || false}
+                                                        onOpenChange={(open) => toggleOpen(transaction.id, open)}
+                                                    >
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                role="combobox"
+                                                                aria-expanded={openStates[transaction.id] || false}
+                                                                className="text-[10px] h-6 px-2 justify-between"
+                                                                style={
+                                                                    (transaction.category?.name || transaction.categoryName) ? {
+                                                                        borderColor: transaction.category?.colorHex || transaction.categoryColor || undefined,
+                                                                        color: transaction.category?.colorHex || transaction.categoryColor || undefined
+                                                                    } : {}
+                                                                }
+                                                            >
+                                                                {transaction.category?.name || transaction.categoryName || "Sem categoria"}
+                                                                <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-[200px] p-0" align="end">
+                                                            <Command>
+                                                                <CommandInput placeholder="Buscar categoria..." />
+                                                                <CommandList>
+                                                                    <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
+                                                                    <CommandGroup>
+                                                                        {categoryOptions.map((category: any) => (
+                                                                            <CommandItem
+                                                                                key={category.value}
+                                                                                value={category.name} // Usar label/nome para busca
+                                                                                onSelect={() => handleCategorySelect(transaction.id, category.value)}
+                                                                            >
+                                                                                <Check
+                                                                                    className={cn(
+                                                                                        "mr-2 h-4 w-4",
+                                                                                        (transaction.category?.name || transaction.categoryName) === category.label
+                                                                                            ? "opacity-100"
+                                                                                            : "opacity-0"
+                                                                                    )}
+                                                                                />
+                                                                                {category.label}
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </CommandList>
+                                                            </Command>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

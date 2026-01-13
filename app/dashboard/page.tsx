@@ -189,7 +189,7 @@ export default function DashboardPage() {
         change: metrics.growthRate || 0,
         changeType: (metrics.growthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '📈',
-        color: 'text-chart-2'
+        color: 'text-emerald-500'
       },
       {
         title: 'Despesas',
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         change: metrics.balanceGrowthRate || 0,
         changeType: (metrics.balanceGrowthRate || 0) >= 0 ? 'increase' as const : 'decrease' as const,
         icon: '💰',
-        color: metrics.netBalance >= 0 ? 'text-emerald-600' : 'text-destructive'
+        color: metrics.netBalance >= 0 ? 'text-emerald-500' : 'text-destructive'
       },
       {
         title: 'Transações',

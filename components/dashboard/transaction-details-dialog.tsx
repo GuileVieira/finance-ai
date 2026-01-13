@@ -29,25 +29,41 @@ export function TransactionDetailsDialog({
     transaction,
     onCategoryChange
 }: TransactionDetailsDialogProps) {
+    // Debug logging
+    console.log("TransactionDetailsDialog Render:", { open, transactionId: transaction?.id });
+
+    // Ensure we have a transaction object or use a safe fallback for debugging if needed
+    // In production, transaction should always be present when open is true
+    const activeTransaction = transaction || {
+        id: 'debug',
+        description: 'Debug Transaction',
+        amount: 0,
+        transactionDate: new Date().toISOString(),
+        categoryId: '',
+        name: '',
+        memo: '',
+        bankName: '',
+        account: { name: '' },
+        categoryName: ''
+    } as Transaction;
+
     const { categoryOptions } = useAllCategories('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
     const [isUpdating, setIsUpdating] = useState(false);
     const [openCombobox, setOpenCombobox] = useState(false);
 
     useEffect(() => {
-        if (transaction) {
-            setSelectedCategoryId(transaction.categoryId || undefined);
+        if (activeTransaction) {
+            setSelectedCategoryId(activeTransaction.categoryId || undefined);
         }
-    }, [transaction]);
-
-    if (!transaction) return null;
+    }, [activeTransaction]);
 
     const handleSave = async () => {
-        if (!transaction || !selectedCategoryId) return;
+        if (!activeTransaction || !selectedCategoryId) return;
 
         try {
             setIsUpdating(true);
-            await onCategoryChange(transaction.id, selectedCategoryId);
+            await onCategoryChange(activeTransaction.id, selectedCategoryId);
             onOpenChange(false);
         } catch (error) {
             console.error('Failed to update category', error);
@@ -56,14 +72,21 @@ export function TransactionDetailsDialog({
         }
     };
 
-    const currentCategoryName = categoryOptions.find(c => c.value === selectedCategoryId)?.label ||
-        transaction.categoryName ||
-        transaction.category ||
+    const currentCategoryName = categoryOptions.find((c: { value: string; label: string }) => c.value === selectedCategoryId)?.label ||
+        activeTransaction.categoryName ||
+        (activeTransaction as any).category ||
         'Sem categoria';
+
+    // Only render if open. Note: Radix Dialog handles open state, but if transaction is null, we might want to return null?
+    // We are using activeTransaction now, so it will render the default if null.
+    // However, if open is false, we can just let Radix handle it.
+
+    // If we want to strictly force render for debug even if transaction provided is null:
+    // if (!transaction && open) { console.warn("TransactionDetailsDialog open but no transaction!"); }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px]">
+            <DialogContent className="sm:max-w-[700px] z-[100]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <span>📝 Detalhes da Transação</span>
@@ -82,29 +105,29 @@ export function TransactionDetailsDialog({
                             <div>
                                 <Label className="text-xs text-muted-foreground">Data</Label>
                                 <div className="font-medium">
-                                    {format(new Date(transaction.transactionDate), "dd/MM/yyyy", { locale: ptBR })}
+                                    {format(new Date(activeTransaction.transactionDate), "dd/MM/yyyy", { locale: ptBR })}
                                 </div>
                             </div>
 
                             <div>
                                 <Label className="text-xs text-muted-foreground">Nome</Label>
-                                <div className="font-medium">{transaction.name || '-'}</div>
+                                <div className="font-medium">{activeTransaction.name || '-'}</div>
                             </div>
 
                             <div>
                                 <Label className="text-xs text-muted-foreground">Descrição</Label>
-                                <div className="text-sm break-words">{transaction.description}</div>
+                                <div className="text-sm break-words">{activeTransaction.description}</div>
                             </div>
 
                             <div>
                                 <Label className="text-xs text-muted-foreground">Memo</Label>
-                                <div className="text-sm text-muted-foreground break-words">{transaction.memo || '-'}</div>
+                                <div className="text-sm text-muted-foreground break-words">{activeTransaction.memo || '-'}</div>
                             </div>
 
                             <div>
                                 <Label className="text-xs text-muted-foreground">Banco</Label>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant="outline">{transaction.bankName || transaction.account?.name || 'Banco Desconhecido'}</Badge>
+                                    <Badge variant="outline">{activeTransaction.bankName || activeTransaction.account?.name || 'Banco Desconhecido'}</Badge>
                                 </div>
                             </div>
                         </div>
@@ -118,10 +141,10 @@ export function TransactionDetailsDialog({
                             <Label className="text-xs text-muted-foreground">Valor</Label>
                             <div className={cn(
                                 "text-2xl font-bold mt-1",
-                                transaction.amount >= 0 ? "text-emerald-500" : "text-red-500"
+                                activeTransaction.amount >= 0 ? "text-emerald-500" : "text-red-500"
                             )}>
-                                {transaction.amount >= 0 ? '+' : ''}
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(transaction.amount))}
+                                {activeTransaction.amount >= 0 ? '+' : ''}
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(activeTransaction.amount))}
                             </div>
                         </div>
 
@@ -142,7 +165,7 @@ export function TransactionDetailsDialog({
                                         aria-expanded={openCombobox}
                                         className="w-full justify-between"
                                     >
-                                        {categoryOptions.find((category) => category.value === selectedCategoryId)?.label || "Selecione uma categoria..."}
+                                        {categoryOptions.find((category: { value: string; label: string }) => category.value === selectedCategoryId)?.label || "Selecione uma categoria..."}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
@@ -152,7 +175,7 @@ export function TransactionDetailsDialog({
                                         <CommandList>
                                             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                                             <CommandGroup>
-                                                {categoryOptions.map((category) => (
+                                                {categoryOptions.map((category: { value: string; label: string }) => (
                                                     <CommandItem
                                                         key={category.value}
                                                         value={category.label}
@@ -183,7 +206,7 @@ export function TransactionDetailsDialog({
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
                         Cancelar
                     </Button>
-                    <Button onClick={handleSave} disabled={isUpdating || selectedCategoryId === transaction.categoryId}>
+                    <Button onClick={handleSave} disabled={isUpdating || selectedCategoryId === activeTransaction.categoryId}>
                         {isUpdating ? 'Salvando...' : 'Aplicar Alteração'}
                     </Button>
                 </DialogFooter>
