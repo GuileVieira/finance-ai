@@ -12,9 +12,10 @@ interface RecentTransactionsProps {
   transactions?: Transaction[];
   isLoading?: boolean;
   isEmpty?: boolean;
+  companyId?: string;
 }
 
-export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, isLoading, isEmpty, companyId }: RecentTransactionsProps) {
 
   const getCategoryVariant = (category: string) => {
     // Todas as categorias usam variantes monocromáticas
@@ -79,7 +80,7 @@ export function RecentTransactions({ transactions, isLoading, isEmpty }: RecentT
             <div
               key={transaction.id}
               className="flex items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors -mx-2"
-              onClick={() => openTransaction(transaction as unknown as import('@/lib/types').Transaction)}
+              onClick={() => openTransaction(transaction as unknown as import('@/lib/types').Transaction, companyId)}
             >
               <div className="w-20 font-medium text-xs">
                 {transaction.transactionDate

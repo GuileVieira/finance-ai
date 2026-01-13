@@ -80,7 +80,7 @@ export const TransactionListSheet = memo(function TransactionListSheet({
     const { openTransaction } = useTransactionDetails();
 
     const handleTransactionClick = (transaction: ExtendedTransaction) => {
-        openTransaction(transaction as unknown as import("@/lib/types").Transaction);
+        openTransaction(transaction as unknown as import("@/lib/types").Transaction, filters.companyId);
     };
 
     return (

@@ -344,7 +344,12 @@ export default function TransactionsPage() {
     }
 
     const category = categoryOptions.find(c => c.value === categoryId);
-    openRuleDialog(transaction, categoryId, category?.label);
+    openRuleDialog({
+      id: transaction.id,
+      description: transaction.description,
+      amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
+      categoryName: transaction.categoryName || undefined
+    }, categoryId, category?.label);
   };
 
   // Função para atualizar categoria inline (agora abre diálogo)
@@ -360,7 +365,12 @@ export default function TransactionsPage() {
     }
 
     const category = categoryOptions.find(c => c.value === categoryId);
-    openRuleDialog(transaction, categoryId, category?.label);
+    openRuleDialog({
+      id: transaction.id,
+      description: transaction.description,
+      amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
+      categoryName: transaction.categoryName || undefined
+    }, categoryId, category?.label);
 
     // Fechar edição inline
     setInlineEditingTransaction(null);
@@ -736,7 +746,7 @@ export default function TransactionsPage() {
               setEditingTransaction(null);
             }
           }}
-          transaction={selectedTransaction as unknown as import("@/lib/types").Transaction}
+          transaction={selectedTransaction as import("@/lib/types").Transaction}
           onCategoryChange={async (transactionId, categoryId) => {
             try {
               await updateTransactionCategory.mutateAsync({ transactionId, categoryId });
@@ -752,6 +762,7 @@ export default function TransactionsPage() {
               });
             }
           }}
+          companyId={companyId}
         />
 
         {/* Tabela de Transações */}

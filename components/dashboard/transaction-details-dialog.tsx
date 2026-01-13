@@ -21,13 +21,15 @@ interface TransactionDetailsDialogProps {
     onOpenChange: (open: boolean) => void;
     transaction: Transaction | null;
     onCategoryChange: (transactionId: string, categoryId: string) => Promise<void>;
+    companyId?: string;
 }
 
 export function TransactionDetailsDialog({
     open,
     onOpenChange,
     transaction,
-    onCategoryChange
+    onCategoryChange,
+    companyId = ''
 }: TransactionDetailsDialogProps) {
     // Debug logging
     console.log("TransactionDetailsDialog Render:", { open, transactionId: transaction?.id });
@@ -47,7 +49,7 @@ export function TransactionDetailsDialog({
         categoryName: ''
     } as Transaction;
 
-    const { categoryOptions } = useAllCategories('');
+    const { categoryOptions } = useAllCategories(companyId);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
     const [isUpdating, setIsUpdating] = useState(false);
     const [openCombobox, setOpenCombobox] = useState(false);
@@ -56,7 +58,10 @@ export function TransactionDetailsDialog({
         if (activeTransaction) {
             setSelectedCategoryId(activeTransaction.categoryId || undefined);
         }
-    }, [activeTransaction]);
+        if (!open) {
+            setOpenCombobox(false);
+        }
+    }, [activeTransaction, open]);
 
     const handleSave = async () => {
         if (!activeTransaction || !selectedCategoryId) return;
@@ -86,7 +91,7 @@ export function TransactionDetailsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] z-[100]">
+            <DialogContent className="sm:max-w-[700px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <span>📝 Detalhes da Transação</span>
@@ -157,7 +162,7 @@ export function TransactionDetailsDialog({
 
                         <div className="space-y-2">
                             <Label className="text-xs text-muted-foreground">Alterar categoria:</Label>
-                            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                            <Popover open={openCombobox} onOpenChange={setOpenCombobox} modal={true}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
@@ -169,10 +174,10 @@ export function TransactionDetailsDialog({
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0">
+                                <PopoverContent className="w-[300px] p-0 z-[200] pointer-events-auto">
                                     <Command>
                                         <CommandInput placeholder="Buscar categoria..." />
-                                        <CommandList>
+                                        <CommandList className="max-h-[300px] overflow-y-auto overscroll-contain">
                                             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                                             <CommandGroup>
                                                 {categoryOptions.map((category: { value: string; label: string }) => (
@@ -180,17 +185,31 @@ export function TransactionDetailsDialog({
                                                         key={category.value}
                                                         value={category.label}
                                                         onSelect={() => {
+                                                            console.log("Selected via onSelect:", category.label);
                                                             setSelectedCategoryId(category.value);
                                                             setOpenCombobox(false);
                                                         }}
+                                                        className="cursor-pointer"
                                                     >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                selectedCategoryId === category.value ? "opacity-100" : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {category.label}
+                                                        <div
+                                                            className="flex items-center w-full pointer-events-auto py-1"
+                                                            onMouseDown={(e) => {
+                                                                // Use onMouseDown to capture event immediately before focus/blur logic interferes
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                console.log("Selected via onMouseDown:", category.label);
+                                                                setSelectedCategoryId(category.value);
+                                                                setOpenCombobox(false);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedCategoryId === category.value ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {category.label}
+                                                        </div>
                                                     </CommandItem>
                                                 ))}
                                             </CommandGroup>

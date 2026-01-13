@@ -370,6 +370,7 @@ export default function DashboardPage() {
                 transactions={recentTransactions}
                 isLoading={isLoading}
                 isEmpty={!recentTransactions || recentTransactions.length === 0}
+                companyId={filters.companyId}
               />
             </div>
 
