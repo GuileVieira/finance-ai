@@ -213,7 +213,7 @@ export default function ReportsPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dre">DRE</TabsTrigger>
+            <TabsTrigger value="dre">DRE - Demonstrativo Financeiro</TabsTrigger>
             <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
             <TabsTrigger value="categories">Categorias</TabsTrigger>
             <TabsTrigger value="comparison">Comparativo</TabsTrigger>

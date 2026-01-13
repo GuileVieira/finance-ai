@@ -101,15 +101,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updateData: any = {};
     const allowedFields = [
       'name', 'corporateName', 'phone', 'email', 'address',
-      'city', 'state', 'zipCode', 'industry', 'active'
+      'city', 'state', 'zipCode', 'industry', 'monthlyRevenueRange', 'active'
     ];
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         if (field === 'cnpj') {
           updateData[field] = body[field].replace(/\D/g, '');
+        } else if (typeof body[field] === 'string') {
+          updateData[field] = body[field].trim() || null;
         } else {
-          updateData[field] = body[field]?.trim() || null;
+          updateData[field] = body[field];
         }
       }
     }

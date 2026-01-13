@@ -12,6 +12,7 @@ import { Plus, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TransactionsAPI } from '@/lib/api/transactions';
 import { CategoryWithStats, CategoryRule, CategoryRuleDB } from '@/lib/api/categories';
 import {
@@ -34,11 +35,11 @@ import { CategoryType } from '@/lib/api/categories';
 
 // Tipos de categorias disponíveis
 const categoryTypes = [
-  { value: 'all', label: 'Todos' },
-  { value: 'revenue', label: 'Receitas' },
-  { value: 'variable_cost', label: 'Custos Variáveis' },
-  { value: 'fixed_cost', label: 'Custos Fixos' },
-  { value: 'non_operating', label: 'Não Operacionais' },
+  { value: 'all', label: 'Todos', description: 'Todas as categorias cadastradas.' },
+  { value: 'revenue', label: 'Receitas', description: 'Entradas de dinheiro (vendas, rendimentos).' },
+  { value: 'variable_cost', label: 'Custos Variáveis', description: 'Gastos que mudam conforme você vende mais ou menos (ex: impostos, comissões).' },
+  { value: 'fixed_cost', label: 'Custos Fixos', description: 'Gastos que você tem todo mês, vendendo ou não (ex: aluguel, salários).' },
+  { value: 'non_operating', label: 'Não Operacionais', description: 'Movimentações que não fazem parte da operação (ex: empréstimos, dividendos).' },
 ];
 
 export default function CategoriesPage() {
@@ -316,17 +317,25 @@ export default function CategoriesPage() {
 
         {/* Filtro por Tipo de Categoria */}
         <div className="flex items-center gap-2">
-          {categoryTypes.map((type) => (
-            <Button
-              key={type.value}
-              variant={activeTab === type.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveTab(type.value as CategoryType | 'all')}
-              disabled={isLoading}
-            >
-              {type.label}
-            </Button>
-          ))}
+          <TooltipProvider>
+            {categoryTypes.map((type) => (
+              <Tooltip key={type.value}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTab === type.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab(type.value as CategoryType | 'all')}
+                    disabled={isLoading}
+                  >
+                    {type.label}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{type.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
         </div>
 
         {/* Conteúdo Principal */}

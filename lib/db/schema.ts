@@ -26,6 +26,7 @@ export const companies = pgTable('financeai_companies', {
   state: varchar('state', { length: 2 }),
   zipCode: varchar('zip_code', { length: 9 }),
   industry: varchar('industry', { length: 100 }),
+  monthlyRevenueRange: decimal('monthly_revenue_range', { precision: 15, scale: 2 }),
   active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()

@@ -30,6 +30,7 @@ interface CompanyApiResponse {
   zipCode: string | null;
   logoUrl: string | null;
   industry: string | null;
+  monthlyRevenueRange: string | number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +51,7 @@ function mapApiToFrontend(apiCompany: CompanyApiResponse): Company {
     zip_code: apiCompany.zipCode || undefined,
     logo_url: apiCompany.logoUrl || undefined,
     industry: apiCompany.industry || undefined,
+    monthly_revenue_range: apiCompany.monthlyRevenueRange ? Number(apiCompany.monthlyRevenueRange) : undefined,
     created_at: apiCompany.createdAt,
     updated_at: apiCompany.updatedAt,
     active: apiCompany.active,
@@ -71,6 +73,7 @@ function mapFrontendToApi(formData: CompanyFormData) {
     zipCode: formData.zip_code,
     logoUrl: formData.logo_url,
     industry: formData.industry,
+    monthlyRevenueRange: formData.monthly_revenue_range,
     active: formData.active ?? true,
   };
 }
@@ -114,13 +117,13 @@ export default function SettingsCompaniesPage() {
   // Filtrar empresas
   const filteredCompanies = companies.filter(company => {
     const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.corporate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.cnpj.includes(searchTerm.replace(/\D/g, '')) ||
-                         company.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      company.corporate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.cnpj.includes(searchTerm.replace(/\D/g, '')) ||
+      company.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesIndustry = filterIndustry === 'all' || company.industry === filterIndustry;
     const matchesStatus = filterStatus === 'all' ||
-                         (filterStatus === 'active' && company.active) ||
-                         (filterStatus === 'inactive' && !company.active);
+      (filterStatus === 'active' && company.active) ||
+      (filterStatus === 'inactive' && !company.active);
     const matchesState = filterState === 'all' || company.state === filterState;
 
     return matchesSearch && matchesIndustry && matchesStatus && matchesState;
@@ -493,7 +496,7 @@ export default function SettingsCompaniesPage() {
 
                       <TableCell>
                         <Badge variant="outline">
-                          {getIndustryLabel(company.industry)}
+                          {getIndustryLabel(company.industry || '')}
                         </Badge>
                       </TableCell>
 
@@ -534,8 +537,8 @@ export default function SettingsCompaniesPage() {
                           <p className="text-xs text-muted-foreground">
                             {company.monthly_revenue_range
                               ? getRevenueRangeLabel(
-                                  revenueRanges.find(r => r.max === company.monthly_revenue_range)?.value || ''
-                                )
+                                revenueRanges.find(r => r.max === company.monthly_revenue_range)?.value || ''
+                              )
                               : 'Não informado'
                             }
                           </p>

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { MetricCard as MetricCardType } from '@/lib/types';
+import { formatCurrencyCompact } from '@/lib/utils';
 import { memo } from 'react';
 
 interface MetricCardProps {
@@ -41,7 +42,7 @@ export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCa
             )}
           </div>
           <div>
-            <p className={`text-lg sm:text-2xl font-bold ${metric.color || 'text-foreground'} whitespace-nowrap`}>
+            <div className={`text-lg sm:text-2xl font-bold ${metric.color || 'text-foreground'} whitespace-nowrap group relative`}>
               {(() => {
                 const value = typeof metric.value === 'number' ? metric.value : parseFloat(metric.value.toString());
                 if (isNaN(value)) return metric.value;
@@ -51,16 +52,13 @@ export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCa
                   return value.toLocaleString('pt-BR');
                 }
 
-                // Para valores monetários, formatar como moeda
-                const formattedValue = new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL'
-                }).format(Math.abs(value));
-
-                // Adicionar espaço antes do sinal negativo se necessário
-                return value < 0 ? `- ${formattedValue}` : formattedValue;
+                return (
+                  <div className="flex items-center gap-1 cursor-help" title={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}>
+                    {formatCurrencyCompact(value)}
+                  </div>
+                );
               })()}
-            </p>
+            </div>
           </div>
         </div>
       </CardContent>

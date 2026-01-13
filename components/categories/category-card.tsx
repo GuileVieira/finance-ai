@@ -19,7 +19,7 @@ import {
 import { CategoryWithStats } from '@/lib/api/categories';
 import { Edit, Settings, Check, X, Eye, Trash2, Power, PowerOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrencyCompact } from '@/lib/utils';
 
 interface CategoryCardProps {
   category: CategoryWithStats;
@@ -81,7 +81,7 @@ export function CategoryCard({
     }
   };
 
-  
+
   const handleToggle = () => {
     if (onToggle) {
       onToggle(!category.active);
@@ -180,8 +180,8 @@ export function CategoryCard({
         </div>
 
         {/* Valor */}
-        <div className="text-lg font-bold mb-3" style={{ color: category.colorHex }}>
-          {formatCurrency(category.totalAmount)}
+        <div className="text-lg font-bold mb-3 cursor-help" style={{ color: category.colorHex }} title={formatCurrency(category.totalAmount)}>
+          {formatCurrencyCompact(category.totalAmount)}
         </div>
 
         {/* Percentual */}
@@ -197,7 +197,7 @@ export function CategoryCard({
         )}
 
         {/* Botões de ação */}
-        <div className="flex flex-wrap gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex flex-wrap gap-1 opacity-100 transition-opacity duration-200">
           {showViewButton && onView && (
             <Button
               variant="outline"
@@ -214,7 +214,7 @@ export function CategoryCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={onEdit}
+              onClick={() => onEdit?.(category)}
               className="h-7 px-2 text-xs flex-shrink-0"
               disabled={loading}
             >

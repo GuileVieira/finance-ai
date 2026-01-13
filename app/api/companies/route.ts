@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         conditions.length === 1
           ? conditions[0]
           : // @ts-ignore
-            conditions.reduce((acc, condition) => acc && condition)
+          conditions.reduce((acc, condition) => acc && condition)
       );
     }
 
@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
       state: body.state?.trim() || null,
       zipCode: body.zipCode?.trim() || null,
       industry: body.industry?.trim() || null,
+      monthlyRevenueRange: body.monthlyRevenueRange?.toString() || null,
       active: body.active !== undefined ? body.active : true
     }).returning();
 
