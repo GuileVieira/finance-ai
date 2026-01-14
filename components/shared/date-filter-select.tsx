@@ -39,6 +39,8 @@ export function DateFilterSelect({
                 <SelectValue placeholder="Selecione o período" />
             </SelectTrigger>
             <SelectContent>
+                <SelectItem value="custom">Personalizado</SelectItem>
+
                 <SelectGroup>
                     <SelectLabel>Períodos Rápidos</SelectLabel>
                     <SelectItem value="today">Hoje</SelectItem>
@@ -71,7 +73,6 @@ export function DateFilterSelect({
                 <SelectGroup>
                     <SelectLabel>Outros</SelectLabel>
                     <SelectItem value="all">Todo o período</SelectItem>
-                    <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectGroup>
             </SelectContent>
         </Select>

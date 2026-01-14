@@ -13,14 +13,18 @@ export async function GET(request: NextRequest) {
     const includeComparison = searchParams.get('compare') === 'true';
     const companyId = sessionCompanyId; // Usar companyId da sessão
     const accountId = searchParams.get('accountId') || undefined;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
 
-    console.log('📊 [DRE-API] Buscando DRE com filtros:', { period, includeComparison, companyId, accountId });
+    console.log('📊 [DRE-API] Buscando DRE com filtros:', { period, includeComparison, companyId, accountId, startDate, endDate });
 
     // Buscar DRE do período atual
     const currentData = await DREService.getDREStatement({
       period,
       companyId,
-      accountId
+      accountId,
+      startDate,
+      endDate
     });
 
     // Buscar DRE do período anterior para comparação

@@ -230,8 +230,18 @@ export default class DREService {
    */
   static async getDREStatement(filters: DREFilters = {}): Promise<DREStatement> {
     try {
-      // Converter filtros
-      const { startDate, endDate } = this.convertPeriodToDates(filters.period || 'current');
+      // Converter filtros - usar datas do filtro se period='custom'
+      let startDate: string;
+      let endDate: string;
+
+      if (filters.period === 'custom' && filters.startDate && filters.endDate) {
+        startDate = filters.startDate;
+        endDate = filters.endDate;
+      } else {
+        const dates = this.convertPeriodToDates(filters.period || 'current');
+        startDate = dates.startDate;
+        endDate = dates.endDate;
+      }
 
       const whereConditions = [];
 
@@ -453,7 +463,7 @@ export default class DREService {
       });
 
       // Obter período formatado
-      const periodLabel = this.formatPeriodLabel(filters.period || 'current');
+      const periodLabel = this.formatPeriodLabel(filters.period || 'current', startDate, endDate);
 
       // Buscar transações de cada categoria em paralelo para o drilldown
       const categoryTransactionsPromises = dreCategories.map(async (cat) => {
@@ -658,7 +668,19 @@ export default class DREService {
   /**
    * Format period label for display
    */
-  private static formatPeriodLabel(period: string): string {
+  private static formatPeriodLabel(period: string, startDate?: string, endDate?: string): string {
+    // Para período customizado, formatar as datas
+    if (period === 'custom' && startDate && endDate) {
+      const start = new Date(startDate + 'T12:00:00');
+      const end = new Date(endDate + 'T12:00:00');
+      const formatDate = (d: Date) => d.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+      return `${formatDate(start)} - ${formatDate(end)}`;
+    }
+
     if (!period || period === 'current') {
       const now = new Date();
       const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

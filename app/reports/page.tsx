@@ -95,12 +95,13 @@ export default function ReportsPage() {
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
-    if (range?.from) {
+    // Só atualiza os filtros quando ambas as datas estiverem selecionadas
+    if (range?.from && range?.to) {
       setFilters({
         ...filters,
         period: 'custom',
-        startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
-        endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
+        startDate: range.from.toISOString().split('T')[0],
+        endDate: range.to.toISOString().split('T')[0]
       });
     }
   };
