@@ -15,7 +15,8 @@ const revenueCategories: Category[] = [
     examples: ['Venda Mercadorias', 'Receita Vendas', 'Faturamento Clientes'],
     totalAmount: 156000,
     transactionCount: 248,
-    percentage: 42.1
+    percentage: 42.1,
+    dreGroup: 'RoB'
   },
   {
     id: '2',
@@ -27,7 +28,8 @@ const revenueCategories: Category[] = [
     examples: ['Honorários de Serviços', 'Consultoria Empresarial', 'Serviços de TI', 'Manutenção de Software'],
     totalAmount: 89600,
     transactionCount: 143,
-    percentage: 24.1
+    percentage: 24.1,
+    dreGroup: 'RoB'
   },
   {
     id: '3',
@@ -39,7 +41,8 @@ const revenueCategories: Category[] = [
     examples: ['Juros Ativos', 'Rendimentos Aplicações', 'Dividendos', 'Aluguél Recebido'],
     totalAmount: 75400,
     transactionCount: 89,
-    percentage: 20.3
+    percentage: 20.3,
+    dreGroup: 'RNOP'
   },
   {
     id: '4',
@@ -51,7 +54,8 @@ const revenueCategories: Category[] = [
     examples: ['Aluguel Recebido', 'Sublocação Mensal', 'Aluguel Antecipado'],
     totalAmount: 12500,
     transactionCount: 67,
-    percentage: 3.4
+    percentage: 3.4,
+    dreGroup: 'RNOP'
   }
 ];
 

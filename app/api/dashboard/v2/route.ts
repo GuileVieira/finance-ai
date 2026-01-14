@@ -20,7 +20,14 @@ export async function GET(request: NextRequest) {
             accountId: searchParams.get('accountId') || 'all',
         };
 
+        console.log('📊 [EXECUTIVE-DASHBOARD-API] Filtros recebidos:', filters);
+
         const data = await ExecutiveDashboardService.getDashboardData(filters);
+
+        console.log('📊 [EXECUTIVE-DASHBOARD-API] Dados retornados:', {
+            summary: data.summary,
+            dreTableCount: data.dreTable.length,
+        });
 
         return NextResponse.json({ success: true, data });
     } catch (error) {

@@ -93,25 +93,88 @@ export default class ExecutiveDashboardService {
     }
 
     private static getPeriodRange(period?: string) {
-        // Implementação simplificada para o exemplo, deve seguir o padrão do DREService
-        const now = new Date();
-        let startDate = '';
-        let endDate = '';
+        const today = new Date();
+        const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-        if (period === 'all') {
-            // Se for 'all', buscamos um range bem amplo ou deixamos aberto conforme necessário
-            startDate = '2000-01-01';
-            endDate = '2100-12-31';
-        } else if (period === 'this_month' || !period) {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-        } else {
-            // Caso padrão (mês atual) se não houver lógica para outros períodos específicos aqui
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        if (!period || period === 'all') {
+            return { startDate: '2000-01-01', endDate: '2100-12-31' };
         }
 
-        return { startDate, endDate };
+        if (period === 'today') {
+            return { startDate: formatDate(today), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_7_days') {
+            const start = new Date(today);
+            start.setDate(today.getDate() - 7);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_15_days') {
+            const start = new Date(today);
+            start.setDate(today.getDate() - 15);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_30_days') {
+            const start = new Date(today);
+            start.setDate(today.getDate() - 30);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_90_days') {
+            const start = new Date(today);
+            start.setDate(today.getDate() - 90);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_180_days') {
+            const start = new Date(today);
+            start.setDate(today.getDate() - 180);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'this_month') {
+            const start = new Date(today.getFullYear(), today.getMonth(), 1);
+            const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            return { startDate: formatDate(start), endDate: formatDate(end) };
+        }
+
+        if (period === 'this_year') {
+            const start = new Date(today.getFullYear(), 0, 1);
+            return { startDate: formatDate(start), endDate: formatDate(today) };
+        }
+
+        if (period === 'last_month') {
+            const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const end = new Date(today.getFullYear(), today.getMonth(), 0);
+            return { startDate: formatDate(start), endDate: formatDate(end) };
+        }
+
+        if (period === 'last_year') {
+            const start = new Date(today.getFullYear() - 1, 0, 1);
+            const end = new Date(today.getFullYear() - 1, 11, 31);
+            return { startDate: formatDate(start), endDate: formatDate(end) };
+        }
+
+        // Fallback para YYYY-MM (formato de mês específico)
+        if (period.includes('-')) {
+            const [year, month] = period.split('-');
+            if (year && month) {
+                const yearNum = parseInt(year);
+                const monthNum = parseInt(month);
+                if (yearNum >= 2000 && yearNum <= 2100 && monthNum >= 1 && monthNum <= 12) {
+                    const start = new Date(yearNum, monthNum - 1, 1);
+                    const end = new Date(yearNum, monthNum, 0);
+                    return { startDate: formatDate(start), endDate: formatDate(end) };
+                }
+            }
+        }
+
+        // Fallback padrão: mês atual
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        return { startDate: formatDate(start), endDate: formatDate(end) };
     }
 
     private static async getMonthlyComparison(companyId: string) {

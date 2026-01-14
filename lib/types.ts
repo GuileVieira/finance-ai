@@ -16,6 +16,7 @@ export interface Category {
   description?: string;
   examples?: string[];
   active?: boolean;
+  dreGroup?: 'RoB' | 'TDCF' | 'MP' | 'CF' | 'RNOP' | 'DNOP' | null;
 }
 
 export interface AutoRule {

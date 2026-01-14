@@ -47,6 +47,7 @@ export async function initializeDatabase() {
         colorHex: cat.color,
         icon: cat.icon,
         examples: cat.examples,
+        dreGroup: cat.dreGroup || null,
         isSystem: true,
         active: true
       }));
