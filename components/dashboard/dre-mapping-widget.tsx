@@ -5,7 +5,12 @@ import { useCategories, useUpdateCategory, useCreateCategory } from '@/hooks/use
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select, SelectContent, SelectItem, SelectGroup,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, Filter, PlusCircle } from 'lucide-react';
@@ -24,7 +29,14 @@ const TYPE_LABELS: Record<string, string> = {
     fixed_cost: 'Custos Fixos / Despesas',
     non_operating: 'Não Operacional',
     financial_movement: 'Movimentação Financeira (Fora do DRE)',
-    FINANCIAL_MOVEMENT: 'Movimentação Financeira (Fora do DRE)'
+    FINANCIAL_MOVEMENT: 'Movimentação Financeira (Fora do DRE)',
+    // Novos Grupos DRE
+    RoB: 'Receita Bruta (RoB)',
+    TDCF: 'Tributos, Devol. & Custo Fin. (TDCF)',
+    MP: 'Matéria Prima (MP)',
+    CF: 'Custos Fixos (CF)',
+    RNOP: 'Receita Não Operacional (RNOP)',
+    DNOP: 'Despesa Não Operacional (DNOP)',
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -33,7 +45,13 @@ const TYPE_COLORS: Record<string, string> = {
     fixed_cost: 'bg-red-100 text-red-800 border-red-200',
     non_operating: 'bg-slate-100 text-slate-800 border-slate-200',
     financial_movement: 'bg-purple-100 text-purple-800 border-purple-200',
-    FINANCIAL_MOVEMENT: 'bg-purple-100 text-purple-800 border-purple-200'
+    FINANCIAL_MOVEMENT: 'bg-purple-100 text-purple-800 border-purple-200',
+    RoB: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    TDCF: 'bg-amber-100 text-amber-800 border-amber-200',
+    MP: 'bg-blue-100 text-blue-800 border-blue-200',
+    CF: 'bg-red-100 text-red-800 border-red-200',
+    RNOP: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    DNOP: 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
@@ -59,9 +77,13 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
     }, [categories, search, typeFilter]);
 
     const handleTypeChange = (categoryId: string, newType: string) => {
+        // Se for um dos novos grupos DRE, atualizamos o campo dreGroup
+        const dreGroups = ['RoB', 'TDCF', 'MP', 'CF', 'RNOP', 'DNOP'];
+        const isDreGroup = dreGroups.includes(newType);
+
         updateCategoryMutation.mutate({
             id: categoryId,
-            type: newType as CategoryType
+            ...(isDreGroup ? { dreGroup: newType } : { type: newType as CategoryType })
         }, {
             onSuccess: () => {
                 toast.success('Categoria atualizada com sucesso');
@@ -153,7 +175,7 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                                         </div>
 
                                         <Select
-                                            value={category.type}
+                                            value={category.dreGroup || category.type}
                                             onValueChange={(v) => handleTypeChange(category.id, v)}
                                             disabled={updateCategoryMutation.isPending}
                                         >
@@ -161,11 +183,23 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent position="popper" align="end">
-                                                <SelectItem value="revenue">Receitas</SelectItem>
-                                                <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
-                                                <SelectItem value="fixed_cost">Custos Fixos / Despesas</SelectItem>
-                                                <SelectItem value="non_operating">Não Operacional</SelectItem>
-                                                <SelectItem value="financial_movement">Movimentação Financeira</SelectItem>
+                                                <SelectGroup>
+                                                    <SelectLabel>Tipos Básicos</SelectLabel>
+                                                    <SelectItem value="revenue">Receitas</SelectItem>
+                                                    <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
+                                                    <SelectItem value="fixed_cost">Custos Fixos / Despesas</SelectItem>
+                                                    <SelectItem value="non_operating">Não Operacional</SelectItem>
+                                                    <SelectItem value="financial_movement">Movimentação Financeira</SelectItem>
+                                                </SelectGroup>
+                                                <SelectGroup>
+                                                    <SelectLabel>Grupos DRE Executivo</SelectLabel>
+                                                    <SelectItem value="RoB">Receita Bruta (RoB)</SelectItem>
+                                                    <SelectItem value="TDCF">Tributos, Devol. & Custo Fin.</SelectItem>
+                                                    <SelectItem value="MP">Matéria Prima (MP)</SelectItem>
+                                                    <SelectItem value="CF">Custos Fixos (CF)</SelectItem>
+                                                    <SelectItem value="RNOP">Receita Não Op. (RNOP)</SelectItem>
+                                                    <SelectItem value="DNOP">Despesa Não Op. (DNOP)</SelectItem>
+                                                </SelectGroup>
                                             </SelectContent>
                                         </Select>
                                     </div>

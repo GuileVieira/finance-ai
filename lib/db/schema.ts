@@ -1,17 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  decimal,
-  date,
-  boolean,
-  timestamp,
-  integer,
-  json,
-  index,
-  unique
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, decimal, integer, boolean, text, json, index, unique, AnyPgColumn, date } from 'drizzle-orm/pg-core';
 
 // Empresas
 export const companies = pgTable('financeai_companies', {
@@ -63,8 +50,9 @@ export const categories = pgTable('financeai_categories', {
   description: text('description'),
   type: varchar('type', { length: 30 }).notNull(), // revenue, variable_cost, fixed_cost, non_operational
   parentType: varchar('parent_type', { length: 30 }),
-  parentCategoryId: uuid('parent_category_id').references(() => categories.id),
+  parentCategoryId: uuid('parent_category_id').references((): AnyPgColumn => categories.id),
   colorHex: varchar('color_hex', { length: 7 }).default('#A5B4FC'),
+  dreGroup: varchar('dre_group', { length: 50 }), // RoB, TDCF, MP, MC, CF, EBT1, RNOP, DNOP, EBT2
   icon: varchar('icon', { length: 10 }).default('📊'), // Emoji para ícones das categorias
   examples: json('examples'), // Array de exemplos de transações
   isSystem: boolean('is_system').default(false),
@@ -339,6 +327,23 @@ export const aiUsageLogs = pgTable('financeai_ai_usage_logs', {
   providerDateIdx: index('idx_ai_logs_provider_date').on(table.provider, table.createdAt.desc())
 }));
 
+// Projeções mensais
+export const projections = pgTable('financeai_projections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  year: integer('year').notNull(),
+  month: integer('month').notNull(),
+  dreGroup: varchar('dre_group', { length: 50 }).notNull(), // RoB, TDCF, MP, MC, CF, EBT1, RNOP, DNOP, EBT2
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  companyIdx: index('idx_projections_company').on(table.companyId),
+  yearMonthIdx: index('idx_projections_year_month').on(table.year, table.month),
+  dreGroupIdx: index('idx_projections_dre_group').on(table.dreGroup),
+  uniqueProjection: unique('unique_projection').on(table.companyId, table.year, table.month, table.dreGroup)
+}));
+
 // Export types
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -381,3 +386,6 @@ export type NewTransactionCluster = typeof transactionClusters.$inferInsert;
 
 export type InsightThreshold = typeof insightThresholds.$inferSelect;
 export type NewInsightThreshold = typeof insightThresholds.$inferInsert;
+
+export type Projection = typeof projections.$inferSelect;
+export type NewProjection = typeof projections.$inferInsert;

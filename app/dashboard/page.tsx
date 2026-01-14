@@ -9,23 +9,23 @@ import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { TopExpenses } from '@/components/dashboard/top-expenses';
 import { Insights } from '@/components/dashboard/insights';
 import { EmptyState } from '@/components/dashboard/empty-state';
+import { requireAuth } from '@/lib/auth/get-session';
+import { initializeDatabase } from '@/lib/db/init-db';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { DateRange } from 'react-day-picker';
-import { RefreshCw } from 'lucide-react';
-import { LayoutWrapper } from '@/components/shared/layout-wrapper';
-import { DateFilterSelect } from '@/components/shared/date-filter-select';
-import { useDashboard } from '@/hooks/use-dashboard';
-import { useAccountsForSelect } from '@/hooks/use-accounts';
-import { useCompaniesForSelect } from '@/hooks/use-companies';
-import { useAvailablePeriods } from '@/hooks/use-periods';
-import { TransactionListSheet } from '@/components/dashboard/transaction-list-sheet';
-import { CategorySummary, TopExpense } from '@/lib/api/dashboard';
-import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
-import { Settings } from 'lucide-react';
 import { FilterBar } from '@/components/shared/filter-bar';
 import { usePersistedFilters } from '@/hooks/use-persisted-filters';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GeneralDashboardView } from '@/components/dashboard/general-dashboard-view';
+import { ExecutiveDashboardView } from '@/components/dashboard/executive-dashboard-view';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { LayoutWrapper } from '@/components/shared/layout-wrapper';
+import { DashboardFilters, CategorySummary, TopExpense } from '@/lib/api/dashboard';
+import { useDashboard } from '@/hooks/use-dashboard';
+import { DateRange } from 'react-day-picker';
+import { TransactionListSheet } from '@/components/dashboard/transaction-list-sheet';
+import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
+import { useAvailablePeriods } from '@/hooks/use-periods';
+import { Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -45,6 +45,7 @@ export default function DashboardPage() {
   });
 
   const [isDREWidgetOpen, setIsDREWidgetOpen] = useState(false);
+  const [activeTab, setActiveTab] = useLocalStorage('dashboard-active-tab', 'general');
 
   // Estabilizar funções com useCallback
   const handleFilterChange = useCallback((key: string, value: string) => {
@@ -235,7 +236,6 @@ export default function DashboardPage() {
       </Button>
     </div>
   );
-
   return (
     <LayoutWrapper>
       <div className="space-y-6">
@@ -265,68 +265,34 @@ export default function DashboardPage() {
           </FilterBar>
         </div>
 
-        {/* Cards de métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {isLoading ? (
-            <div className="col-span-4 text-center p-8">
-              <div className="text-lg">Carregando métricas...</div>
-            </div>
-          ) : isFilterEmpty ? (
-            <FilterEmptyMessage />
-          ) : (
-            dashboardMetrics.map((metric, index) => {
-              return (
-                <MetricCard
-                  key={`${metric.title}-${index}`}
-                  metric={metric}
-                  onClick={() => handleMetricClick(metric.title)}
-                />
-              );
-            })
-          )}
-        </div>
+        {/* Tabs para trocar de visão */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="general">Visão Geral</TabsTrigger>
+              <TabsTrigger value="executive">Fluxo | Real + Projetado</TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* Só mostrar gráficos se tiver dados */}
-        {!isFilterEmpty && (
-          <>
-            {/* Análises Temporais */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TrendChart data={trendData} isLoading={isLoading} />
-              <CashFlowChart data={trendData} isLoading={isLoading} period={filters.period} />
-            </div>
+          <TabsContent value="general" className="mt-0 space-y-6">
+            <GeneralDashboardView
+              data={{
+                metrics: metrics!,
+                trendData: trendData!,
+                categorySummary: categorySummary!,
+                topExpenses: topExpenses!,
+                recentTransactions: recentTransactions!
+              }}
+              isLoading={isLoading}
+              onMetricClick={handleMetricClick}
+              onCategoryClick={(catId: string) => handleCategoryClick({ id: catId, name: '' } as CategorySummary)}
+            />
+          </TabsContent>
 
-            {/* Análises Detalhadas */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CategoryChart
-                categories={categorySummary}
-                isLoading={isLoading}
-                isEmpty={!categorySummary || categorySummary.length === 0}
-                onCategoryClick={handleCategoryClick}
-              />
-              <RecentTransactions
-                transactions={recentTransactions}
-                isLoading={isLoading}
-                isEmpty={!recentTransactions || recentTransactions.length === 0}
-                companyId={filters.companyId}
-              />
-            </div>
-
-            {/* Análises Adicionais */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TopExpenses
-                expenses={topExpenses}
-                isLoading={isLoading}
-                isEmpty={!topExpenses || topExpenses.length === 0}
-                onExpenseClick={handleExpenseClick}
-              />
-              <Insights
-                period={filters.period}
-                companyId={filters.companyId}
-                accountId={filters.accountId}
-              />
-            </div>
-          </>
-        )}
+          <TabsContent value="executive" className="mt-0 space-y-6">
+            <ExecutiveDashboardView filters={filters} />
+          </TabsContent>
+        </Tabs>
 
         <TransactionListSheet
           isOpen={drillDown.isOpen}
@@ -339,7 +305,6 @@ export default function DashboardPage() {
           isOpen={isDREWidgetOpen}
           onClose={() => setIsDREWidgetOpen(false)}
         />
-
       </div>
     </LayoutWrapper>
   );

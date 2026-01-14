@@ -7,6 +7,7 @@ export interface Category {
   parentType?: string;
   parentCategoryId?: string;
   colorHex: string;
+  dreGroup?: string;
   icon: string;
   examples?: string[];
   isSystem: boolean;
@@ -81,6 +82,7 @@ export interface CreateCategoryData {
 
 export interface UpdateCategoryData extends Partial<CreateCategoryData> {
   id: string;
+  dreGroup?: string | null;
 }
 
 export interface CategorySummary {
