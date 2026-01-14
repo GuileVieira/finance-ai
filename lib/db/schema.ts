@@ -64,7 +64,7 @@ export const categories = pgTable('financeai_categories', {
   type: varchar('type', { length: 30 }).notNull(), // revenue, variable_cost, fixed_cost, non_operational
   parentType: varchar('parent_type', { length: 30 }),
   parentCategoryId: uuid('parent_category_id').references(() => categories.id),
-  colorHex: varchar('color_hex', { length: 7 }).default('#6366F1'),
+  colorHex: varchar('color_hex', { length: 7 }).default('#A5B4FC'),
   icon: varchar('icon', { length: 10 }).default('📊'), // Emoji para ícones das categorias
   examples: json('examples'), // Array de exemplos de transações
   isSystem: boolean('is_system').default(false),
