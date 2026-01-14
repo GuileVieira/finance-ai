@@ -40,6 +40,9 @@ export default class CashFlowService {
       startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
     } else if (filters.period === 'last_180_days') {
       startDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+    } else if (filters.period === 'all') {
+      // Buscar desde 2 anos atrás até hoje
+      startDate = new Date(now.getFullYear() - 2, 0, 1);
     } else if (filters.period && /^\d{4}-\d{2}$/.test(filters.period)) {
       // Formato YYYY-MM (validado com regex)
       const [year, month] = filters.period.split('-').map(Number);
