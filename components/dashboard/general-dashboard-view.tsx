@@ -51,9 +51,9 @@ export function GeneralDashboardView({
                 <MetricCard
                     metric={{
                         title: 'Receitas',
-                        value: data.metrics.totalIncome,
-                        change: data.metrics.incomeGrowth || 0,
-                        changeType: (data.metrics.incomeGrowth || 0) >= 0 ? 'increase' : 'decrease',
+                        value: data.metrics?.totalIncome ?? 0,
+                        change: data.metrics?.growthRate || 0,
+                        changeType: (data.metrics?.growthRate || 0) >= 0 ? 'increase' : 'decrease',
                         color: 'text-emerald-500',
                         icon: '📈'
                     }}
@@ -62,9 +62,9 @@ export function GeneralDashboardView({
                 <MetricCard
                     metric={{
                         title: 'Despesas',
-                        value: -Math.abs(data.metrics.totalExpenses),
-                        change: data.metrics.expenseGrowth || 0,
-                        changeType: (data.metrics.expenseGrowth || 0) >= 0 ? 'increase' : 'decrease',
+                        value: -Math.abs(data.metrics?.totalExpenses ?? 0),
+                        change: data.metrics?.expensesGrowthRate || 0,
+                        changeType: (data.metrics?.expensesGrowthRate || 0) >= 0 ? 'increase' : 'decrease',
                         color: 'text-destructive',
                         icon: '📉'
                     }}
@@ -73,19 +73,19 @@ export function GeneralDashboardView({
                 <MetricCard
                     metric={{
                         title: 'Saldo',
-                        value: data.metrics.netBalance,
-                        change: data.metrics.netBalanceGrowth || 0,
-                        changeType: (data.metrics.netBalanceGrowth || 0) >= 0 ? 'increase' : 'decrease',
-                        color: data.metrics.netBalance >= 0 ? 'text-emerald-500' : 'text-destructive',
+                        value: data.metrics?.netBalance ?? 0,
+                        change: data.metrics?.balanceGrowthRate || 0,
+                        changeType: (data.metrics?.balanceGrowthRate || 0) >= 0 ? 'increase' : 'decrease',
+                        color: (data.metrics?.netBalance ?? 0) >= 0 ? 'text-emerald-500' : 'text-destructive',
                         icon: '💰'
                     }}
                 />
                 <MetricCard
                     metric={{
                         title: 'Transações',
-                        value: data.metrics.transactionCount,
-                        change: data.metrics.transactionsGrowthRate || 0,
-                        changeType: (data.metrics.transactionsGrowthRate || 0) >= 0 ? 'increase' : 'decrease',
+                        value: data.metrics?.transactionCount ?? 0,
+                        change: data.metrics?.transactionsGrowthRate || 0,
+                        changeType: (data.metrics?.transactionsGrowthRate || 0) >= 0 ? 'increase' : 'decrease',
                         color: 'text-primary',
                         icon: '🔄'
                     }}
@@ -95,11 +95,11 @@ export function GeneralDashboardView({
             {/* Gráficos Principais */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                 <div className="lg:col-span-4">
-                    <TrendChart data={data.trendData} />
+                    <TrendChart data={data.trendData || []} />
                 </div>
                 <div className="lg:col-span-3">
                     <CategoryChart
-                        categories={data.categorySummary}
+                        categories={data.categorySummary || []}
                         onCategoryClick={(cat: CategorySummary) => onCategoryClick(cat.id)}
                     />
                 </div>
@@ -108,10 +108,10 @@ export function GeneralDashboardView({
             {/* Tabelas e Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                    <RecentTransactions transactions={data.recentTransactions} />
+                    <RecentTransactions transactions={data.recentTransactions || []} />
                 </div>
                 <div className="space-y-6">
-                    <TopExpenses expenses={data.topExpenses} />
+                    <TopExpenses expenses={data.topExpenses || []} />
                     <Insights />
                 </div>
             </div>

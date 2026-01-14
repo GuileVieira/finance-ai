@@ -26,6 +26,8 @@ import { TransactionListSheet } from '@/components/dashboard/transaction-list-sh
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { Settings } from 'lucide-react';
+import { useCompaniesForSelect } from '@/hooks/use-companies';
+import { useAccountsForSelect } from '@/hooks/use-accounts';
 
 export default function DashboardPage() {
   /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -237,75 +239,73 @@ export default function DashboardPage() {
     </div>
   );
   return (
-    <LayoutWrapper>
-      <div className="space-y-6">
-        {/* Filtros do Dashboard */}
-        <div className="flex flex-col gap-4">
-          <FilterBar
-            period={filters.period}
-            accountId={filters.accountId}
-            companyId={filters.companyId}
-            dateRange={dateRange}
-            onPeriodChange={(value) => handleFilterChange('period', value)}
-            onAccountChange={(value) => handleFilterChange('accountId', value)}
-            onCompanyChange={(value) => handleFilterChange('companyId', value)}
-            onDateRangeChange={handleDateRangeChange}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-            isRefetching={isRefetching}
+    <div className="space-y-6">
+      {/* Filtros do Dashboard */}
+      <div className="flex flex-col gap-4">
+        <FilterBar
+          period={filters.period}
+          accountId={filters.accountId}
+          companyId={filters.companyId}
+          dateRange={dateRange}
+          onPeriodChange={(value) => handleFilterChange('period', value)}
+          onAccountChange={(value) => handleFilterChange('accountId', value)}
+          onCompanyChange={(value) => handleFilterChange('companyId', value)}
+          onDateRangeChange={handleDateRangeChange}
+          onRefresh={handleRefresh}
+          isLoading={isLoading}
+          isRefetching={isRefetching}
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDREWidgetOpen(true)}
           >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDREWidgetOpen(true)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Plano de Contas
-            </Button>
-          </FilterBar>
+            <Settings className="h-4 w-4 mr-2" />
+            Plano de Contas
+          </Button>
+        </FilterBar>
+      </div>
+
+      {/* Tabs para trocar de visão */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="general">Visão Geral</TabsTrigger>
+            <TabsTrigger value="executive">Fluxo | Real + Projetado</TabsTrigger>
+          </TabsList>
         </div>
 
-        {/* Tabs para trocar de visão */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <TabsList>
-              <TabsTrigger value="general">Visão Geral</TabsTrigger>
-              <TabsTrigger value="executive">Fluxo | Real + Projetado</TabsTrigger>
-            </TabsList>
-          </div>
+        <TabsContent value="general" className="mt-0 space-y-6">
+          <GeneralDashboardView
+            data={metrics ? {
+              metrics: metrics!,
+              trendData: trendData!,
+              categorySummary: categorySummary!,
+              topExpenses: topExpenses!,
+              recentTransactions: recentTransactions!
+            } : undefined}
+            isLoading={isLoading}
+            onMetricClick={handleMetricClick}
+            onCategoryClick={(catId: string) => handleCategoryClick({ id: catId, name: '' } as CategorySummary)}
+          />
+        </TabsContent>
 
-          <TabsContent value="general" className="mt-0 space-y-6">
-            <GeneralDashboardView
-              data={{
-                metrics: metrics!,
-                trendData: trendData!,
-                categorySummary: categorySummary!,
-                topExpenses: topExpenses!,
-                recentTransactions: recentTransactions!
-              }}
-              isLoading={isLoading}
-              onMetricClick={handleMetricClick}
-              onCategoryClick={(catId: string) => handleCategoryClick({ id: catId, name: '' } as CategorySummary)}
-            />
-          </TabsContent>
+        <TabsContent value="executive" className="mt-0 space-y-6">
+          <ExecutiveDashboardView filters={filters} />
+        </TabsContent>
+      </Tabs>
 
-          <TabsContent value="executive" className="mt-0 space-y-6">
-            <ExecutiveDashboardView filters={filters} />
-          </TabsContent>
-        </Tabs>
+      <TransactionListSheet
+        isOpen={drillDown.isOpen}
+        onClose={() => setDrillDown(prev => ({ ...prev, isOpen: false }))}
+        title={drillDown.title}
+        filters={drillDown.filters}
+      />
 
-        <TransactionListSheet
-          isOpen={drillDown.isOpen}
-          onClose={() => setDrillDown(prev => ({ ...prev, isOpen: false }))}
-          title={drillDown.title}
-          filters={drillDown.filters}
-        />
-
-        <DREMappingWidget
-          isOpen={isDREWidgetOpen}
-          onClose={() => setIsDREWidgetOpen(false)}
-        />
-      </div>
-    </LayoutWrapper>
+      <DREMappingWidget
+        isOpen={isDREWidgetOpen}
+        onClose={() => setIsDREWidgetOpen(false)}
+      />
+    </div>
   );
 }

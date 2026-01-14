@@ -12,6 +12,13 @@ interface ExecutiveDashboardViewProps {
     filters: DashboardFilters;
 }
 
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    }).format(value);
+};
+
 export function ExecutiveDashboardView({ filters }: ExecutiveDashboardViewProps) {
     // Chamada para o novo serviço (via query)
     const { data, isLoading } = useQuery<ExecutiveDashboardData>({
@@ -29,24 +36,26 @@ export function ExecutiveDashboardView({ filters }: ExecutiveDashboardViewProps)
     });
 
     if (isLoading) {
-        return <div className="flex items-center justify-center h-[400px]">Carregando visão executiva...</div>;
+        return (
+            <div className="flex items-center justify-center h-[400px]">
+                <div className="flex flex-col items-center gap-2">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">Carregando visão executiva...</p>
+                </div>
+            </div>
+        );
     }
 
     if (!data) {
         return (
             <div className="flex flex-col items-center justify-center h-[400px] border rounded-lg border-dashed">
-                <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Nenhum dado financeiro disponível.</p>
+                <AlertCircle className="h-8 w-8 text-destructive mb-2" />
+                <p className="text-destructive font-medium">Erro ao carregar dados executivos</p>
+                <p className="text-xs text-muted-foreground mt-1">Verifique sua conexão ou tente novamente mais tarde.</p>
             </div>
         );
     }
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(value);
-    };
 
     return (
         <div className="space-y-6">
@@ -153,7 +162,7 @@ function SummaryCard({ title, value, icon, color }: { title: string; value: numb
             </CardHeader>
             <CardContent className="py-3 pt-0">
                 <div className="text-xl font-bold">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+                    {formatCurrency(value)}
                 </div>
             </CardContent>
         </Card>

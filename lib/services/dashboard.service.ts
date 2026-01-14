@@ -230,7 +230,12 @@ export default class DashboardService {
         .from(transactions)
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(
+          and(
+            whereClause,
+            not(ilike(categories.name, 'Saldo Inicial'))
+          )
+        )
         .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
       // Removendo ORDER BY para evitar erro de GROUP BY
       // .orderBy(desc(sql`ABS(${transactions.amount})`));
@@ -290,7 +295,13 @@ export default class DashboardService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(
+          and(
+            whereClause,
+            not(ilike(categories.name, 'Saldo Inicial'))
+          )
+        )
         .groupBy(transactions.transactionDate)
         .orderBy(transactions.transactionDate);
 
@@ -348,7 +359,12 @@ export default class DashboardService {
         .from(transactions)
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(
+          and(
+            whereClause,
+            not(ilike(categories.name, 'Saldo Inicial'))
+          )
+        )
         .orderBy(desc(sql`ABS(${transactions.amount})`))
         .limit(limit);
 
@@ -416,17 +432,39 @@ export default class DashboardService {
         .from(transactions)
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
+        .where(
+          and(
+            whereClause,
+            not(ilike(categories.name, 'Saldo Inicial'))
+          )
+        )
         .orderBy(desc(transactions.transactionDate))
         .limit(limit);
 
-      // Adicionar nome da categoria como propriedade adicional, com capitalização adequada
-      return recentTransactions.map(transaction => ({
-        ...transaction,
-        categoryName: transaction.categoryName
-          ? this.capitalizeText(transaction.categoryName)
-          : 'Sem Categoria'
-      }));
+      // Adicionar campos necessários para satisfazer o tipo Transaction
+      return recentTransactions.map(transaction => {
+        const anyTx = transaction as any;
+        return {
+          id: transaction.id,
+          name: transaction.description || 'Sem descrição',
+          description: transaction.description || 'Sem descrição',
+          memo: null,
+          amount: transaction.amount,
+          type: transaction.type,
+          transactionDate: transaction.transactionDate,
+          accountId: transaction.accountId,
+          categoryId: transaction.categoryId,
+          uploadId: transaction.uploadId || null,
+          rawDescription: anyTx.rawDescription || transaction.description,
+          categorizationSource: anyTx.categorizationSource || 'ai',
+          ruleId: anyTx.ruleId || null,
+          createdAt: anyTx.createdAt ? new Date(anyTx.createdAt) : new Date(),
+          updatedAt: anyTx.updatedAt ? new Date(anyTx.updatedAt) : new Date(),
+          categoryName: transaction.categoryName
+            ? this.capitalizeText(transaction.categoryName)
+            : 'Sem Categoria'
+        };
+      }) as unknown as Transaction[];
 
     } catch (error) {
       console.error('Error getting recent transactions:', error);

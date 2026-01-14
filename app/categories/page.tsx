@@ -349,210 +349,206 @@ export default function CategoriesPage() {
   // Não mostra erro se simplesmente não há categorias
   if (error && !error.message?.includes('fetch')) {
     return (
-      <LayoutWrapper>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-destructive mb-2">
-              Erro ao carregar categorias
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {error.message}
-            </p>
-            <Button onClick={() => refetch()} variant="outline">
-              Tentar novamente
-            </Button>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-destructive mb-2">
+            Erro ao carregar categorias
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {error.message}
+          </p>
+          <Button onClick={() => refetch()} variant="outline">
+            Tentar novamente
+          </Button>
         </div>
-      </LayoutWrapper>
+      </div>
     );
   }
 
   return (
-    <LayoutWrapper>
-      <div className="space-y-6">
+    <div className="space-y-6">
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          {/* Filtro por Tipo de Categoria */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 max-w-full">
-            <TooltipProvider>
-              {categoryTypes.map((type) => (
-                <Tooltip key={type.value}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={activeTab === type.value ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setActiveTab(type.value as CategoryType | 'all')}
-                      disabled={isLoading}
-                      className="whitespace-nowrap"
-                    >
-                      {type.label}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{type.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </TooltipProvider>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-1 justify-end">
-            <FilterBar
-              period={filters.period}
-              accountId={filters.accountId}
-              companyId={filters.companyId}
-              dateRange={dateRange}
-              onPeriodChange={(value) => handleFilterChange('period', value)}
-              onAccountChange={(value) => handleFilterChange('accountId', value)}
-              onCompanyChange={(value) => handleFilterChange('companyId', value)}
-              onDateRangeChange={handleDateRangeChange}
-              onRefresh={handleRefresh}
-              isLoading={isLoading}
-            />
-          </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Filtro por Tipo de Categoria */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 max-w-full">
+          <TooltipProvider>
+            {categoryTypes.map((type) => (
+              <Tooltip key={type.value}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTab === type.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveTab(type.value as CategoryType | 'all')}
+                    disabled={isLoading}
+                    className="whitespace-nowrap"
+                  >
+                    {type.label}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{type.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-1 justify-end">
+          <FilterBar
+            period={filters.period}
+            accountId={filters.accountId}
+            companyId={filters.companyId}
+            dateRange={dateRange}
+            onPeriodChange={(value) => handleFilterChange('period', value)}
+            onAccountChange={(value) => handleFilterChange('accountId', value)}
+            onCompanyChange={(value) => handleFilterChange('companyId', value)}
+            onDateRangeChange={handleDateRangeChange}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Conteúdo Principal */}
+      {/* Cards de Categorias */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">
+            {isLoading ? 'Carregando categorias...' :
+              categoryOps?.summary ?
+                `Baseado em ${categoryOps.summary.totalCategories} categorias financeiras (${displayedCategories.length} com movimentações)` :
+                `Baseado em ${displayedCategories.length} categorias com movimentações`}
+          </h2>
+          <Button onClick={() => setIsDialogOpen(true)} disabled={categoryOps?.isCreating}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Categoria
+          </Button>
         </div>
 
-        {/* Conteúdo Principal */}
-        {/* Cards de Categorias */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              {isLoading ? 'Carregando categorias...' :
-                categoryOps.summary ?
-                  `Baseado em ${categoryOps.summary.totalCategories} categorias financeiras (${displayedCategories.length} com movimentações)` :
-                  `Baseado em ${displayedCategories.length} categorias com movimentações`}
-            </h2>
-            <Button onClick={() => setIsDialogOpen(true)} disabled={categoryOps.isCreating}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Categoria
-            </Button>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando categorias...</p>
           </div>
-
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Carregando categorias...</p>
-            </div>
-          ) : displayedCategories.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                {activeTab === 'all' ?
-                  'Nenhuma categoria encontrada. Crie sua primeira categoria!' :
-                  'Nenhuma categoria encontrada para este filtro.'}
-              </p>
-              {activeTab === 'all' && (
-                <Button onClick={() => setIsDialogOpen(true)} disabled={categoryOps.isCreating}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeira Categoria
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {displayedCategories.map((category: CategoryWithStats) => (
-                <CategoryCard
-                  key={category.id}
-                  category={category}
-                  showViewButton
-                  onView={() => handleViewCategory(category)}
-                  showEditButton={true}
-                  loading={categoryOps.isToggling || categoryOps.isDeleting}
-                  onRules={() => {
-                    toast({
-                      title: 'Regras Temporariamente Indisponível',
-                      description: 'Funcionalidade de regras está em manutenção',
-                    });
-                  }}
-                  onToggle={(active) => {
-                    handleToggleCategory(category.id, active, category.name);
-                  }}
-                  onUpdate={(updatedCategory) => {
-                    handleUpdateCategory(updatedCategory);
-                  }}
-                  onDelete={() => {
-                    handleDeleteCategory(category.id, category.name);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Tabela de Regras Automáticas */}
-        <div className="bg-card rounded-lg border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">
-              Regras Automáticas Inteligentes
-              {autoRules && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({autoRules.length} regras ativas)
-                </span>
-              )}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingRule(undefined);
-                  setIsRuleDialogOpen(true);
-                }}
-                disabled={createRule.isPending}
-              >
+        ) : displayedCategories.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              {activeTab === 'all' ?
+                'Nenhuma categoria encontrada. Crie sua primeira categoria!' :
+                'Nenhuma categoria encontrada para este filtro.'}
+            </p>
+            {activeTab === 'all' && (
+              <Button onClick={() => setIsDialogOpen(true)} disabled={categoryOps.isCreating}>
                 <Plus className="h-4 w-4 mr-2" />
-                Nova Regra
+                Criar Primeira Categoria
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetchRules()}
-                disabled={isLoadingRules}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
+            )}
           </div>
-
-          {isLoadingRules ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Carregando regras...</p>
-            </div>
-          ) : autoRules && autoRules.length > 0 ? (
-            <AutoRulesTable
-              rules={autoRules}
-              onToggle={handleToggleRule}
-              onEdit={handleEditRule}
-              onDelete={handleDeleteRule}
-              loading={createRule.isPending || updateRule.isPending || deleteRule.isPending || toggleRule.isPending}
-            />
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">
-                Nenhuma regra automática encontrada.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Insights Baseados em Dados Reais */}
-        {categoryOps.summary && (
-          <div className="mt-6 bg-muted/50 rounded-lg p-4">
-            <h4 className="font-medium mb-2">💡 Insights Baseados nos Dados Reais:</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Total de categorias: {categoryOps.summary.totalCategories} ({categoryOps.summary.activeCategories} ativas)</li>
-              <li>• Distribuição por tipo:</li>
-              <li>  - Receitas: {categoryOps.summary.categoriesByType.revenue}</li>
-              <li>  - Custos Variáveis: {categoryOps.summary.categoriesByType.variable_cost}</li>
-              <li>  - Custos Fixos: {categoryOps.summary.categoriesByType.fixed_cost}</li>
-              <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operational}</li>
-              {categoryOps.summary.mostUsedCategories.length > 0 && (
-                <li>• Categoria mais usada: {categoryOps.summary.mostUsedCategories[0].name} ({categoryOps.summary.mostUsedCategories[0].transactionCount} transações)</li>
-              )}
-            </ul>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayedCategories.map((category: CategoryWithStats) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                showViewButton
+                onView={() => handleViewCategory(category)}
+                showEditButton={true}
+                loading={categoryOps.isToggling || categoryOps.isDeleting}
+                onRules={() => {
+                  toast({
+                    title: 'Regras Temporariamente Indisponível',
+                    description: 'Funcionalidade de regras está em manutenção',
+                  });
+                }}
+                onToggle={(active) => {
+                  handleToggleCategory(category.id, active, category.name);
+                }}
+                onUpdate={(updatedCategory) => {
+                  handleUpdateCategory(updatedCategory);
+                }}
+                onDelete={() => {
+                  handleDeleteCategory(category.id, category.name);
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
+
+      {/* Tabela de Regras Automáticas */}
+      <div className="bg-card rounded-lg border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            Regras Automáticas Inteligentes
+            {autoRules && autoRules.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({autoRules.length} regras ativas)
+              </span>
+            )}
+          </h3>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditingRule(undefined);
+                setIsRuleDialogOpen(true);
+              }}
+              disabled={createRule.isPending}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Regra
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchRules()}
+              disabled={isLoadingRules}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
+        </div>
+
+        {isLoadingRules ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Carregando regras...</p>
+          </div>
+        ) : (autoRules && autoRules.length > 0) ? (
+          <AutoRulesTable
+            rules={autoRules || []}
+            onToggle={handleToggleRule}
+            onEdit={handleEditRule}
+            onDelete={handleDeleteRule}
+            loading={createRule.isPending || updateRule.isPending || deleteRule.isPending || toggleRule.isPending}
+          />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">
+              Nenhuma regra automática encontrada.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Insights Baseados em Dados Reais */}
+      {categoryOps?.summary && (
+        <div className="mt-6 bg-muted/50 rounded-lg p-4">
+          <h4 className="font-medium mb-2">💡 Insights Baseados nos Dados Reais:</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Total de categorias: {categoryOps.summary.totalCategories} ({categoryOps.summary.activeCategories} ativas)</li>
+            <li>• Distribuição por tipo:</li>
+            <li>  - Receitas: {categoryOps.summary.categoriesByType.revenue}</li>
+            <li>  - Custos Variáveis: {categoryOps.summary.categoriesByType.variable_cost}</li>
+            <li>  - Custos Fixos: {categoryOps.summary.categoriesByType.fixed_cost}</li>
+            <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operational}</li>
+            {categoryOps?.summary?.mostUsedCategories && categoryOps.summary.mostUsedCategories.length > 0 && (
+              <li>• Categoria mais usada: {categoryOps.summary.mostUsedCategories[0].name} ({categoryOps.summary.mostUsedCategories[0].transactionCount} transações)</li>
+            )}
+          </ul>
+        </div>
+      )}
 
       <Dialog
         open={!!viewingCategory}
@@ -688,6 +684,6 @@ export default function CategoriesPage() {
 
       {/* Toaster para notificações */}
       <Toaster />
-    </LayoutWrapper>
+    </div>
   );
 }

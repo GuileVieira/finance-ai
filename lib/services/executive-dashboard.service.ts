@@ -1,7 +1,7 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts, projections } from '@/lib/db/schema';
 import { DashboardFilters } from '@/lib/api/dashboard';
-import { eq, and, gte, lte, sum, sql, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, sql, desc, not, ilike } from 'drizzle-orm';
 
 export interface ExecutiveDashboardData {
     summary: {
@@ -42,10 +42,12 @@ export default class ExecutiveDashboardService {
             })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .leftJoin(categories, eq(transactions.categoryId, categories.id))
             .where(and(
                 lte(transactions.transactionDate, sql`${startDate}::date - interval '1 day'`),
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
-                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined
+                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+                not(ilike(categories.name, 'Saldo Inicial'))
             ));
 
         const initialBalance = initialBalanceResult[0]?.balance || 0;
@@ -58,11 +60,13 @@ export default class ExecutiveDashboardService {
             })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .leftJoin(categories, eq(transactions.categoryId, categories.id))
             .where(and(
                 gte(transactions.transactionDate, startDate),
                 lte(transactions.transactionDate, endDate),
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
-                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined
+                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+                not(ilike(categories.name, 'Saldo Inicial'))
             ));
 
         const totalInflow = periodMetrics[0]?.inflow || 0;
@@ -94,11 +98,15 @@ export default class ExecutiveDashboardService {
         let startDate = '';
         let endDate = '';
 
-        if (period === 'this_month' || !period || period === 'all') {
+        if (period === 'all') {
+            // Se for 'all', buscamos um range bem amplo ou deixamos aberto conforme necessário
+            startDate = '2000-01-01';
+            endDate = '2100-12-31';
+        } else if (period === 'this_month' || !period) {
             startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
             endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
         } else {
-            // Outros períodos... por enquanto vamos focar no mês atual
+            // Caso padrão (mês atual) se não houver lógica para outros períodos específicos aqui
             startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
             endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
         }
@@ -127,7 +135,8 @@ export default class ExecutiveDashboardService {
                 lte(transactions.transactionDate, endDate),
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
                 filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-                sql`${categories.dreGroup} IS NOT NULL`
+                sql`${categories.dreGroup} IS NOT NULL`,
+                not(ilike(categories.name, 'Saldo Inicial'))
             ))
             .groupBy(categories.dreGroup);
 
