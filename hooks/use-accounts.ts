@@ -231,3 +231,17 @@ export function useSyncAccount() {
     }
   });
 }
+
+export function useAccountsForSelect() {
+  const { data: accounts, isLoading } = useAccounts();
+
+  const accountOptions = accounts?.map(account => ({
+    value: account.id,
+    label: `${account.name} (${account.bank_name || 'Banco Desconhecido'})`
+  })) || [];
+
+  return {
+    accountOptions,
+    isLoading
+  };
+}
