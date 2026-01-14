@@ -22,43 +22,61 @@ export interface DREFilters {
   endDate?: string;
 }
 
-// Padrões para detecção automática de categorias especiais
-// IMPORTANTE: Usamos regex com word boundaries (\b) para evitar falsos positivos
-// Ex: 'iss' não deve matchear 'comissões', apenas 'ISS' como palavra isolada
-const TAX_PATTERNS_REGEX = [
-  /\bimposto/i,      // imposto, impostos
-  /\biss\b/i,        // ISS (palavra isolada)
-  /\bpis\b/i,        // PIS (palavra isolada)
-  /\bcofins\b/i,     // COFINS
-  /\bicms\b/i,       // ICMS
-  /\bipi\b/i,        // IPI
-  /\birpj\b/i,       // IRPJ
-  /\bcsll\b/i,       // CSLL
-  /\btributo/i,      // tributo, tributos
-  /\btaxa\s+municipal/i,  // taxa municipal
-  /\btaxa\s+estadual/i,   // taxa estadual
-];
-const FINANCIAL_COST_PATTERNS = ['juros', 'taxa bancária', 'tarifa bancária', 'tarifas bancárias', 'iof', 'encargos financeiros', 'despesa bancária', 'taxas bancárias'];
-const FINANCIAL_REVENUE_PATTERNS = ['rendimento', 'aplicação', 'juros recebidos', 'receita financeira', 'rendimentos'];
+// Tipos de dreGroup válidos
+type DreGroupType = 'RoB' | 'TDCF' | 'CF' | 'CV' | 'RNOP' | 'DNOP' | 'EMP' | 'TRANSF';
 
 // Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
-const EXCLUDED_DRE_CATEGORIES = [
-  'saldo inicial',
-  'transferências internas',
-  'ajuste de saldo',
-  'transferencia',
-  'transferência'
-];
+const EXCLUDED_DRE_GROUPS: DreGroupType[] = ['EMP', 'TRANSF'];
 
-const isTaxCategory = (name: string): boolean => {
-  return TAX_PATTERNS_REGEX.some(pattern => pattern.test(name));
-};
+/**
+ * Determina o dreGroup de uma categoria.
+ * Usa o campo dreGroup se disponível, senão faz fallback pelo type.
+ */
+function getDreGroupFromCategory(cat: {
+  dreGroup?: string | null;
+  categoryGroup?: string | null;
+  type?: string | null;
+  name?: string;
+}): DreGroupType | null {
+  // Usar dreGroup se disponível
+  if (cat.dreGroup) {
+    return cat.dreGroup as DreGroupType;
+  }
 
-const isFinancialCost = (name: string): boolean =>
-  FINANCIAL_COST_PATTERNS.some(p => name.toLowerCase().includes(p));
+  // Fallback por type para categorias antigas sem dreGroup
+  switch (cat.type) {
+    case 'revenue':
+      return 'RoB';
+    case 'variable_cost':
+      return 'CV';
+    case 'fixed_cost':
+      return 'CF';
+    case 'non_operational':
+      // Detectar se é TDCF pelo categoryGroup ou nome
+      if (cat.categoryGroup === 'TRIBUTOS' || cat.categoryGroup === 'CUSTO FINANCEIRO') {
+        return 'TDCF';
+      }
+      return 'DNOP';
+    case 'financial_movement':
+      return null; // Excluído do DRE
+    default:
+      return 'CF'; // Default para custos fixos
+  }
+}
 
-const isFinancialRevenue = (name: string): boolean =>
-  FINANCIAL_REVENUE_PATTERNS.some(p => name.toLowerCase().includes(p));
+/**
+ * Verifica se uma categoria é de tributos (dentro do TDCF)
+ */
+function isTaxCategory(cat: { categoryGroup?: string | null; dreGroup?: string | null }): boolean {
+  return cat.dreGroup === 'TDCF' && cat.categoryGroup === 'TRIBUTOS';
+}
+
+/**
+ * Verifica se uma categoria é de custo financeiro (dentro do TDCF)
+ */
+function isFinancialCostCategory(cat: { categoryGroup?: string | null; dreGroup?: string | null }): boolean {
+  return cat.dreGroup === 'TDCF' && cat.categoryGroup === 'CUSTO FINANCEIRO';
+}
 
 export default class DREService {
   /**
@@ -278,6 +296,8 @@ export default class DREService {
           categoryId: transactions.categoryId,
           categoryName: categories.name,
           categoryType: categories.type,
+          categoryGroup: categories.categoryGroup,
+          dreGroup: categories.dreGroup,
           colorHex: categories.colorHex,
           icon: categories.icon,
           totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
@@ -291,21 +311,27 @@ export default class DREService {
         .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
-        .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
+        .groupBy(transactions.categoryId, categories.name, categories.type, categories.categoryGroup, categories.dreGroup, categories.colorHex, categories.icon)
         .orderBy(sql`SUM(ABS(${transactions.amount})) DESC`); // Ordenar por valor total
 
-      // Processar categorias
+      // Processar categorias - excluir movimentações financeiras (empréstimos, transferências)
       const categorizedData = categoryData.filter(cat => {
         if (!cat.categoryId || !cat.categoryName) return false;
 
-        // Excluir categorias de movimentação de caixa/patrimonial
-        const lowerName = cat.categoryName.toLowerCase();
-        if (EXCLUDED_DRE_CATEGORIES.some(excluded => lowerName.includes(excluded))) {
+        // Determinar dreGroup (usando campo ou fallback)
+        const dreGroup = getDreGroupFromCategory({
+          dreGroup: cat.dreGroup,
+          categoryGroup: cat.categoryGroup,
+          type: cat.categoryType,
+          name: cat.categoryName
+        });
+
+        // Excluir categorias que não pertencem ao DRE (EMP, TRANSF)
+        if (!dreGroup || EXCLUDED_DRE_GROUPS.includes(dreGroup)) {
           return false;
         }
 
-        // Excluir tipos que não pertencem ao DRE (Movimentação Financeira pura, como empréstimos/antecipações)
-        // OBS: 'revenue' e 'expenses' com nomes 'financeiros' são tratados abaixo (financialCosts/financialRevenue)
+        // Excluir tipos financial_movement (empréstimos/antecipações)
         if (cat.categoryType === 'financial_movement') {
           return false;
         }
@@ -371,6 +397,8 @@ export default class DREService {
             id: cat.categoryId!,
             name: cat.categoryName || 'Sem Categoria',
             type: resolvedType,
+            categoryGroup: cat.categoryGroup || null,
+            dreGroup: cat.dreGroup || null,
             budget: 0, // TODO: Implementar orçamento
             actual: actualValue,
             variance: 0, // TODO: Calcular variação vs orçamento
@@ -395,6 +423,8 @@ export default class DREService {
           id: 'uncategorized-revenue',
           name: 'Receitas não categorizadas',
           type: 'revenue',
+          categoryGroup: null,
+          dreGroup: 'RoB',
           budget: 0,
           actual: uncategorizedRevenue,
           variance: 0,
@@ -412,6 +442,8 @@ export default class DREService {
           id: 'uncategorized-expense',
           name: 'Despesas não categorizadas',
           type: 'variable_cost',
+          categoryGroup: null,
+          dreGroup: 'CF',
           budget: 0,
           actual: uncategorizedExpenses,
           variance: 0,
@@ -424,42 +456,44 @@ export default class DREService {
         });
       }
 
-      // Calcular totais gerais - RECEITA BRUTA (todas as receitas operacionais)
+      // ========== CÁLCULO DO DRE USANDO dreGroup ==========
+
+      // RECEITA BRUTA (RoB) - todas as receitas operacionais
       const grossRevenue = dreCategories
-        .filter(cat => cat.type === 'revenue' && !isFinancialRevenue(cat.name))
+        .filter(cat => cat.dreGroup === 'RoB' || (cat.type === 'revenue' && !cat.dreGroup))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Separar IMPOSTOS detectados automaticamente por nome
+      // TRIBUTOS (TDCF com categoryGroup TRIBUTOS)
       const taxes = dreCategories
-        .filter(cat => isTaxCategory(cat.name))
+        .filter(cat => isTaxCategory(cat))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       // RECEITA LÍQUIDA = Receita Bruta - Impostos
       const netRevenue = grossRevenue - taxes;
 
-      // Custos variáveis SEM custos financeiros
+      // CUSTOS VARIÁVEIS (CV)
       const totalVariableCosts = dreCategories
-        .filter(cat => cat.type === 'variable_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .filter(cat => cat.dreGroup === 'CV' || (cat.type === 'variable_cost' && !cat.dreGroup))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Custos fixos SEM custos financeiros
+      // CUSTOS FIXOS (CF)
       const totalFixedCosts = dreCategories
-        .filter(cat => cat.type === 'fixed_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .filter(cat => cat.dreGroup === 'CF' || (cat.type === 'fixed_cost' && !cat.dreGroup))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Custos financeiros (juros, taxas bancárias, IOF, etc) - deduzidos APÓS resultado operacional
+      // CUSTOS FINANCEIROS (TDCF com categoryGroup CUSTO FINANCEIRO)
       const financialCosts = dreCategories
-        .filter(cat => isFinancialCost(cat.name))
+        .filter(cat => isFinancialCostCategory(cat))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Receitas financeiras (rendimentos, aplicações)
+      // RECEITAS NÃO OPERACIONAIS (RNOP) - rendimentos, aplicações, etc
       const financialRevenue = dreCategories
-        .filter(cat => isFinancialRevenue(cat.name))
+        .filter(cat => cat.dreGroup === 'RNOP')
         .reduce((sum, cat) => sum + cat.actual, 0);
 
-      // Despesas não operacionais (excluindo custos financeiros e impostos)
+      // DESPESAS NÃO OPERACIONAIS (DNOP)
       const totalNonOperational = dreCategories
-        .filter(cat => cat.type === 'non_operational' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .filter(cat => cat.dreGroup === 'DNOP')
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational + financialCosts;
@@ -528,82 +562,55 @@ export default class DREService {
         drilldown: transactionsByCategory.get(cat.id) || []
       }));
 
-      // Separar categorias por tipo para detalhamento
+      // ========== SEPARAR CATEGORIAS POR dreGroup PARA DETALHAMENTO ==========
+
+      // Helper para mapear categoria para formato de detalhamento
+      const mapCategoryToDetail = (cat: DRECategory) => ({
+        name: cat.name,
+        id: cat.id,
+        categoryGroup: cat.categoryGroup,
+        value: cat.actual,
+        percentage: cat.percentage,
+        color: cat.color,
+        icon: cat.icon,
+        transactions: cat.transactions || 0,
+        drilldown: transactionsByCategory.get(cat.id) || []
+      });
+
+      // RECEITAS BRUTAS (RoB)
       const revenueCategories = dreCategories
-        .filter(cat => cat.type === 'revenue' && !isFinancialRevenue(cat.name))
-        .map(cat => ({
-          name: cat.name,
-          id: cat.id,
-          value: cat.actual,
-          percentage: cat.percentage,
-          color: cat.color,
-          icon: cat.icon,
-          transactions: cat.transactions || 0,
-          drilldown: transactionsByCategory.get(cat.id) || []
-        }));
+        .filter(cat => cat.dreGroup === 'RoB' || (cat.type === 'revenue' && !cat.dreGroup))
+        .map(mapCategoryToDetail);
 
+      // CUSTOS VARIÁVEIS (CV)
       const variableCostCategories = dreCategories
-        .filter(cat => cat.type === 'variable_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
-        .map(cat => ({
-          name: cat.name,
-          id: cat.id,
-          value: cat.actual,
-          percentage: cat.percentage,
-          color: cat.color,
-          icon: cat.icon,
-          transactions: cat.transactions || 0,
-          drilldown: transactionsByCategory.get(cat.id) || []
-        }));
+        .filter(cat => cat.dreGroup === 'CV' || (cat.type === 'variable_cost' && !cat.dreGroup))
+        .map(mapCategoryToDetail);
 
+      // CUSTOS FIXOS (CF)
       const fixedCostCategories = dreCategories
-        .filter(cat => cat.type === 'fixed_cost' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
-        .map(cat => ({
-          name: cat.name,
-          id: cat.id,
-          value: cat.actual,
-          percentage: cat.percentage,
-          color: cat.color,
-          icon: cat.icon,
-          transactions: cat.transactions || 0,
-          drilldown: transactionsByCategory.get(cat.id) || []
-        }));
+        .filter(cat => cat.dreGroup === 'CF' || (cat.type === 'fixed_cost' && !cat.dreGroup))
+        .map(mapCategoryToDetail);
 
+      // DESPESAS NÃO OPERACIONAIS (DNOP)
       const nonOperationalCategories = dreCategories
-        .filter(cat => cat.type === 'non_operational' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
-        .map(cat => ({
-          name: cat.name,
-          id: cat.id,
-          value: cat.actual,
-          percentage: cat.percentage,
-          color: cat.color,
-          icon: cat.icon,
-          transactions: cat.transactions || 0,
-          drilldown: transactionsByCategory.get(cat.id) || []
-        }));
+        .filter(cat => cat.dreGroup === 'DNOP')
+        .map(mapCategoryToDetail);
 
-      // Filtrar categorias de impostos (detectadas por nome)
-      const taxCategories = dreCategories.filter(cat => isTaxCategory(cat.name)).map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
+      // TRIBUTOS (TDCF com categoryGroup TRIBUTOS)
+      const taxCategories = dreCategories
+        .filter(cat => isTaxCategory(cat))
+        .map(mapCategoryToDetail);
 
-      // Filtrar categorias de custos financeiros (detectadas por nome)
-      const financialCostCategoriesFiltered = dreCategories.filter(cat => isFinancialCost(cat.name)).map(cat => ({
-        name: cat.name,
-        id: cat.id,
-        value: cat.actual,
-        percentage: cat.percentage,
-        color: cat.color,
-        icon: cat.icon,
-        transactions: cat.transactions || 0,
-        drilldown: transactionsByCategory.get(cat.id) || []
-      }));
+      // CUSTOS FINANCEIROS (TDCF com categoryGroup CUSTO FINANCEIRO)
+      const financialCostCategoriesFiltered = dreCategories
+        .filter(cat => isFinancialCostCategory(cat))
+        .map(mapCategoryToDetail);
+
+      // RECEITAS NÃO OPERACIONAIS (RNOP)
+      const nonOperationalRevenueCategories = dreCategories
+        .filter(cat => cat.dreGroup === 'RNOP')
+        .map(mapCategoryToDetail);
 
       return {
         period: periodLabel,
@@ -632,42 +639,54 @@ export default class DREService {
         // Categorias mapeadas
         categories: mappedCategories,
 
-        // Detalhamento por linha (opcional, para drilldown)
+        // Detalhamento por linha com categoryGroup para sub-agrupamentos
         lineDetails: {
           grossRevenue: revenueCategories.map(cat => ({
             label: cat.name,
             value: cat.value,
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           taxes: taxCategories.map(cat => ({
             label: cat.name,
             value: -cat.value,
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           financialCosts: financialCostCategoriesFiltered.map(cat => ({
             label: cat.name,
             value: -cat.value,
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           variableCosts: variableCostCategories.map(cat => ({
             label: cat.name,
             value: -cat.value, // Negar valor para mostrar como despesa
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
           fixedCosts: fixedCostCategories.map(cat => ({
             label: cat.name,
             value: -cat.value, // Negar valor para mostrar como despesa
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           })),
-          nonOperationalRevenue: [],
+          nonOperationalRevenue: nonOperationalRevenueCategories.map(cat => ({
+            label: cat.name,
+            value: cat.value,
+            categoryGroup: cat.categoryGroup,
+            transactions: cat.transactions,
+            drilldown: cat.drilldown
+          })),
           nonOperationalExpenses: nonOperationalCategories.map(cat => ({
             label: cat.name,
             value: -cat.value, // Negar valor para mostrar como despesa
+            categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
           }))

@@ -124,13 +124,13 @@ export interface DREStatement {
 
   categories: DRECategory[];
   lineDetails?: {
-    grossRevenue: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    taxes: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    financialCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    variableCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    fixedCosts: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    nonOperationalRevenue: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
-    nonOperationalExpenses: Array<{ label: string; value: number; transactions: number; drilldown: unknown[] }>;
+    grossRevenue: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    taxes: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    financialCosts: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    variableCosts: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    fixedCosts: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    nonOperationalRevenue: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    nonOperationalExpenses: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
   };
   generatedAt: string;
 }
@@ -139,6 +139,8 @@ export interface DRECategory {
   id: string;
   name: string;
   type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
+  categoryGroup?: string | null;
+  dreGroup?: string | null;
   budget: number;
   actual: number;
   variance: number;
@@ -148,7 +150,7 @@ export interface DRECategory {
   subcategories: string[];
   growthRate: number;
   transactions?: number;
-  drilldown?: any[];
+  drilldown?: unknown[];
 }
 
 export interface DRELineItem {
