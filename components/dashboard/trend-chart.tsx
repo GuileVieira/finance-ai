@@ -21,7 +21,7 @@ interface TrendChartProps {
 export function TrendChart({ data, isLoading }: TrendChartProps) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle>Evolução Receita vs Despesa</CardTitle>
         </CardHeader>
@@ -34,7 +34,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle>Evolução Receita vs Despesa</CardTitle>
         </CardHeader>
@@ -63,7 +63,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <CardHeader>
         <CardTitle>Evolução Receita vs Despesa</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />

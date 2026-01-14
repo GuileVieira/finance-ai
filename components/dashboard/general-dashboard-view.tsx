@@ -92,27 +92,22 @@ export function GeneralDashboardView({
                 />
             </div>
 
-            {/* Gráficos Principais */}
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-                <div className="lg:col-span-4">
+            {/* Layout Principal: 2 colunas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Coluna Esquerda: Gráfico + Transações + Top Despesas */}
+                <div className="space-y-6">
                     <TrendChart data={data.trendData || []} />
+                    <Insights />
+                    <RecentTransactions transactions={data.recentTransactions || []} />
+                    <TopExpenses expenses={data.topExpenses || []} />
                 </div>
-                <div className="lg:col-span-3">
+
+                {/* Coluna Direita: Categorias */}
+                <div>
                     <CategoryChart
                         categories={data.categorySummary || []}
                         onCategoryClick={(cat: CategorySummary) => onCategoryClick(cat.id)}
                     />
-                </div>
-            </div>
-
-            {/* Tabelas e Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <RecentTransactions transactions={data.recentTransactions || []} />
-                </div>
-                <div className="space-y-6">
-                    <TopExpenses expenses={data.topExpenses || []} />
-                    <Insights />
                 </div>
             </div>
         </div>
