@@ -15,6 +15,7 @@ import { BankAccountFormData, BankAccount, supportedBanks } from '@/lib/types/ac
 import { accountSchema, AccountSchema } from '@/lib/schemas/accounts';
 import { accountTypes } from '@/lib/mock-accounts';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AccountFormProps {
   initialData?: Partial<BankAccount>;
@@ -24,10 +25,12 @@ interface AccountFormProps {
 }
 
 export function AccountForm({ initialData, companies = [], onSave, onCancel }: AccountFormProps) {
+  const { companyId: activeCompanyId } = useAuth();
+
   const form = useForm<AccountSchema>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
-      company_id: initialData?.company_id || (companies.length > 0 ? companies[0].id : ''),
+      company_id: initialData?.company_id || activeCompanyId || (companies.length > 0 ? companies[0].id : ''),
       name: initialData?.name || '',
       bank_name: initialData?.bank_name || '',
       bank_code: initialData?.bank_code || '',
