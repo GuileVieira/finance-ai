@@ -63,6 +63,7 @@ export interface CategoryFilters {
   id?: string;
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
+  accountId?: string;
 }
 
 export interface CreateCategoryData {

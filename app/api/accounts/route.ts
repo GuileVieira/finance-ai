@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
-import { accounts, companies, transactions } from '@/lib/db/schema';
-import { eq, desc, like, sum, sql, and } from 'drizzle-orm';
+import { accounts, companies, transactions, categories } from '@/lib/db/schema';
+import { eq, desc, like, sum, sql, and, not, ilike } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
 
@@ -73,12 +73,15 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Encontradas ${allAccounts.length} contas`);
 
     // Buscar saldo calculado para cada conta (soma das transações)
+    // EXCLUINDO transações de "Saldo Inicial" para evitar duplicação
     const accountBalances = await db
       .select({
         accountId: transactions.accountId,
         totalAmount: sum(transactions.amount).mapWith(Number),
       })
       .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(not(ilike(categories.name, 'Saldo Inicial')))
       .groupBy(transactions.accountId);
 
     // Criar mapa de saldos

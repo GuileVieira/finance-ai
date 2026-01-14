@@ -10,14 +10,15 @@ export async function GET(request: NextRequest) {
     // Parse filters from query params - FORÇAR companyId da sessão
     const filters = {
       type: searchParams.get('type') as any,
-      companyId, // SEMPRE da sessão
+      companyId: (searchParams.get('companyId') && searchParams.get('companyId') !== 'all') ? searchParams.get('companyId')! : companyId,
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
       includeStats: searchParams.get('includeStats') === 'true',
       search: searchParams.get('search') || undefined,
       sortBy: (searchParams.get('sortBy') as 'name' | 'totalAmount' | 'transactionCount') || 'totalAmount',
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
       startDate: searchParams.get('startDate') || undefined,
-      endDate: searchParams.get('endDate') || undefined
+      endDate: searchParams.get('endDate') || undefined,
+      accountId: searchParams.get('accountId') || undefined
     };
 
     const categories = await CategoriesService.getCategories(filters);

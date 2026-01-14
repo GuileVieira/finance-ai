@@ -446,7 +446,8 @@ export default class CategoriesService {
           and(
             eq(categories.id, transactions.categoryId),
             filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
-            filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined
+            filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined,
+            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined
           )
         )
         .where(whereClause)

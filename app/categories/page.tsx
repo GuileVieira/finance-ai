@@ -32,9 +32,8 @@ import {
   useCategoriesOperations
 } from '@/hooks/use-categories';
 import { CategoryType } from '@/lib/api/categories';
-import { DateFilterSelect } from '@/components/shared/date-filter-select';
+import { FilterBar } from '@/components/shared/filter-bar';
 import { DashboardAPI } from '@/lib/api/dashboard';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 
 // Tipos de categorias disponíveis
@@ -69,29 +68,58 @@ export default function CategoriesPage() {
   const transactionsLimit = 15;
   const { toast } = useToast();
 
-  // Estado do filtro de período
-  const [period, setPeriod] = useState<string>('this_month');
-  const [dateRange, setDateRange] = useState<{ startDate: string | undefined; endDate: string | undefined }>({
+  // Estado do filtro unificado
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filters, setFilters] = useState<{
+    period: string;
+    accountId: string;
+    companyId: string;
+    startDate?: string;
+    endDate?: string;
+  }>({
+    period: 'this_month',
+    accountId: 'all',
+    companyId: 'all',
     startDate: undefined,
     endDate: undefined
   });
-  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
 
   // Atualizar datas quando o período muda
   useEffect(() => {
-    if (period === 'custom') return;
-    const { startDate, endDate } = DashboardAPI.convertPeriodToDates(period);
-    setDateRange({ startDate, endDate: endDate || undefined });
-  }, [period]);
+    if (filters.period === 'custom') return;
+    const { startDate, endDate } = DashboardAPI.convertPeriodToDates(filters.period);
 
-  const handleCustomDateChange = (range: DateRange | undefined) => {
-    setCustomDateRange(range);
+    // Evitar atualização desnecessária se não mudou
+    if (filters.startDate === startDate && filters.endDate === endDate) return;
+
+    setFilters(prev => ({ ...prev, startDate, endDate: endDate || undefined }));
+  }, [filters.period]);
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => {
+      if (key === 'period' && value !== 'custom') {
+        const { startDate, endDate } = DashboardAPI.convertPeriodToDates(value);
+        return { ...prev, [key]: value, startDate, endDate: endDate || undefined };
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
     if (range?.from) {
-      setDateRange({
-        startDate: range.from.toISOString().split('T')[0],
-        endDate: range.to ? range.to.toISOString().split('T')[0] : range.from.toISOString().split('T')[0]
-      });
+      setFilters(prev => ({
+        ...prev,
+        period: 'custom',
+        startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
+        endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
+      }));
     }
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    if (refetchRules) refetchRules();
   };
 
   // Buscar categorias com transações usando TanStack Query
@@ -105,8 +133,10 @@ export default function CategoriesPage() {
     includeStats: true,
     sortBy: 'totalAmount',
     sortOrder: 'desc',
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    accountId: filters.accountId,
+    companyId: filters.companyId
   });
 
   // Buscar categorias e regras
@@ -118,8 +148,8 @@ export default function CategoriesPage() {
   // Hook combinado para operações com categorias
   const categoryOps = useCategoriesOperations({
     type: activeTab !== 'all' ? activeTab : undefined,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate
+    startDate: filters.startDate,
+    endDate: filters.endDate
   });
 
   // Hooks para mutações de regras
@@ -372,20 +402,19 @@ export default function CategoriesPage() {
               ))}
             </TooltipProvider>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            {period === 'custom' && (
-              <DatePickerWithRange
-                date={customDateRange}
-                onDateChange={handleCustomDateChange}
-                className="w-full sm:w-auto"
-              />
-            )}
-            <div className="w-full sm:w-[200px]">
-              <DateFilterSelect
-                value={period}
-                onChange={setPeriod}
-              />
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-1 justify-end">
+            <FilterBar
+              period={filters.period}
+              accountId={filters.accountId}
+              companyId={filters.companyId}
+              dateRange={dateRange}
+              onPeriodChange={(value) => handleFilterChange('period', value)}
+              onAccountChange={(value) => handleFilterChange('accountId', value)}
+              onCompanyChange={(value) => handleFilterChange('companyId', value)}
+              onDateRangeChange={handleDateRangeChange}
+              onRefresh={handleRefresh}
+              isLoading={isLoading}
+            />
           </div>
         </div>
 

@@ -24,6 +24,7 @@ import { TransactionListSheet } from '@/components/dashboard/transaction-list-sh
 import { CategorySummary, TopExpense } from '@/lib/api/dashboard';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
 import { Settings } from 'lucide-react';
+import { FilterBar } from '@/components/shared/filter-bar';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
@@ -271,75 +272,29 @@ export default function DashboardPage() {
     <LayoutWrapper>
       <div className="space-y-6">
         {/* Filtros do Dashboard */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center">
-          {/* Filtro de Empresa */}
-          <Select value={filters.companyId} onValueChange={(value) => handleFilterChange('companyId', value)}>
-            <SelectTrigger className="w-full sm:w-[220px]">
-              <SelectValue placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as empresas</SelectItem>
-              {isLoadingCompanies ? (
-                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
-              ) : (
-                companyOptions.map((option: any) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-
-          <DateFilterSelect
-            value={filters.period}
-            onChange={(value) => handleFilterChange('period', value)}
-            periods={periods.map(p => p.id)}
-            isLoading={isLoadingPeriods}
-          />
-
-          {filters.period === 'custom' && (
-            <DatePickerWithRange
-              date={dateRange}
-              onDateChange={handleDateRangeChange}
-              className="w-full sm:w-auto"
-            />
-          )}
-
-          <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
-            <SelectTrigger className="w-full sm:w-[220px]">
-              <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as contas</SelectItem>
-              {isLoadingAccounts ? (
-                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
-              ) : (
-                accountOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDREWidgetOpen(true)}
+        <div className="flex flex-col gap-4">
+          <FilterBar
+            period={filters.period}
+            accountId={filters.accountId}
+            companyId={filters.companyId}
+            dateRange={dateRange}
+            onPeriodChange={(value) => handleFilterChange('period', value)}
+            onAccountChange={(value) => handleFilterChange('accountId', value)}
+            onCompanyChange={(value) => handleFilterChange('companyId', value)}
+            onDateRangeChange={handleDateRangeChange}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
+            isRefetching={isRefetching}
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Plano de Contas
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading || isRefetching}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDREWidgetOpen(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Plano de Contas
+            </Button>
+          </FilterBar>
         </div>
 
         {/* Cards de métricas */}

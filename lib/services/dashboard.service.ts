@@ -8,7 +8,7 @@ import {
   TrendData,
   TopExpense
 } from '@/lib/api/dashboard';
-import { eq, and, gte, lte, desc, sum, count, avg, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sum, count, avg, sql, not, ilike } from 'drizzle-orm';
 import { Transaction } from '@/lib/db/schema';
 
 export default class DashboardService {
@@ -153,7 +153,13 @@ export default class DashboardService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause);
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(
+          and(
+            whereClause,
+            not(ilike(categories.name, 'Saldo Inicial'))
+          )
+        );
 
       const metrics = metricsResult[0];
 
@@ -226,8 +232,8 @@ export default class DashboardService {
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(whereClause)
         .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
-        // Removendo ORDER BY para evitar erro de GROUP BY
-        // .orderBy(desc(sql`ABS(${transactions.amount})`));
+      // Removendo ORDER BY para evitar erro de GROUP BY
+      // .orderBy(desc(sql`ABS(${transactions.amount})`));
 
       // Calcular total geral para porcentagens
       const totalAmount = categoryTotals.reduce((sum, cat) => sum + (cat.totalAmount || 0), 0);
@@ -499,10 +505,12 @@ export default class DashboardService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(
           and(
             gte(transactions.transactionDate, filters.startDate!),
             lte(transactions.transactionDate, filters.endDate!),
+            not(ilike(categories.name, 'Saldo Inicial')),
             ...accountConditions
           )
         );
@@ -516,10 +524,12 @@ export default class DashboardService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(
           and(
             gte(transactions.transactionDate, previousStartDate),
             lte(transactions.transactionDate, previousEndDate),
+            not(ilike(categories.name, 'Saldo Inicial')),
             ...accountConditions
           )
         );

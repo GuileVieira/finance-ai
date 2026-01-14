@@ -16,6 +16,9 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateFilterSelect } from '@/components/shared/date-filter-select';
+import { FilterBar } from '@/components/shared/filter-bar';
+import { DashboardAPI } from '@/lib/api/dashboard';
+import { DateRange } from 'react-day-picker';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
 import { Settings } from 'lucide-react';
 import {
@@ -30,10 +33,19 @@ import { useAvailablePeriods } from '@/hooks/use-periods';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('dre');
-  const [filters, setFilters] = useState({
-    period: 'all',
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filters, setFilters] = useState<{
+    period: string;
+    accountId: string;
+    companyId: string;
+    startDate?: string;
+    endDate?: string;
+  }>({
+    period: 'this_month',
     accountId: 'all',
-    companyId: 'all'
+    companyId: 'all',
+    startDate: undefined,
+    endDate: undefined
   });
 
   const [isDREWidgetOpen, setIsDREWidgetOpen] = useState(false);
@@ -88,7 +100,24 @@ export default function ReportsPage() {
   // dreData agora contém { current, comparison } automaticamente via useDREComparison
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => {
+      if (key === 'period' && value !== 'custom') {
+        return { ...prev, [key]: value, startDate: undefined, endDate: undefined };
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from) {
+      setFilters(prev => ({
+        ...prev,
+        period: 'custom',
+        startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
+        endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
+      }));
+    }
   };
 
   const handleRefresh = () => {
@@ -160,35 +189,22 @@ export default function ReportsPage() {
     <LayoutWrapper>
       <div className="space-y-6">
         {/* Filtros e Ações */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <DateFilterSelect
-              value={filters.period}
-              onChange={(value) => handleFilterChange('period', value)}
-              periods={availablePeriods.map(p => p.id)}
-              isLoading={isLoadingPeriods}
-            />
-            <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="bb">Banco do Brasil</SelectItem>
-                <SelectItem value="itau">Itaú</SelectItem>
-                <SelectItem value="santander">Santander</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoading}
+        {/* Filtros e Ações */}
+        <div className="flex flex-col gap-4">
+          <FilterBar
+            period={filters.period}
+            accountId={filters.accountId}
+            companyId={filters.companyId}
+            dateRange={dateRange}
+            onPeriodChange={(value) => handleFilterChange('period', value)}
+            onAccountChange={(value) => handleFilterChange('accountId', value)}
+            onCompanyChange={(value) => handleFilterChange('companyId', value)}
+            onDateRangeChange={handleDateRangeChange}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+            {/* Add any extra buttons here if needed, or keeping Refresh as internal to FilterBar */}
+          </FilterBar>
         </div>
 
         {/* Mensagem de Erro */}
