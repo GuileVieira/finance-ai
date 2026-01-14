@@ -281,53 +281,101 @@ export default function CashFlowReportComponent({
         )}
       </div>
 
-      {/* Visão Resumida - Cards no topo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Saldo Inicial */}
+      {/* Visão Resumida - Cards detalhados */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Saldo Inicial e Final */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Saldo Inicial</span>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Saldos do Período</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Saldo Inicial</span>
+              </div>
+              <span className="font-semibold">{formatCurrency(data.openingBalance)}</span>
             </div>
-            <div className="text-2xl font-bold">{formatCurrency(data.openingBalance)}</div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Saldo Final</span>
+              </div>
+              <span className={`font-bold text-lg ${
+                data.closingBalance >= 0 ? 'text-success' : 'text-danger'
+              }`}>
+                {formatCurrency(data.closingBalance)}
+              </span>
+            </div>
+            <div className="text-sm text-muted-foreground text-right">
+              Variação: {data.closingBalance >= data.openingBalance ? '+' : ''}
+              {formatCurrency(data.closingBalance - data.openingBalance)}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Total Entradas */}
+        {/* Total de Entradas e Saídas */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Movimentação Total</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
               <ArrowUpCircle className="w-4 h-4 text-success" />
               <span className="text-sm text-muted-foreground">Total Entradas</span>
             </div>
-            <div className="text-2xl font-bold text-success">{formatCurrency(data.totalIncome)}</div>
-          </CardContent>
-        </Card>
+            <div className="font-semibold text-success text-xl">
+              {formatCurrency(data.totalIncome)}
+            </div>
 
-        {/* Total Saídas */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
+            <Separator />
+
+            <div className="flex items-center gap-2">
               <ArrowDownCircle className="w-4 h-4 text-danger" />
               <span className="text-sm text-muted-foreground">Total Saídas</span>
             </div>
-            <div className="text-2xl font-bold text-danger">{formatCurrency(data.totalExpenses)}</div>
+            <div className="font-semibold text-danger text-xl">
+              {formatCurrency(data.totalExpenses)}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Saldo Final */}
+        {/* Estatísticas */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Saldo Final</span>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Estatísticas do Período</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-sm text-muted-foreground">Média Entradas</div>
+              <div className="font-semibold text-success">
+                {formatCurrency(periodStats.avgIncome)}
+              </div>
             </div>
-            <div className={`text-2xl font-bold ${data.closingBalance >= 0 ? 'text-success' : 'text-danger'}`}>
-              {formatCurrency(data.closingBalance)}
+
+            <div>
+              <div className="text-sm text-muted-foreground">Média Saídas</div>
+              <div className="font-semibold text-danger">
+                {formatCurrency(periodStats.avgExpense)}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {data.netCashFlow >= 0 ? '+' : ''}{formatCurrency(data.netCashFlow)} no período
+
+            <Separator />
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <div className="text-muted-foreground">Maior Saldo</div>
+                <div className="font-semibold text-success">
+                  {formatCurrency(periodStats.highestBalance)}
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Menor Saldo</div>
+                <div className="font-semibold text-danger">
+                  {formatCurrency(periodStats.lowestBalance)}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -391,26 +439,6 @@ export default function CashFlowReportComponent({
                 />
               </ComposedChart>
             </ResponsiveContainer>
-          </div>
-
-          {/* Estatísticas do período */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-            <div>
-              <div className="text-xs text-muted-foreground">Média Entradas</div>
-              <div className="font-semibold text-success">{formatCurrency(periodStats.avgIncome)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Média Saídas</div>
-              <div className="font-semibold text-danger">{formatCurrency(periodStats.avgExpense)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Maior Saldo</div>
-              <div className="font-semibold">{formatCurrency(periodStats.highestBalance)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Menor Saldo</div>
-              <div className="font-semibold">{formatCurrency(periodStats.lowestBalance)}</div>
-            </div>
           </div>
 
           {/* Tabela Detalhada */}
