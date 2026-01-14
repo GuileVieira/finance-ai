@@ -31,6 +31,7 @@ import {
 } from '@/lib/types';
 import { useReportsData, useFinancialInsights } from '@/hooks/use-reports';
 import { useAvailablePeriods } from '@/hooks/use-periods';
+import { toast } from 'sonner';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('dre');
@@ -115,24 +116,22 @@ export default function ReportsPage() {
       } else {
         await exportCashFlow(format, filters);
       }
+      toast.success('Exportação concluída com sucesso!');
     } catch (error) {
       console.error('Export error:', error);
-      // TODO: Mostrar toast de erro
+      toast.error('Erro ao exportar relatório. Tente novamente.');
     }
   };
 
-  const handleCategoryClick = (category: any) => {
-    console.log('Category clicked:', category);
+  const handleCategoryClick = (_category: unknown) => {
     // TODO: Implementar drill-down da categoria
   };
 
-  const handleRuleEdit = (rule: CategoryRule) => {
-    console.log('Rule edit:', rule);
+  const handleRuleEdit = (_rule: CategoryRule) => {
     // TODO: Implementar edição de regras
   };
 
-  const handleInsightClick = (insight: Insight) => {
-    console.log('Insight clicked:', insight);
+  const handleInsightClick = (_insight: Insight) => {
     // TODO: Implementar ação de insight
   };
 

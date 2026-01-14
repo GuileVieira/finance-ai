@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateFilterSelect } from '@/components/shared/date-filter-select';
 import { RefreshCw } from 'lucide-react';
@@ -9,6 +10,11 @@ import { DateRange } from 'react-day-picker';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useCompaniesForSelect } from '@/hooks/use-companies';
 import { ReactNode } from 'react';
+
+interface SelectOption {
+    value: string;
+    label: string;
+}
 
 interface FilterBarProps {
     // Estado dos filtros
@@ -69,42 +75,48 @@ export function FilterBar({
                 )}
 
                 {/* Filtro de Empresa */}
-                <Select value={companyId} onValueChange={onCompanyChange} disabled={isLoadingCompanies}>
-                    <SelectTrigger className="w-full sm:w-[220px]">
-                        <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione uma empresa"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todas as empresas</SelectItem>
-                        {isLoadingCompanies ? (
-                            <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
-                        ) : (
-                            companyOptions.map((option: any) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))
-                        )}
-                    </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                    <Label htmlFor="company-select" className="sr-only">Empresa</Label>
+                    <Select value={companyId} onValueChange={onCompanyChange} disabled={isLoadingCompanies}>
+                        <SelectTrigger id="company-select" className="w-full sm:w-[220px]">
+                            <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione uma empresa"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as empresas</SelectItem>
+                            {isLoadingCompanies ? (
+                                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+                            ) : (
+                                companyOptions.map((option: SelectOption) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))
+                            )}
+                        </SelectContent>
+                    </Select>
+                </div>
 
                 {/* Filtro de Conta */}
-                <Select value={accountId} onValueChange={onAccountChange} disabled={isLoadingAccounts}>
-                    <SelectTrigger className="w-full sm:w-[220px]">
-                        <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todas as contas</SelectItem>
-                        {isLoadingAccounts ? (
-                            <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
-                        ) : (
-                            accountOptions.map((option: any) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))
-                        )}
-                    </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                    <Label htmlFor="account-select" className="sr-only">Conta</Label>
+                    <Select value={accountId} onValueChange={onAccountChange} disabled={isLoadingAccounts}>
+                        <SelectTrigger id="account-select" className="w-full sm:w-[220px]">
+                            <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as contas</SelectItem>
+                            {isLoadingAccounts ? (
+                                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+                            ) : (
+                                accountOptions.map((option: SelectOption) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))
+                            )}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {/* Ações (Botões extras + Refresh) */}

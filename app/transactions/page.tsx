@@ -15,7 +15,8 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useTransactionGroups } from '@/hooks/use-transaction-groups';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAllCategories } from '@/hooks/use-all-categories';
-import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, Square, Layers, Ruler, X, Edit, Upload, FileUp, ArrowRight } from 'lucide-react';
+import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, X, Upload, FileUp, ArrowRight } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
@@ -198,7 +199,6 @@ export default function TransactionsPage() {
   const totalPages = pagination.totalPages;
 
   const handleFilterChange = (key: string, value: string) => {
-    console.log('🔄 [UI-FILTERS] Mudando filtro:', key, '=', value);
     if (['period', 'companyId', 'accountId'].includes(key)) {
       setFilterValue(key as any, value);
     } else {
@@ -613,13 +613,19 @@ export default function TransactionsPage() {
         {/* Busca e Filtros Secundários */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
+            <Label htmlFor="search-transactions" className="sr-only">
+              Buscar transações
+            </Label>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
             <Input
+              id="search-transactions"
               placeholder="Buscar transações por descrição..."
               value={extraFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               className="pl-10 h-11"
+              aria-describedby="search-transactions-hint"
             />
+            <span id="search-transactions-hint" className="sr-only">Digite para filtrar transações por descrição</span>
           </div>
 
           <div className="flex flex-wrap gap-4">

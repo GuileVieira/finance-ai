@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Play, Pause, Trash2, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +38,7 @@ export function AutoRulesTable({
   onDelete,
   loading = false
 }: AutoRulesTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<string | null>(null);
 
   const getConfidenceColor = (confidenceScore: string) => {
     const confidence = parseFloat(confidenceScore);
@@ -55,8 +58,38 @@ export function AutoRulesTable({
   };
 
   
+  const ruleToDelete = rules.find(r => r.id === deleteDialogOpen);
+
   return (
     <div className="space-y-4">
+      {/* AlertDialog de confirmação de exclusão */}
+      <AlertDialog open={!!deleteDialogOpen} onOpenChange={() => setDeleteDialogOpen(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Regra</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a regra de categorização{' '}
+              <code className="px-1 py-0.5 bg-muted rounded text-sm">{ruleToDelete?.rulePattern}</code>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteDialogOpen) {
+                  onDelete?.(deleteDialogOpen);
+                  setDeleteDialogOpen(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -125,7 +158,7 @@ export function AutoRulesTable({
                       className="h-8 w-8 p-0"
                       onClick={() => onToggle?.(rule.id, !rule.active)}
                       disabled={loading}
-                      title={rule.active ? 'Desativar regra' : 'Ativar regra'}
+                      aria-label={rule.active ? `Desativar regra ${rule.rulePattern}` : `Ativar regra ${rule.rulePattern}`}
                     >
                       {rule.active ? (
                         <Pause className="h-4 w-4" />
@@ -139,7 +172,7 @@ export function AutoRulesTable({
                       className="h-8 w-8 p-0"
                       onClick={() => onEdit?.(rule)}
                       disabled={loading}
-                      title="Editar regra"
+                      aria-label={`Editar regra ${rule.rulePattern}`}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -147,9 +180,9 @@ export function AutoRulesTable({
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      onClick={() => onDelete?.(rule.id)}
+                      onClick={() => setDeleteDialogOpen(rule.id)}
                       disabled={loading}
-                      title="Excluir regra"
+                      aria-label={`Excluir regra ${rule.rulePattern}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

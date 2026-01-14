@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CompanyForm } from '@/components/companies/company-form';
@@ -380,13 +382,19 @@ export default function SettingsCompaniesPage() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
+                  <Label htmlFor="search-companies" className="sr-only">
+                    Buscar empresas
+                  </Label>
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="search-companies"
                     placeholder="Buscar empresas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
+                    aria-describedby="search-companies-hint"
                   />
+                  <span id="search-companies-hint" className="sr-only">Digite para filtrar empresas por nome, CNPJ ou email</span>
                 </div>
               </div>
 
@@ -556,7 +564,7 @@ export default function SettingsCompaniesPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link href={`/settings/companies/${company.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" aria-label={`Visualizar detalhes da empresa ${company.name}`}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -567,6 +575,7 @@ export default function SettingsCompaniesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setEditingCompany(company)}
+                                aria-label={`Editar empresa ${company.name}`}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -593,17 +602,32 @@ export default function SettingsCompaniesPage() {
                             {company.active ? 'Desativar' : 'Ativar'}
                           </Button>
 
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              if (confirm(`Tem certeza que deseja excluir ${company.name}?`)) {
-                                handleDeleteCompany(company.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                aria-label={`Excluir empresa ${company.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Empresa</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a empresa &quot;{company.name}&quot;?
+                                  Esta ação desativará a empresa e não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteCompany(company.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

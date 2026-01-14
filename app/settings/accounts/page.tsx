@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AccountForm } from '@/components/accounts/account-form';
@@ -240,13 +242,19 @@ export default function SettingsAccountsPage() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
+                  <Label htmlFor="search-accounts" className="sr-only">
+                    Buscar contas
+                  </Label>
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="search-accounts"
                     placeholder="Buscar contas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
+                    aria-describedby="search-accounts-hint"
                   />
+                  <span id="search-accounts-hint" className="sr-only">Digite para filtrar contas por nome, banco ou número</span>
                 </div>
               </div>
 
@@ -414,12 +422,13 @@ export default function SettingsAccountsPage() {
                               size="sm"
                               onClick={() => handleSyncAccount(account.id)}
                               disabled={!account.active}
+                              aria-label={`Sincronizar conta ${account.name}`}
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Button>
 
                             <Link href={`/settings/accounts/${account.id}`}>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" aria-label={`Visualizar detalhes da conta ${account.name}`}>
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
@@ -430,6 +439,7 @@ export default function SettingsAccountsPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setEditingAccount(account)}
+                                  aria-label={`Editar conta ${account.name}`}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -457,17 +467,32 @@ export default function SettingsAccountsPage() {
                               {account.active ? 'Desativar' : 'Ativar'}
                             </Button>
 
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                if (confirm(`Tem certeza que deseja excluir ${account.name}?`)) {
-                                  handleDeleteAccount(account.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  aria-label={`Excluir conta ${account.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Conta</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir a conta &quot;{account.name}&quot;?
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAccount(account.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>

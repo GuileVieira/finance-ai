@@ -28,8 +28,6 @@ import { FilterBar } from '@/components/shared/filter-bar';
 import { usePersistedFilters } from '@/hooks/use-persisted-filters';
 
 export default function DashboardPage() {
-  console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
-
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   /* eslint-enable @typescript-eslint/no-unused-vars */
@@ -50,8 +48,7 @@ export default function DashboardPage() {
 
   // Estabilizar funções com useCallback
   const handleFilterChange = useCallback((key: string, value: string) => {
-    console.log('📝 Mudando filtro:', key, '=', value);
-    setFilterValue(key as any, value);
+    setFilterValue(key as 'period' | 'companyId' | 'accountId', value);
   }, [setFilterValue]);
 
   const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
@@ -67,7 +64,6 @@ export default function DashboardPage() {
   }, [filters, setFilters]);
 
   const handleRefresh = useCallback(() => {
-    console.log('🔄 Refresh solicitado');
     // refetch será adicionado depois
   }, []);
 
@@ -160,11 +156,7 @@ export default function DashboardPage() {
   // ... (maintain dashboardMetrics logic) ...
 
   const dashboardMetrics = useMemo(() => {
-    // ... logic ...
-    console.log('📊 Calculando métricas do dashboard');
-
     if (!metrics) {
-      console.log('❌ Sem métricas disponíveis');
       return [];
     }
 
@@ -203,7 +195,6 @@ export default function DashboardPage() {
       }
     ];
 
-    console.log('✅ Métricas calculadas:', result.length, 'cards');
     return result;
   }, [
     metrics?.totalIncome,
@@ -212,8 +203,6 @@ export default function DashboardPage() {
     metrics?.transactionCount,
     metrics?.growthRate
   ]);
-
-  console.log('🎯 Estado atual - Loading:', isLoading, 'Error:', !!error, 'Metrics:', !!metrics, 'isEmpty:', isEmpty, 'isFilterEmpty:', isFilterEmpty);
 
   // Se está vazio (sem transações e sem filtros), mostrar tela de boas-vindas
   if (isEmpty && !isLoading) {
@@ -286,7 +275,6 @@ export default function DashboardPage() {
             <FilterEmptyMessage />
           ) : (
             dashboardMetrics.map((metric, index) => {
-              console.log(`🎴 Renderizando card ${index}: ${metric.title}`);
               return (
                 <MetricCard
                   key={`${metric.title}-${index}`}
