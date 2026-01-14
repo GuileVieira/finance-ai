@@ -73,7 +73,7 @@ export const mockCategories: Category[] = [
     transactionCount: 22,
     percentage: 6.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: 13º SALARIO',
+    description: 'Pagamento do décimo terceiro salário aos funcionários',
     examples: ["13º SALARIO", "13º SALARIO"]
   },
   {
@@ -85,7 +85,7 @@ export const mockCategories: Category[] = [
     transactionCount: 25,
     percentage: 7.1,
     icon: '🏠',
-    description: 'Categoria extraída dos dados financeiros: ALUGUEL',
+    description: 'Pagamento de aluguel de imóvel comercial ou sede',
     examples: ["ALUGUEL", "ALUGUEL"]
   },
   {
@@ -97,7 +97,7 @@ export const mockCategories: Category[] = [
     transactionCount: 53,
     percentage: 7.1,
     icon: '🏠',
-    description: 'Categoria extraída dos dados financeiros: ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
+    description: 'Aluguel de máquinas, veículos e equipamentos operacionais',
     examples: ["ALUGUEL DE MÁQUINAS E EQUIPAMENTOS", "ALUGUEL DE MÁQUINAS E EQUIPAMENTOS"]
   },
   {
@@ -109,7 +109,7 @@ export const mockCategories: Category[] = [
     transactionCount: 26,
     percentage: 7.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: ASSISTÊNCIA MÉDICA',
+    description: 'Plano de saúde e convênio médico para funcionários',
     examples: ["ASSISTÊNCIA MÉDICA", "ASSISTÊNCIA MÉDICA"]
   },
   {
@@ -121,7 +121,7 @@ export const mockCategories: Category[] = [
     transactionCount: 10,
     percentage: 3.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: ASSISTÊNCIA ODONTOLÓGICA',
+    description: 'Convênio e plano odontológico para funcionários',
     examples: ["ASSISTÊNCIA ODONTOLÓGICA", "ASSISTÊNCIA ODONTOLÓGICA"]
   },
   {
@@ -133,7 +133,7 @@ export const mockCategories: Category[] = [
     transactionCount: 45,
     percentage: 4.1,
     icon: '👔',
-    description: 'Categoria extraída dos dados financeiros: CARTÓRIO',
+    description: 'Taxas e serviços cartoriais, reconhecimento de firma',
     examples: ["CARTÓRIO", "CARTÓRIO"]
   },
   {
@@ -145,7 +145,7 @@ export const mockCategories: Category[] = [
     transactionCount: 41,
     percentage: 1.1,
     icon: '📋',
-    description: 'Categoria extraída dos dados financeiros: COFINS',
+    description: 'Contribuição para Financiamento da Seguridade Social',
     examples: ["COFINS", "COFINS"]
   },
   {
@@ -157,7 +157,7 @@ export const mockCategories: Category[] = [
     transactionCount: 24,
     percentage: 8.1,
     icon: '💸',
-    description: 'Categoria extraída dos dados financeiros: COMISSÕES',
+    description: 'Comissões de vendas pagas a vendedores e representantes',
     examples: ["COMISSÕES", "COMISSÕES"]
   },
   {
@@ -169,7 +169,7 @@ export const mockCategories: Category[] = [
     transactionCount: 26,
     percentage: 4.1,
     icon: '🔧',
-    description: 'Categoria extraída dos dados financeiros: CONSERVAÇÃO E LIMPEZA',
+    description: 'Serviços de limpeza e manutenção do ambiente',
     examples: ["CONSERVAÇÃO E LIMPEZA", "CONSERVAÇÃO E LIMPEZA"]
   },
   {
@@ -181,7 +181,7 @@ export const mockCategories: Category[] = [
     transactionCount: 49,
     percentage: 6.1,
     icon: '👔',
-    description: 'Categoria extraída dos dados financeiros: CONSULTORIA',
+    description: 'Serviços de consultoria empresarial ou técnica',
     examples: ["CONSULTORIA", "CONSULTORIA"]
   },
   {
@@ -193,7 +193,7 @@ export const mockCategories: Category[] = [
     transactionCount: 51,
     percentage: 7.1,
     icon: '📋',
-    description: 'Categoria extraída dos dados financeiros: CONTRIBUICAO SINDICAL',
+    description: 'Contribuição sindical obrigatória ou assistencial',
     examples: ["CONTRIBUICAO SINDICAL", "CONTRIBUICAO SINDICAL"]
   },
   {
@@ -205,7 +205,7 @@ export const mockCategories: Category[] = [
     transactionCount: 8,
     percentage: 7.1,
     icon: '🚚',
-    description: 'Categoria extraída dos dados financeiros: CORREIOS',
+    description: 'Serviços postais, envio de correspondências',
     examples: ["CORREIOS", "CORREIOS"]
   },
   {
@@ -217,7 +217,7 @@ export const mockCategories: Category[] = [
     transactionCount: 37,
     percentage: 0.1,
     icon: '⚖️',
-    description: 'Categoria extraída dos dados financeiros: CUSTAS JUDICIAIS',
+    description: 'Custas processuais e despesas judiciais',
     examples: ["CUSTAS JUDICIAIS", "CUSTAS JUDICIAIS"]
   },
   {
@@ -229,7 +229,7 @@ export const mockCategories: Category[] = [
     transactionCount: 36,
     percentage: 9.1,
     icon: '🚚',
-    description: 'Categoria extraída dos dados financeiros: DESP. LOCOMOÇÃO',
+    description: 'Despesas com transporte urbano, táxi, apps',
     examples: ["DESP. LOCOMOÇÃO", "DESP. LOCOMOÇÃO"]
   },
   {
@@ -241,7 +241,7 @@ export const mockCategories: Category[] = [
     transactionCount: 31,
     percentage: 8.1,
     icon: '✈️',
-    description: 'Categoria extraída dos dados financeiros: DESPESAS COM VIAGENS',
+    description: 'Passagens, hospedagem e diárias em viagens',
     examples: ["DESPESAS COM VIAGENS", "DESPESAS COM VIAGENS"]
   },
   {
@@ -253,7 +253,7 @@ export const mockCategories: Category[] = [
     transactionCount: 6,
     percentage: 9.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: ENERGIA ELETRICA',
+    description: 'Fornecimento de energia elétrica',
     examples: ["ENERGIA ELETRICA", "ENERGIA ELETRICA"]
   },
   {
@@ -265,7 +265,7 @@ export const mockCategories: Category[] = [
     transactionCount: 50,
     percentage: 9.1,
     icon: '🩺',
-    description: 'Categoria extraída dos dados financeiros: EXAME ADMISSIONAL/PERIODICO',
+    description: 'Exames médicos de admissão e periódicos',
     examples: ["EXAME ADMISSIONAL/PERIODICO", "EXAME ADMISSIONAL/PERIODICO"]
   },
   {
@@ -277,7 +277,7 @@ export const mockCategories: Category[] = [
     transactionCount: 17,
     percentage: 6.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: FGTS',
+    description: 'Fundo de Garantia do Tempo de Serviço',
     examples: ["FGTS", "FGTS"]
   },
   {
@@ -289,7 +289,7 @@ export const mockCategories: Category[] = [
     transactionCount: 9,
     percentage: 6.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: FOLHA PJ',
+    description: 'Pagamento de prestadores PJ (freelancers)',
     examples: ["FOLHA PJ", "FOLHA PJ"]
   },
   {
@@ -301,7 +301,7 @@ export const mockCategories: Category[] = [
     transactionCount: 42,
     percentage: 9.1,
     icon: '🏖️',
-    description: 'Categoria extraída dos dados financeiros: FÉRIAS',
+    description: 'Pagamento de férias e abono aos funcionários',
     examples: ["FÉRIAS", "FÉRIAS"]
   },
   {
@@ -313,7 +313,7 @@ export const mockCategories: Category[] = [
     transactionCount: 20,
     percentage: 4.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: INSS',
+    description: 'Contribuição previdenciária patronal e do funcionário',
     examples: ["INSS", "INSS"]
   },
   {
@@ -325,7 +325,7 @@ export const mockCategories: Category[] = [
     transactionCount: 42,
     percentage: 1.1,
     icon: '💻',
-    description: 'Categoria extraída dos dados financeiros: INTERNET',
+    description: 'Serviço de internet e banda larga',
     examples: ["INTERNET", "INTERNET"]
   },
   {
@@ -337,7 +337,7 @@ export const mockCategories: Category[] = [
     transactionCount: 9,
     percentage: 5.1,
     icon: '🏛️',
-    description: 'Categoria extraída dos dados financeiros: LEASING / FINAME',
+    description: 'Financiamento via FINAME ou leasing',
     examples: ["LEASING / FINAME", "LEASING / FINAME"]
   },
   {
@@ -349,7 +349,7 @@ export const mockCategories: Category[] = [
     transactionCount: 42,
     percentage: 0.1,
     icon: '💻',
-    description: 'Categoria extraída dos dados financeiros: LICENÇAS DIVERSAS',
+    description: 'Licenças de software, alvarás e permissões',
     examples: ["LICENÇAS DIVERSAS", "LICENÇAS DIVERSAS"]
   },
   {
@@ -361,7 +361,7 @@ export const mockCategories: Category[] = [
     transactionCount: 43,
     percentage: 9.1,
     icon: '🔧',
-    description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO DE EQUIPAMENTOS',
+    description: 'Manutenção preventiva e corretiva de equipamentos',
     examples: ["MANUTENÇÃO DE EQUIPAMENTOS", "MANUTENÇÃO DE EQUIPAMENTOS"]
   },
   {
@@ -373,7 +373,7 @@ export const mockCategories: Category[] = [
     transactionCount: 7,
     percentage: 4.1,
     icon: '🔧',
-    description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO DE HARDWARE',
+    description: 'Manutenção de computadores e servidores',
     examples: ["MANUTENÇÃO DE HARDWARE", "MANUTENÇÃO DE HARDWARE"]
   },
   {
@@ -385,7 +385,7 @@ export const mockCategories: Category[] = [
     transactionCount: 47,
     percentage: 6.1,
     icon: '🔧',
-    description: 'Categoria extraída dos dados financeiros: MANUTENÇÃO PREDIAL',
+    description: 'Manutenção do prédio e instalações',
     examples: ["MANUTENÇÃO PREDIAL", "MANUTENÇÃO PREDIAL"]
   },
   {
@@ -397,7 +397,7 @@ export const mockCategories: Category[] = [
     transactionCount: 27,
     percentage: 0.1,
     icon: '📣',
-    description: 'Categoria extraída dos dados financeiros: MARKETING E PUBLICIDADE',
+    description: 'Campanhas de marketing e publicidade',
     examples: ["MARKETING E PUBLICIDADE", "MARKETING E PUBLICIDADE"]
   },
   {
@@ -409,7 +409,7 @@ export const mockCategories: Category[] = [
     transactionCount: 40,
     percentage: 4.1,
     icon: '📦',
-    description: 'Categoria extraída dos dados financeiros: MATERIAL DE EMBALAGEM',
+    description: 'Caixas e materiais para embalar produtos',
     examples: ["MATERIAL DE EMBALAGEM", "MATERIAL DE EMBALAGEM"]
   },
   {
@@ -421,7 +421,7 @@ export const mockCategories: Category[] = [
     transactionCount: 10,
     percentage: 5.1,
     icon: '📦',
-    description: 'Categoria extraída dos dados financeiros: MATERIAL DE ESCRITÓRIO',
+    description: 'Papelaria e suprimentos de escritório',
     examples: ["MATERIAL DE ESCRITÓRIO", "MATERIAL DE ESCRITÓRIO"]
   },
   {
@@ -433,7 +433,7 @@ export const mockCategories: Category[] = [
     transactionCount: 48,
     percentage: 3.1,
     icon: '🔧',
-    description: 'Categoria extraída dos dados financeiros: MATERIAL DE LIMPEZA',
+    description: 'Materiais de limpeza e higiene',
     examples: ["MATERIAL DE LIMPEZA", "MATERIAL DE LIMPEZA"]
   },
   {
@@ -445,7 +445,7 @@ export const mockCategories: Category[] = [
     transactionCount: 11,
     percentage: 8.1,
     icon: '🚚',
-    description: 'Categoria extraída dos dados financeiros: OPERADORES LOGÍSTICOS',
+    description: 'Serviços de frete e logística',
     examples: ["OPERADORES LOGÍSTICOS", "OPERADORES LOGÍSTICOS"]
   },
   {
@@ -457,7 +457,7 @@ export const mockCategories: Category[] = [
     transactionCount: 50,
     percentage: 9.1,
     icon: '📄',
-    description: 'Categoria extraída dos dados financeiros: OUTRAS DESPESAS NOP',
+    description: 'Despesas diversas não classificadas',
     examples: ["OUTRAS DESPESAS NOP", "OUTRAS DESPESAS NOP"]
   },
   {
@@ -469,7 +469,7 @@ export const mockCategories: Category[] = [
     transactionCount: 53,
     percentage: 6.1,
     icon: '📋',
-    description: 'Categoria extraída dos dados financeiros: OUTROS TRIBUTOS',
+    description: 'Outros tributos federais, estaduais ou municipais',
     examples: ["OUTROS TRIBUTOS", "OUTROS TRIBUTOS"]
   },
   {
@@ -481,7 +481,7 @@ export const mockCategories: Category[] = [
     transactionCount: 23,
     percentage: 3.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: PRO LABORE',
+    description: 'Remuneração dos sócios administradores',
     examples: ["PRO LABORE", "PRO LABORE"]
   },
   {
@@ -493,7 +493,7 @@ export const mockCategories: Category[] = [
     transactionCount: 45,
     percentage: 3.1,
     icon: '👥',
-    description: 'Categoria extraída dos dados financeiros: SALARIOS',
+    description: 'Folha de pagamento dos funcionários CLT',
     examples: ["SALARIOS", "SALARIOS"]
   },
   {
@@ -505,7 +505,7 @@ export const mockCategories: Category[] = [
     transactionCount: 21,
     percentage: 9.1,
     icon: '🏛️',
-    description: 'Categoria extraída dos dados financeiros: SEGUROS DE VIDA',
+    description: 'Seguro de vida em grupo para funcionários',
     examples: ["SEGUROS DE VIDA", "SEGUROS DE VIDA"]
   },
   {
@@ -517,7 +517,7 @@ export const mockCategories: Category[] = [
     transactionCount: 40,
     percentage: 5.1,
     icon: '🏛️',
-    description: 'Categoria extraída dos dados financeiros: SEGUROS GERAIS',
+    description: 'Seguros patrimoniais e responsabilidade civil',
     examples: ["SEGUROS GERAIS", "SEGUROS GERAIS"]
   },
   {
@@ -529,7 +529,7 @@ export const mockCategories: Category[] = [
     transactionCount: 49,
     percentage: 3.1,
     icon: '👔',
-    description: 'Categoria extraída dos dados financeiros: SERVIÇOS DE ADVOCACIA',
+    description: 'Serviços jurídicos e advocatícios',
     examples: ["SERVIÇOS DE ADVOCACIA", "SERVIÇOS DE ADVOCACIA"]
   },
   {
@@ -541,7 +541,7 @@ export const mockCategories: Category[] = [
     transactionCount: 25,
     percentage: 2.1,
     icon: '👔',
-    description: 'Categoria extraída dos dados financeiros: SERVIÇOS DE CONTABILIDADE',
+    description: 'Serviços contábeis e escrituração fiscal',
     examples: ["SERVIÇOS DE CONTABILIDADE", "SERVIÇOS DE CONTABILIDADE"]
   },
   {
@@ -553,7 +553,7 @@ export const mockCategories: Category[] = [
     transactionCount: 18,
     percentage: 3.1,
     icon: '👷',
-    description: 'Categoria extraída dos dados financeiros: SERVIÇOS PRESTADOS PF',
+    description: 'Pagamento de serviços por pessoa física',
     examples: ["SERVIÇOS PRESTADOS PF", "SERVIÇOS PRESTADOS PF"]
   },
   {
@@ -565,7 +565,7 @@ export const mockCategories: Category[] = [
     transactionCount: 32,
     percentage: 4.1,
     icon: '💻',
-    description: 'Categoria extraída dos dados financeiros: SOFTWARES',
+    description: 'Assinaturas de softwares e SaaS',
     examples: ["SOFTWARES", "SOFTWARES"]
   },
   {
@@ -577,7 +577,7 @@ export const mockCategories: Category[] = [
     transactionCount: 36,
     percentage: 5.1,
     icon: '🏛️',
-    description: 'Categoria extraída dos dados financeiros: TARIFAS BANCÁRIAS',
+    description: 'Taxas e tarifas cobradas pelo banco',
     examples: ["TARIFAS BANCÁRIAS", "TARIFAS BANCÁRIAS"]
   },
   {
@@ -589,7 +589,7 @@ export const mockCategories: Category[] = [
     transactionCount: 45,
     percentage: 2.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: TELEFONES FIXOS',
+    description: 'Serviço de telefonia fixa comercial',
     examples: ["TELEFONES FIXOS", "TELEFONES FIXOS"]
   },
   {
@@ -601,7 +601,7 @@ export const mockCategories: Category[] = [
     transactionCount: 9,
     percentage: 3.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: TELEFONES MÓVEIS',
+    description: 'Serviço de telefonia móvel corporativa',
     examples: ["TELEFONES MÓVEIS", "TELEFONES MÓVEIS"]
   },
   {
@@ -613,7 +613,7 @@ export const mockCategories: Category[] = [
     transactionCount: 29,
     percentage: 8.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: VALE ALIMENTAÇÃO',
+    description: 'Benefício de alimentação (VA)',
     examples: ["VALE ALIMENTAÇÃO", "VALE ALIMENTAÇÃO"]
   },
   {
@@ -625,7 +625,7 @@ export const mockCategories: Category[] = [
     transactionCount: 50,
     percentage: 0.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: VALE REFEIÇÃO',
+    description: 'Benefício de refeição (VR)',
     examples: ["VALE REFEIÇÃO", "VALE REFEIÇÃO"]
   },
   {
@@ -637,7 +637,7 @@ export const mockCategories: Category[] = [
     transactionCount: 31,
     percentage: 8.1,
     icon: '⚡',
-    description: 'Categoria extraída dos dados financeiros: VALE TRANSPORTE',
+    description: 'Benefício de transporte (VT)',
     examples: ["VALE TRANSPORTE", "VALE TRANSPORTE"]
   },
   {
