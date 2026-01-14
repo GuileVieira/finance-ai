@@ -25,6 +25,7 @@ import { CategorySummary, TopExpense } from '@/lib/api/dashboard';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
 import { Settings } from 'lucide-react';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { usePersistedFilters } from '@/hooks/use-persisted-filters';
 
 export default function DashboardPage() {
   console.log('🔄 Dashboard MINIMAL renderizando', new Date().toISOString());
@@ -33,17 +34,7 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   /* eslint-enable @typescript-eslint/no-unused-vars */
 
-  const [filters, setFilters] = useState<{
-    period: string;
-    accountId: string;
-    companyId: string;
-    startDate?: string;
-    endDate?: string;
-  }>({
-    period: 'this_month',
-    accountId: 'all',
-    companyId: 'all'
-  });
+  const { filters, setFilterValue, setFilters } = usePersistedFilters();
 
   const [drillDown, setDrillDown] = useState<{
     isOpen: boolean;
@@ -60,26 +51,20 @@ export default function DashboardPage() {
   // Estabilizar funções com useCallback
   const handleFilterChange = useCallback((key: string, value: string) => {
     console.log('📝 Mudando filtro:', key, '=', value);
-    setFilters(prev => {
-      // Se mudou para período não-custom, limpa as datas
-      if (key === 'period' && value !== 'custom') {
-        return { ...prev, [key]: value, startDate: undefined, endDate: undefined };
-      }
-      return { ...prev, [key]: value };
-    });
-  }, []);
+    setFilterValue(key as any, value);
+  }, [setFilterValue]);
 
   const handleDateRangeChange = useCallback((range: DateRange | undefined) => {
     setDateRange(range);
     if (range?.from) {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        ...filters,
         period: 'custom',
         startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
         endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
-      }));
+      });
     }
-  }, []);
+  }, [filters, setFilters]);
 
   const handleRefresh = useCallback(() => {
     console.log('🔄 Refresh solicitado');
@@ -139,20 +124,14 @@ export default function DashboardPage() {
       'last_7_days', 'last_15_days', 'last_30_days', 'last_90_days', 'last_180_days'
     ];
 
-    setFilters(prev => {
-      // Se for uma chave estática, manter
-      if (staticKeys.includes(prev.period)) return prev;
+    if (staticKeys.includes(filters.period)) return;
 
-      // Se o período atual (ex: YYYY-MM) existe na lista da API, manter
-      if (periods.some(period => period.id === prev.period)) {
-        return prev;
-      }
+    if (periods.some(period => period.id === filters.period)) {
+      return;
+    }
 
-      // Se não, volta para o default (este mês) ou primeiro da lista se preferir
-      // Mas como 'this_month' é estático e válido, podemos não fazer nada ou forçar 'this_month'
-      return { ...prev, period: 'this_month' };
-    });
-  }, [isLoadingPeriods, periods]);
+    setFilterValue('period', 'all');
+  }, [isLoadingPeriods, periods, filters.period, setFilterValue]);
 
   // Usar hook do TanStack Query para buscar dados do dashboard
   const {

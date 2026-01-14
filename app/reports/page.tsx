@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateFilterSelect } from '@/components/shared/date-filter-select';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { usePersistedFilters } from '@/hooks/use-persisted-filters';
 import { DashboardAPI } from '@/lib/api/dashboard';
 import { DateRange } from 'react-day-picker';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
@@ -33,20 +34,8 @@ import { useAvailablePeriods } from '@/hooks/use-periods';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('dre');
+  const { filters, setFilters, setFilterValue } = usePersistedFilters();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [filters, setFilters] = useState<{
-    period: string;
-    accountId: string;
-    companyId: string;
-    startDate?: string;
-    endDate?: string;
-  }>({
-    period: 'this_month',
-    accountId: 'all',
-    companyId: 'all',
-    startDate: undefined,
-    endDate: undefined
-  });
 
   const [isDREWidgetOpen, setIsDREWidgetOpen] = useState(false);
 
@@ -65,21 +54,21 @@ export default function ReportsPage() {
     if (isLoadingPeriods) return;
 
     if (availablePeriods.length === 0) {
-      setFilters(prev => {
-        if (prev.period === 'all') return prev;
-        return { ...prev, period: 'all' };
-      });
+      if (filters.period !== 'all') {
+        setFilterValue('period', 'all');
+      }
       return;
     }
 
-    setFilters(prev => {
-      if (prev.period !== 'all' && availablePeriods.some(period => period.id === prev.period)) {
-        return prev;
-      }
-      if (prev.period === availablePeriods[0]?.id) return prev;
-      return { ...prev, period: availablePeriods[0].id };
-    });
-  }, [isLoadingPeriods, availablePeriods.length, availablePeriods[0]?.id]);
+    if (filters.period !== 'all' && availablePeriods.some(period => period.id === filters.period)) {
+      return;
+    }
+
+    // Default to 'all' if current is not valid and not 'all'
+    if (filters.period !== 'all') {
+      // setFilterValue('period', 'all');
+    }
+  }, [isLoadingPeriods, availablePeriods, filters.period, setFilterValue]);
 
   // Usar hooks do TanStack Query para buscar dados dos relatórios
   const {
@@ -100,23 +89,18 @@ export default function ReportsPage() {
   // dreData agora contém { current, comparison } automaticamente via useDREComparison
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => {
-      if (key === 'period' && value !== 'custom') {
-        return { ...prev, [key]: value, startDate: undefined, endDate: undefined };
-      }
-      return { ...prev, [key]: value };
-    });
+    setFilterValue(key as any, value);
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     if (range?.from) {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        ...filters,
         period: 'custom',
         startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
         endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
-      }));
+      });
     }
   };
 

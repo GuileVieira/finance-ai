@@ -26,19 +26,16 @@ import { CategoryRuleDialog } from '@/components/transactions/category-rule-dial
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { TransactionDetailsDialog } from '@/components/dashboard/transaction-details-dialog';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { usePersistedFilters } from '@/hooks/use-persisted-filters';
 import { DateRange } from 'react-day-picker';
 import { parseISO } from 'date-fns';
 
 export default function TransactionsPage() {
-  const [filters, setFilters] = useState({
-    period: 'this_month',
-    companyId: 'all',
-    accountId: 'all',
+  const { filters, setFilters, setFilterValue } = usePersistedFilters();
+  const [extraFilters, setExtraFilters] = useState({
     category: 'all',
     type: 'all',
     search: '',
-    startDate: undefined as string | undefined,
-    endDate: undefined as string | undefined,
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,21 +77,21 @@ export default function TransactionsPage() {
     if (isLoadingPeriods) return;
 
     if (periods.length === 0) {
-      setFilters(prev => {
-        if (prev.period === 'all') return prev;
-        return { ...prev, period: 'all' };
-      });
+      if (filters.period !== 'all') {
+        setFilterValue('period', 'all');
+      }
       return;
     }
 
-    setFilters(prev => {
-      if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
-        return prev;
-      }
-      if (prev.period === periods[0]?.id) return prev;
-      return { ...prev, period: periods[0].id };
-    });
-  }, [isLoadingPeriods, periods.length, periods[0]?.id]);
+    if (filters.period !== 'all' && periods.some(period => period.id === filters.period)) {
+      return;
+    }
+
+    // Default to 'all' instead of forcing periods[0].id
+    if (filters.period !== 'all') {
+      // setFilterValue('period', 'all'); // Removed to avoid overriding persisted value if it's already something else valid
+    }
+  }, [isLoadingPeriods, periods, filters.period, setFilterValue]);
 
   // Estado para edição de transação individual
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
@@ -119,17 +116,17 @@ export default function TransactionsPage() {
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     if (range?.from && range?.to) {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        ...filters,
         startDate: range.from?.toISOString().split('T')[0],
         endDate: range.to?.toISOString().split('T')[0],
-      }));
+      });
     } else {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        ...filters,
         startDate: undefined,
         endDate: undefined,
-      }));
+      });
     }
     setCurrentPage(1);
   };
@@ -137,9 +134,10 @@ export default function TransactionsPage() {
   // Filtros com paginação
   const filtersWithPagination = useMemo(() => ({
     ...filters,
+    ...extraFilters,
     page: currentPage,
     limit: itemsPerPage,
-  }), [filters, currentPage, itemsPerPage]);
+  }), [filters, extraFilters, currentPage, itemsPerPage]);
 
   // Usar hook do TanStack Query para buscar transações
   const {
@@ -198,7 +196,11 @@ export default function TransactionsPage() {
 
   const handleFilterChange = (key: string, value: string) => {
     console.log('🔄 [UI-FILTERS] Mudando filtro:', key, '=', value);
-    setFilters(prev => ({ ...prev, [key]: value }));
+    if (['period', 'companyId', 'accountId'].includes(key)) {
+      setFilterValue(key as any, value);
+    } else {
+      setExtraFilters(prev => ({ ...prev, [key]: value }));
+    }
     setCurrentPage(1);
   };
 
@@ -611,14 +613,14 @@ export default function TransactionsPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
             <Input
               placeholder="Buscar transações por descrição..."
-              value={filters.search}
+              value={extraFilters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               className="pl-10 h-11"
             />
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
+            <Select value={extraFilters.type} onValueChange={(value) => handleFilterChange('type', value)}>
               <SelectTrigger className="w-[180px] h-11">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
@@ -629,7 +631,7 @@ export default function TransactionsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
+            <Select value={extraFilters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
               <SelectTrigger className="w-[220px] h-11">
                 <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Todas categorias"} />
               </SelectTrigger>
@@ -777,16 +779,10 @@ export default function TransactionsPage() {
                 <p className="text-muted-foreground/70 mb-4">
                   Tente ajustar os filtros ou verificar outro período.
                 </p>
-                <Button variant="outline" onClick={() => setFilters({
-                  period: 'this_month',
-                  companyId: 'all',
-                  accountId: 'all',
-                  category: 'all',
-                  type: 'all',
-                  search: '',
-                  startDate: undefined,
-                  endDate: undefined,
-                })}>
+                <Button variant="outline" onClick={() => {
+                  setFilters({ period: 'all', accountId: 'all', companyId: 'all' });
+                  setExtraFilters({ category: 'all', type: 'all', search: '' });
+                }}>
                   Limpar filtros
                 </Button>
               </div>

@@ -33,6 +33,7 @@ import {
 } from '@/hooks/use-categories';
 import { CategoryType } from '@/lib/api/categories';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { usePersistedFilters } from '@/hooks/use-persisted-filters';
 import { DashboardAPI } from '@/lib/api/dashboard';
 import { DateRange } from 'react-day-picker';
 
@@ -69,20 +70,8 @@ export default function CategoriesPage() {
   const { toast } = useToast();
 
   // Estado do filtro unificado
+  const { filters, setFilters, setFilterValue } = usePersistedFilters();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [filters, setFilters] = useState<{
-    period: string;
-    accountId: string;
-    companyId: string;
-    startDate?: string;
-    endDate?: string;
-  }>({
-    period: 'this_month',
-    accountId: 'all',
-    companyId: 'all',
-    startDate: undefined,
-    endDate: undefined
-  });
 
   // Atualizar datas quando o período muda
   useEffect(() => {
@@ -96,13 +85,17 @@ export default function CategoriesPage() {
   }, [filters.period]);
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => {
-      if (key === 'period' && value !== 'custom') {
-        const { startDate, endDate } = DashboardAPI.convertPeriodToDates(value);
-        return { ...prev, [key]: value, startDate, endDate: endDate || undefined };
-      }
-      return { ...prev, [key]: value };
-    });
+    if (key === 'period' && value !== 'custom') {
+      const { startDate, endDate } = DashboardAPI.convertPeriodToDates(value);
+      setFilters({
+        ...filters,
+        period: value,
+        startDate,
+        endDate: endDate || undefined
+      });
+    } else {
+      setFilterValue(key as any, value);
+    }
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
