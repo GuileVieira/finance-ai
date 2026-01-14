@@ -42,7 +42,7 @@ const categoryTypes = [
   { value: 'revenue', label: 'Receitas', description: 'Entradas de dinheiro (vendas, rendimentos).' },
   { value: 'variable_cost', label: 'Custos Variáveis', description: 'Gastos que mudam conforme você vende mais ou menos (ex: impostos, comissões).' },
   { value: 'fixed_cost', label: 'Custos Fixos', description: 'Gastos que você tem todo mês, vendendo ou não (ex: aluguel, salários).' },
-  { value: 'non_operating', label: 'Não Operacionais', description: 'Movimentações que não fazem parte da operação (ex: empréstimos, dividendos).' },
+  { value: 'non_operational', label: 'Não Operacionais', description: 'Movimentações que não fazem parte da operação (ex: empréstimos, dividendos).' },
 ];
 
 export default function CategoriesPage() {
@@ -552,7 +552,7 @@ export default function CategoriesPage() {
               <li>  - Receitas: {categoryOps.summary.categoriesByType.revenue}</li>
               <li>  - Custos Variáveis: {categoryOps.summary.categoriesByType.variable_cost}</li>
               <li>  - Custos Fixos: {categoryOps.summary.categoriesByType.fixed_cost}</li>
-              <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operating}</li>
+              <li>  - Não Operacionais: {categoryOps.summary.categoriesByType.non_operational}</li>
               {categoryOps.summary.mostUsedCategories.length > 0 && (
                 <li>• Categoria mais usada: {categoryOps.summary.mostUsedCategories[0].name} ({categoryOps.summary.mostUsedCategories[0].transactionCount} transações)</li>
               )}

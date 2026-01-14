@@ -50,7 +50,7 @@ export interface CategoryRuleDB {
   updatedAt: string;
 }
 
-export type CategoryType = 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating';
+export type CategoryType = 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational';
 
 export interface CategoryFilters {
   type?: CategoryType | 'all';
@@ -90,7 +90,7 @@ export interface CategorySummary {
     revenue: number;
     variable_cost: number;
     fixed_cost: number;
-    non_operating: number;
+    non_operational: number;
   };
   mostUsedCategories: CategoryWithStats[];
   recentCategories: Category[];

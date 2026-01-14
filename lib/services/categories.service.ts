@@ -494,7 +494,7 @@ export default class CategoriesService {
         revenue: 0,
         variable_cost: 0,
         fixed_cost: 0,
-        non_operating: 0,
+        non_operational: 0,
       } as Record<CategoryType, number>);
 
       const totalCategories = categoriesByType.reduce((sum, item) => sum + (item.count || 0), 0);

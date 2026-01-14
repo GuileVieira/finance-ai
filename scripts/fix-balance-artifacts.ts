@@ -1,85 +1,81 @@
 
 import 'dotenv/config';
 import { db } from '@/lib/db/connection';
-import { transactions, categories, categoryRules } from '@/lib/db/schema';
-import { eq, like, ilike, and, not, inArray } from 'drizzle-orm';
+import { transactions, categories, categoryRules, companies } from '@/lib/db/schema';
+import { eq, ilike, and, not, inArray, sql } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
-import { v4 as uuidv4 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 async function fixBalanceArtifacts() {
     await initializeDatabase();
 
     console.log('🏁 Starting Smart Balance Artifact Cleanup...');
 
-    // 1. Ensure "Saldo Inicial" Category Exists
-    const saldoCategory = await db.query.categories.findFirst({
-        where: (categories, { eq }) => eq(categories.name, 'Saldo Inicial')
-    });
+    // 1. Get Default Company ID
+    const [defaultCompany] = await db.select().from(companies).limit(1);
+    if (!defaultCompany) {
+        console.error('❌ No company found. Run migrations/seed first.');
+        process.exit(1);
+    }
+    console.log(`🏢 Using company: ${defaultCompany.name} (${defaultCompany.id})`);
 
+    // 2. Ensure "Saldo Inicial" Category Exists
+    const existingCats = await db.select().from(categories).where(eq(categories.name, 'Saldo Inicial')).limit(1);
     let saldoCategoryId;
 
-    if (!saldoCategory) {
+    if (existingCats.length === 0) {
         console.log('🆕 Creating "Saldo Inicial" category...');
-        const [statsCat] = await db.insert(categories).values({
+        const result = await db.insert(categories).values({
+            id: nanoid(),
             name: 'Saldo Inicial',
             type: 'non_operational',
-            colorHex: '#9CA3AF', // Gray
+            colorHex: '#9CA3AF',
             icon: '💰',
-            description: 'Categoria para ajustes de saldo inicial e checkpoints de saldo (ignorado em relatórios)'
+            description: 'Categoria para ajustes de saldo inicial e checkpoints de saldo (ignorado em relatórios)',
+            active: true,
+            isSystem: false,
+            companyId: defaultCompany.id
         }).returning();
-        saldoCategoryId = statsCat.id;
+        saldoCategoryId = result[0].id;
     } else {
-        console.log('✅ "Saldo Inicial" category already exists.');
-        saldoCategoryId = saldoCategory.id;
+        saldoCategoryId = existingCats[0].id;
+        console.log(`✅ "Saldo Inicial" category found: ${saldoCategoryId}`);
 
         // Ensure it is non_operational
-        if (saldoCategory.type !== 'non_operational') {
-            console.log('🔄 Fixing "Saldo Inicial" type to non_operational...');
-            await db.update(categories)
-                .set({ type: 'non_operational' })
-                .where(eq(categories.id, saldoCategoryId));
+        if (existingCats[0].type !== 'non_operational') {
+            console.log('🔄 Fixing type to non_operational...');
+            await db.update(categories).set({ type: 'non_operational' }).where(eq(categories.id, saldoCategoryId));
         }
     }
 
-    // 2. Identify Balance Checkpoints vs Financial Movements
-    console.log('🔍 Identifying transactions to reclassify...');
-
-    const checkpoints = await db
-        .select()
-        .from(transactions)
-        .where(
-            and(
-                ilike(transactions.description, '%SALDO%'),
-                // EXCLUDE genuine financial movements (Juros, Tarifas, etc)
-                not(ilike(transactions.description, '%JUROS%')),
-                not(ilike(transactions.description, '%TARIF%')),
-                not(ilike(transactions.description, '%IOF%')),
-                not(ilike(transactions.description, '%RESG%')),
-                not(ilike(transactions.description, '%APLIC%'))
-            )
-        );
+    // 3. Identify Balance Checkpoints
+    const checkpoints = await db.select().from(transactions).where(
+        and(
+            ilike(transactions.description, '%SALDO%'),
+            not(ilike(transactions.description, '%JUROS%')),
+            not(ilike(transactions.description, '%TARIF%')),
+            not(ilike(transactions.description, '%IOF%')),
+            not(ilike(transactions.description, '%RESG%')),
+            not(ilike(transactions.description, '%APLIC%'))
+        )
+    );
 
     console.log(`🎯 Found ${checkpoints.length} potential balance checkpoints.`);
 
-    if (checkpoints.length === 0) {
-        console.log('🎉 No artifacts found to fix.');
-        process.exit(0);
+    if (checkpoints.length > 0) {
+        const idsToUpdate = checkpoints.map(t => t.id);
+        // Drizzle update with inArray
+        await db.update(transactions)
+            .set({
+                categoryId: saldoCategoryId,
+                categorizationSource: 'script_fix_balance',
+                verified: true
+            })
+            .where(inArray(transactions.id, idsToUpdate));
+        console.log(`✅ Updated ${idsToUpdate.length} transactions.`);
     }
 
-    // 3. Reclassify
-    const idsToUpdate = checkpoints.map(t => t.id);
-
-    await db.update(transactions)
-        .set({
-            categoryId: saldoCategoryId,
-            categorizationSource: 'script_fix_balance',
-            verified: true
-        })
-        .where(inArray(transactions.id, idsToUpdate));
-
-    console.log(`✅ Reclassified ${idsToUpdate.length} transactions to "Saldo Inicial".`);
-
-    // 4. Create Rules for Future Imports
+    // 4. Create Rules
     const rulePatterns = [
         'SALDO ANTERIOR',
         'SALDO TOTAL DISPONÍVEL',
@@ -88,33 +84,31 @@ async function fixBalanceArtifacts() {
         'SDO CTO'
     ];
 
-    console.log('📏 Creating/Updating rules...');
-
     for (const pattern of rulePatterns) {
-        // Check if rule exists
-        const existingRule = await db.query.categoryRules.findFirst({
-            where: (rules, { eq, and }) => and(
-                eq(rules.pattern, pattern),
-                eq(rules.category, 'Saldo Inicial')
-            )
-        });
-
-        if (!existingRule) {
+        const existing = await db.select().from(categoryRules).where(eq(categoryRules.rulePattern, pattern)).limit(1);
+        if (existing.length === 0) {
             await db.insert(categoryRules).values({
-                category: 'Saldo Inicial',
-                pattern: pattern,
-                type: 'contains',
-                accuracy: 100,
-                status: 'active'
+                id: nanoid(),
+                categoryId: saldoCategoryId,
+                rulePattern: pattern,
+                ruleType: 'contains',
+                active: true,
+                confidenceScore: '1.00',
+                status: 'active',
+                sourceType: 'manual',
+                companyId: defaultCompany.id
             });
-            console.log(`➕ Rule added: "${pattern}" -> Saldo Inicial`);
+            console.log(`➕ Added rule for "${pattern}"`);
         } else {
-            console.log(`ℹ️ Rule already exists: "${pattern}"`);
+            console.log(`ℹ️ Rule for "${pattern}" already exists.`);
         }
     }
 
-    console.log('🏁 Verification complete. Please check Dashboard.');
+    console.log('🏁 Done!');
     process.exit(0);
 }
 
-fixBalanceArtifacts();
+fixBalanceArtifacts().catch(err => {
+    console.error('❌ Script failed:', err);
+    process.exit(1);
+});
