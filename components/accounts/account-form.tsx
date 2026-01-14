@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,8 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { BankAccountFormData, BankAccount, supportedBanks } from '@/lib/types/accounts';
+import { accountSchema, AccountSchema } from '@/lib/schemas/accounts';
 import { accountTypes } from '@/lib/mock-accounts';
+import { cn } from '@/lib/utils';
 
 interface AccountFormProps {
   initialData?: Partial<BankAccount>;
@@ -19,277 +24,304 @@ interface AccountFormProps {
 }
 
 export function AccountForm({ initialData, companies = [], onSave, onCancel }: AccountFormProps) {
-  const [formData, setFormData] = useState<BankAccountFormData>({
-    company_id: initialData?.company_id || (companies.length > 0 ? companies[0].id : ''),
-    name: initialData?.name || '',
-    bank_name: initialData?.bank_name || '',
-    bank_code: initialData?.bank_code || '',
-    agency_number: initialData?.agency_number || '',
-    account_number: initialData?.account_number || '',
-    account_type: initialData?.account_type || 'checking',
-    opening_balance: initialData?.opening_balance || 0,
-    active: initialData?.active ?? true
+  const form = useForm<AccountSchema>({
+    resolver: zodResolver(accountSchema),
+    defaultValues: {
+      company_id: initialData?.company_id || (companies.length > 0 ? companies[0].id : ''),
+      name: initialData?.name || '',
+      bank_name: initialData?.bank_name || '',
+      bank_code: initialData?.bank_code || '',
+      agency_number: initialData?.agency_number || '',
+      account_number: initialData?.account_number || '',
+      account_type: initialData?.account_type || 'checking',
+      opening_balance: initialData?.opening_balance || 0,
+      active: initialData?.active ?? true
+    }
   });
 
+  const { watch, setValue, control, handleSubmit } = form;
+  const selectedBankCode = watch('bank_code');
+  const selectedOpeningBalance = watch('opening_balance');
+
+  // Atualizar nome do banco quando o código muda
   useEffect(() => {
-    if (formData.bank_code) {
-      const bank = supportedBanks.find(b => b.code === formData.bank_code);
+    if (selectedBankCode) {
+      const bank = supportedBanks.find(b => b.code === selectedBankCode);
       if (bank) {
-        setFormData(prev => ({ ...prev, bank_name: bank.name }));
+        setValue('bank_name', bank.name);
       }
     }
-  }, [formData.bank_code]);
+  }, [selectedBankCode, setValue]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  const handleInputChange = (field: keyof BankAccountFormData, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const formatCurrency = (value: string) => {
-    // Remove tudo que não for número
+  // Formatação de moeda para input
+  const formatCurrencyInput = (value: string) => {
     const numValue = value.replace(/\D/g, '');
-    // Converte para número e divide por 100 (para centavos)
-    const number = parseInt(numValue) / 100;
+    const number = parseInt(numValue || '0') / 100;
     return number;
   };
 
-  const handleCurrencyChange = (value: string) => {
-    const number = formatCurrency(value);
-    handleInputChange('opening_balance', number);
-  };
-
-  const getCurrencyDisplay = () => {
+  const getCurrencyDisplay = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(formData.opening_balance);
+    }).format(value);
+  };
+
+  // Custom handler para input de moeda
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: number) => void) => {
+    const value = e.target.value;
+    const number = formatCurrencyInput(value);
+    onChange(number);
+  };
+
+  // Submit handler
+  const onSubmit = (data: AccountSchema) => {
+    onSave(data as BankAccountFormData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Informações Básicas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Informações Básicas</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Empresa */}
-          <div className="space-y-2">
-            <Label htmlFor="company_id">Empresa *</Label>
-            <Select
-              value={formData.company_id}
-              onValueChange={(value) => handleInputChange('company_id', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <Form {...form}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Informações Básicas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Informações Básicas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
 
-          {/* Nome da Conta */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome da Conta *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Ex: Conta Principal - Empresa"
-              required
+            {/* Empresa */}
+            <FormField
+              control={control}
+              name="company_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Empresa *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {/* Tipo de Conta */}
-          <div className="space-y-2">
-            <Label htmlFor="account_type">Tipo de Conta *</Label>
-            <Select
-              value={formData.account_type}
-              onValueChange={(value: 'checking' | 'savings' | 'investment') =>
-                handleInputChange('account_type', value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo de conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accountTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    <div>
-                      <div className="font-medium">{type.label}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {type.description}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Saldo Inicial */}
-          <div className="space-y-2">
-            <Label htmlFor="opening_balance">Saldo Inicial *</Label>
-            <Input
-              id="opening_balance"
-              type="text"
-              value={getCurrencyDisplay()}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              placeholder="R$ 0,00"
-              required
+            {/* Nome da Conta */}
+            <FormField
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da Conta *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Conta Principal - Empresa" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Dados Bancários */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Dados Bancários</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Banco */}
-          <div className="space-y-2">
-            <Label htmlFor="bank_code">Banco *</Label>
-            <Select
-              value={formData.bank_code}
-              onValueChange={(value) => handleInputChange('bank_code', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o banco" />
-              </SelectTrigger>
-              <SelectContent>
-                {supportedBanks.map((bank) => (
-                  <SelectItem key={bank.code} value={bank.code}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded"
-                        style={{ backgroundColor: bank.color }}
-                      />
-                      <div>
-                        <div className="font-medium">{bank.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Código: {bank.code}
-                        </div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Agência */}
-          <div className="space-y-2">
-            <Label htmlFor="agency_number">Agência</Label>
-            <Input
-              id="agency_number"
-              value={formData.agency_number || ''}
-              onChange={(e) => handleInputChange('agency_number', e.target.value)}
-              placeholder="Ex: 1234-5"
+            {/* Tipo de Conta */}
+            <FormField
+              control={control}
+              name="account_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Conta *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo de conta" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {accountTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div>
+                            <div className="font-medium">{type.label}</div>
+                            <div className="text-xs text-muted-foreground">{type.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <p className="text-xs text-muted-foreground">
-              Deixe em branco para contas digitais
-            </p>
-          </div>
 
-          {/* Número da Conta */}
-          <div className="space-y-2">
-            <Label htmlFor="account_number">Número da Conta *</Label>
-            <Input
-              id="account_number"
-              value={formData.account_number}
-              onChange={(e) => handleInputChange('account_number', e.target.value)}
-              placeholder="Ex: 12345-6"
-              required
+            {/* Saldo Inicial */}
+            <FormField
+              control={control}
+              name="opening_balance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Saldo Inicial *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="R$ 0,00"
+                      value={getCurrencyDisplay(field.value)}
+                      onChange={(e) => handleCurrencyChange(e, field.onChange)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Configurações */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Configurações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="active"
-              checked={formData.active}
-              onCheckedChange={(checked) => handleInputChange('active', checked)}
+        {/* Dados Bancários */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Dados Bancários</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+
+            {/* Banco */}
+            <FormField
+              control={control}
+              name="bank_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Banco *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o banco" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {supportedBanks.map((bank) => (
+                        <SelectItem key={bank.code} value={bank.code}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded" style={{ backgroundColor: bank.color }} />
+                            <div>
+                              <div className="font-medium">{bank.name}</div>
+                              <div className="text-xs text-muted-foreground">Código: {bank.code}</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <Label htmlFor="active">Conta ativa</Label>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Contas inativas não aparecerão nos relatórios e não sincronizarão automaticamente
-          </p>
-        </CardContent>
-      </Card>
 
-      {/* Resumo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Resumo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Empresa:</span>
-              <span className="font-medium">
-                {companies.find(c => c.id === formData.company_id)?.name || 'Não selecionada'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Nome:</span>
-              <span className="font-medium">{formData.name || 'Não informado'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Banco:</span>
-              <span className="font-medium">{formData.bank_name || 'Não selecionado'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tipo:</span>
-              <Badge variant="outline">
-                {accountTypes.find(t => t.value === formData.account_type)?.label || 'Não selecionado'}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Saldo Inicial:</span>
-              <span className="font-medium">{getCurrencyDisplay()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status:</span>
-              <Badge variant={formData.active ? 'default' : 'secondary'}>
-                {formData.active ? 'Ativa' : 'Inativa'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Agência */}
+            <FormField
+              control={control}
+              name="agency_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Agência</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: 1234-5" {...field} />
+                  </FormControl>
+                  <FormDescription>Deixe em branco para contas digitais</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      {/* Botões */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit">
-          {initialData?.id ? 'Salvar Alterações' : 'Criar Conta'}
-        </Button>
-      </div>
-    </form>
+            {/* Número da Conta */}
+            <FormField
+              control={control}
+              name="account_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Número da Conta *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: 12345-6" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Configurações */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Configurações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={control}
+              name="active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Conta ativa
+                    </FormLabel>
+                    <FormDescription>
+                      Contas inativas não aparecerão nos relatórios e não sincronizarão automaticamente
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Resumo (Opcional, mas mantido para paridade visual com versão anterior) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Resumo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Empresa:</span>
+                <span className="font-medium">
+                  {companies.find(c => c.id === watch('company_id'))?.name || 'Não selecionada'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Nome:</span>
+                <span className="font-medium">{watch('name') || 'Não informado'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Banco:</span>
+                <span className="font-medium">{watch('bank_name') || 'Não selecionado'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Saldo Inicial:</span>
+                <span className="font-medium">{getCurrencyDisplay(selectedOpeningBalance)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Botões */}
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit">
+            {initialData?.id ? 'Salvar Alterações' : 'Criar Conta'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
