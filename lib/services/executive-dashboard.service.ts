@@ -178,9 +178,69 @@ export default class ExecutiveDashboardService {
     }
 
     private static async getMonthlyComparison(companyId: string) {
-        // Busca dados reais e projetados dos últimos 6 meses
-        // TODO: Implementar lógica de agregação por mês e dreGroup
-        return [];
+        // Busca dados reais agrupados por mês e dreGroup dos últimos 6 meses
+        const today = new Date();
+        const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+        const startDate = sixMonthsAgo.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+
+        // Query para dados reais por mês e dreGroup
+        const actualData = await db
+            .select({
+                yearMonth: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
+                monthName: sql<string>`TO_CHAR(${transactions.transactionDate}, 'Mon')`,
+                dreGroup: categories.dreGroup,
+                amount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE -ABS(${transactions.amount}) END`).mapWith(Number),
+            })
+            .from(transactions)
+            .leftJoin(categories, eq(transactions.categoryId, categories.id))
+            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .where(and(
+                gte(transactions.transactionDate, startDate),
+                lte(transactions.transactionDate, endDate),
+                sql`${categories.dreGroup} IS NOT NULL`,
+                not(ilike(categories.name, 'Saldo Inicial')),
+                companyId !== 'all' ? eq(accounts.companyId, companyId) : undefined
+            ))
+            .groupBy(
+                sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
+                sql`TO_CHAR(${transactions.transactionDate}, 'Mon')`,
+                categories.dreGroup
+            )
+            .orderBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
+
+        // Query para dados projetados (da tabela projections)
+        const projectedData = await db
+            .select({
+                year: projections.year,
+                month: projections.month,
+                dreGroup: projections.dreGroup,
+                amount: projections.amount,
+            })
+            .from(projections)
+            .where(and(
+                gte(sql`MAKE_DATE(${projections.year}, ${projections.month}, 1)`, startDate),
+                lte(sql`MAKE_DATE(${projections.year}, ${projections.month}, 1)`, endDate),
+                companyId !== 'all' ? eq(projections.companyId, companyId) : undefined
+            ));
+
+        // Mapear projeções por chave "YYYY-MM-dreGroup"
+        const projectionMap = new Map<string, number>();
+        for (const p of projectedData) {
+            const key = `${p.year}-${String(p.month).padStart(2, '0')}-${p.dreGroup}`;
+            projectionMap.set(key, Number(p.amount) || 0);
+        }
+
+        // Combinar dados reais com projetados
+        return actualData.map(item => {
+            const projKey = `${item.yearMonth}-${item.dreGroup}`;
+            return {
+                month: item.monthName || '',
+                actual: Math.abs(item.amount),
+                projected: projectionMap.get(projKey) || 0,
+                dreGroup: item.dreGroup || '',
+            };
+        });
     }
 
     private static async getDRETableData(filters: DashboardFilters, startDate: string, endDate: string) {

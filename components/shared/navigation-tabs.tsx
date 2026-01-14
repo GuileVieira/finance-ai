@@ -13,6 +13,7 @@ const navigationItems = [
   { name: 'Transações', href: '/transactions' },
   { name: 'Upload', href: '/upload' },
   { name: 'Categorias', href: '/categories' },
+  { name: 'Projeções', href: '/projections' },
   { name: 'Relatórios', href: '/reports' },
   { name: 'Empresas', href: '/settings/companies' },
   { name: 'Contas', href: '/settings/accounts' },

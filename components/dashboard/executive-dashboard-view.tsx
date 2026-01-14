@@ -7,6 +7,7 @@ import { AlertCircle, TrendingUp, TrendingDown, DollarSign, Wallet } from "lucid
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { RealVsProjectedChart } from "./real-vs-projected-chart";
 
 interface ExecutiveDashboardViewProps {
     filters: DashboardFilters;
@@ -88,18 +89,39 @@ export function ExecutiveDashboardView({ filters }: ExecutiveDashboardViewProps)
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Lado Esquerdo: 6 Gráficos (Placeholder por enquanto) */}
+                {/* Lado Esquerdo: 6 Gráficos Real vs Projetado */}
                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {['Receita Bruta', 'TDCF', 'Matéria Prima', 'Custos Fixos', 'RNOP', 'DNOP'].map((group) => (
-                        <Card key={group} className="h-[200px]">
-                            <CardHeader className="py-3 px-4">
-                                <CardTitle className="text-sm font-medium">{group}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex items-center justify-center h-[140px] text-xs text-muted-foreground">
-                                Gráfico: Real vs Projetado ({group})
-                            </CardContent>
-                        </Card>
-                    ))}
+                    {[
+                        { group: 'RoB', label: 'Receita Bruta' },
+                        { group: 'TDCF', label: 'Tributos/Deduções' },
+                        { group: 'MP', label: 'Matéria Prima' },
+                        { group: 'CF', label: 'Custos Fixos' },
+                        { group: 'RNOP', label: 'Rec. Não Operacional' },
+                        { group: 'DNOP', label: 'Desp. Não Operacional' },
+                    ].map(({ group, label }) => {
+                        const chartData = data.monthlyData
+                            .filter(item => item.dreGroup === group)
+                            .map(item => ({
+                                month: item.month,
+                                actual: item.actual,
+                                projected: item.projected,
+                            }));
+
+                        return (
+                            <Card key={group} className="h-[200px]">
+                                <CardHeader className="py-3 px-4">
+                                    <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="h-[140px] px-2">
+                                    <RealVsProjectedChart
+                                        data={chartData}
+                                        title={label}
+                                        height={130}
+                                    />
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
 
                 {/* Lado Direito: Tabela DRE */}
