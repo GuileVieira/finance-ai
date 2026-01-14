@@ -204,9 +204,9 @@ async function initializeDatabase() {
           'fixed_cost',
           'fixed_cost',
           'fixed_cost',
-          'non_operating',
-          'non_operating',
-          'non_operating'
+          'non_operational',
+          'non_operational',
+          'non_operational'
         ]),
         unnest(ARRAY[
           '#059669', -- Vendas de Produtos (verde escuro)

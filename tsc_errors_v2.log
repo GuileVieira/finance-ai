@@ -277,8 +277,8 @@ components/uploads/upload-details.tsx(201,42): error TS7006: Parameter 'log' imp
 components/uploads/upload-details.tsx(201,47): error TS7006: Parameter 'index' implicitly has an 'any' type.
 hooks/use-all-categories.ts(55,40): error TS7006: Parameter 'a' implicitly has an 'any' type.
 hooks/use-all-categories.ts(55,43): error TS7006: Parameter 'b' implicitly has an 'any' type.
-hooks/use-all-categories.ts(57,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operating: number; }'.
-hooks/use-all-categories.ts(58,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operating: number; }'.
+hooks/use-all-categories.ts(57,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operational: number; }'.
+hooks/use-all-categories.ts(58,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ revenue: number; fixed_cost: number; variable_cost: number; non_operational: number; }'.
 hooks/use-all-categories.ts(84,35): error TS7006: Parameter 'category' implicitly has an 'any' type.
 hooks/use-all-categories.ts(94,14): error TS7006: Parameter 'a' implicitly has an 'any' type.
 hooks/use-all-categories.ts(94,17): error TS7006: Parameter 'b' implicitly has an 'any' type.
@@ -346,60 +346,60 @@ lib/classification/cache.ts(275,34): error TS2339: Property 'confidence' does no
 lib/classification/history.ts(3,31): error TS7016: Could not find a declaration file for module 'node-persist'. '/Users/guilherme/Documents/Projetos/financeiro-aldo/mvp_finance/node_modules/.pnpm/node-persist@4.0.4/node_modules/node-persist/src/node-persist.js' implicitly has an 'any' type.
   Try `npm i --save-dev @types/node-persist` if it exists or add a new declaration (.d.ts) file containing `declare module 'node-persist';`
 lib/classification/history.ts(10,11): error TS2564: Property 'fuseSearch' has no initializer and is not definitely assigned in the constructor.
-lib/db/init-db.ts(59,9): error TS2322: Type '"expense"' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+lib/db/init-db.ts(59,9): error TS2322: Type '"expense"' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
 lib/db/schema.ts(58,14): error TS7022: 'categories' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
 lib/db/schema.ts(65,59): error TS7024: Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
 lib/mock-categories.ts(61,3): error TS2322: Type '{ id: string; name: string; type: string; color: string; icon: string; description: string; examples: string[]; amount: number; transactions: number; percentage: number; }' is not assignable to type 'Category'.
   Types of property 'type' are incompatible.
-    Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(66,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(78,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(90,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(102,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(114,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(126,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(138,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(150,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(162,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(174,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(186,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(198,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(210,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(222,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(234,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(246,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(258,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(270,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(282,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(294,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(306,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(318,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(330,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(342,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(354,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(366,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(378,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(390,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(402,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(414,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(426,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(438,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(450,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(462,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(474,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(486,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(498,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(510,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(522,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(534,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(546,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(558,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(570,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(582,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(594,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(606,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(618,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
-lib/mock-categories.ts(630,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operating"'.
+    Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(66,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(78,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(90,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(102,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(114,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(126,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(138,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(150,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(162,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(174,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(186,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(198,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(210,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(222,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(234,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(246,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(258,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(270,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(282,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(294,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(306,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(318,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(330,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(342,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(354,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(366,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(378,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(390,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(402,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(414,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(426,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(438,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(450,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(462,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(474,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(486,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(498,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(510,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(522,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(534,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(546,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(558,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(570,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(582,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(594,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(606,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(618,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
+lib/mock-categories.ts(630,5): error TS2322: Type 'string' is not assignable to type '"revenue" | "variable_cost" | "fixed_cost" | "non_operational"'.
 lib/services/ai-categorization-adapter.service.ts(132,11): error TS2345: Argument of type 'string | null | undefined' is not assignable to parameter of type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
 lib/services/ai-categorization-adapter.service.ts(145,51): error TS18048: 'context.amount' is possibly 'undefined'.

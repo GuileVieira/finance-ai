@@ -25,35 +25,38 @@ import { TableSkeleton } from '@/components/transactions/table-skeleton';
 import { CategoryRuleDialog } from '@/components/transactions/category-rule-dialog';
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { TransactionDetailsDialog } from '@/components/dashboard/transaction-details-dialog';
-import { DateFilterSelect } from '@/components/shared/date-filter-select';
+import { FilterBar } from '@/components/shared/filter-bar';
+import { DateRange } from 'react-day-picker';
+import { parseISO } from 'date-fns';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState({
-    period: 'all',
-    bank: 'all',
+    period: 'this_month',
+    companyId: 'all',
+    accountId: 'all',
     category: 'all',
     type: 'all',
-    search: ''
+    search: '',
+    startDate: undefined as string | undefined,
+    endDate: undefined as string | undefined,
   });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
-  // ID da empresa padrão (poderia vir de contexto ou API)
-  const [companyId] = useState('f5733d9a-85ec-48da-aff0-4d6add7ea89b');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
 
   const { toast } = useToast();
 
   // Hooks para buscar dados dos filtros
-  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(companyId);
-  const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(companyId);
-  const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId });
+  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(filters.companyId);
+  const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(filters.companyId);
+  const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const periods = periodsResponse?.periods ?? [];
 
   // Hook para gerenciar grupos de transações
   const {
     selectedTransactions,
     isGroupMode,
-    selectionStats,
     isMergingCategories,
     isCreatingRule,
     toggleTransactionSelection,
@@ -62,7 +65,9 @@ export default function TransactionsPage() {
     mergeCategories,
     createCategorizationRule,
     isTransactionSelected,
-  } = useTransactionGroups({ companyId });
+    selectionStats: hookSelectionStats,
+  } = useTransactionGroups({ companyId: filters.companyId });
+
 
   // Limpar seleção de categoria quando não há transações selecionadas
   useEffect(() => {
@@ -109,6 +114,26 @@ export default function TransactionsPage() {
     selectedCategoryId: string;
   } | null>(null);
 
+
+  // Sync dateRange with filters.startDate/endDate
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      setFilters(prev => ({
+        ...prev,
+        startDate: range.from?.toISOString().split('T')[0],
+        endDate: range.to?.toISOString().split('T')[0],
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        startDate: undefined,
+        endDate: undefined,
+      }));
+    }
+    setCurrentPage(1);
+  };
+
   // Filtros com paginação
   const filtersWithPagination = useMemo(() => ({
     ...filters,
@@ -136,6 +161,24 @@ export default function TransactionsPage() {
     refetchInterval: 1000 * 60 * 5, // Atualizar a cada 5 minutos
   });
 
+  // Calcular estatísticas da seleção localmente pois dependem dos dados das transações
+  const selectionStats = useMemo(() => {
+    const selectedData = transactions.filter(t => selectedTransactions.has(t.id));
+    const totalAmount = selectedData.reduce((acc, t) => {
+      const amount = typeof t.amount === 'string' ? parseFloat(t.amount) : (t.amount || 0);
+      return acc + amount;
+    }, 0);
+    const incomeCount = selectedData.filter(t => (typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount) > 0).length;
+    const expenseCount = selectedData.length - incomeCount;
+
+    return {
+      ...hookSelectionStats,
+      totalAmount,
+      incomeCount,
+      expenseCount,
+    };
+  }, [selectedTransactions, transactions, hookSelectionStats]);
+
   // Pré-carregar próxima página quando se aproximar do final
   useEffect(() => {
     const threshold = 0.8; // 80% da página atual
@@ -156,7 +199,7 @@ export default function TransactionsPage() {
   const handleFilterChange = (key: string, value: string) => {
     console.log('🔄 [UI-FILTERS] Mudando filtro:', key, '=', value);
     setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset para primeira página quando filtros mudam
+    setCurrentPage(1);
   };
 
   const handleExport = () => {
@@ -248,7 +291,7 @@ export default function TransactionsPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            companyId,
+            companyId: filters.companyId,
             categoryId: transactionForRule.selectedCategoryId,
             rulePattern: options.rulePattern,
             ruleType: options.ruleType,
@@ -269,7 +312,7 @@ export default function TransactionsPage() {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                companyId,
+                companyId: filters.companyId,
                 ruleId: ruleResult.data.id,
                 applyToAll: true,
               }),
@@ -389,7 +432,8 @@ export default function TransactionsPage() {
     selectedTransactionsData.forEach(transaction => {
       const categoryName = transaction.categoryName || 'Sem categoria';
       categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + 1);
-      totalAmount += Math.abs(parseFloat(transaction.amount));
+      const amount = typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : (transaction.amount || 0);
+      totalAmount += Math.abs(amount);
     });
 
     const categories = Array.from(categoryMap.entries());
@@ -416,7 +460,7 @@ export default function TransactionsPage() {
   const selectedTransaction = transactions.find(t => t.id === editingTransaction);
 
   // Verificar se é a primeira vez (sem dados no sistema)
-  const isFirstTimeUser = isEmpty && !isLoading && filters.search === '' && filters.category === 'all' && filters.type === 'all' && filters.bank === 'all';
+  const isFirstTimeUser = isEmpty && !isLoading && filters.search === '' && filters.category === 'all' && filters.type === 'all' && filters.accountId === 'all';
 
   // Se for primeira vez (sem dados), mostrar tela de boas-vindas
   if (isFirstTimeUser) {
@@ -561,174 +605,135 @@ export default function TransactionsPage() {
           </Card>
         )}
 
-        {/* Filtros */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Filtros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* Busca */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Buscar transação</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-                    <Input
-                      placeholder="Digite descrição..."
-                      value={filters.search}
-                      onChange={(e) => handleFilterChange('search', e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+        {/* Busca e Filtros Secundários */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+            <Input
+              placeholder="Buscar transações por descrição..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="pl-10 h-11"
+            />
+          </div>
 
-                {/* Período */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Período</label>
-                  <DateFilterSelect
-                    value={filters.period}
-                    onChange={(value) => handleFilterChange('period', value)}
-                    periods={periods.map(p => p.id)}
-                    isLoading={isLoadingPeriods}
-                  />
-                </div>
+          <div className="flex flex-wrap gap-4">
+            <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
+              <SelectTrigger className="w-[180px] h-11">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="income">Receitas</SelectItem>
+                <SelectItem value="expense">Despesas</SelectItem>
+              </SelectContent>
+            </Select>
 
-                {/* Banco - dados reais da API */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Banco/Conta</label>
-                  <Select value={filters.bank} onValueChange={(value) => handleFilterChange('bank', value)} disabled={isLoadingAccounts}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione o banco"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accountOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
+              <SelectTrigger className="w-[220px] h-11">
+                <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Todas categorias"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categoryOptions.map((option: any) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-                {/* Categoria - dados reais da API */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Categoria</label>
-                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Selecione a categoria"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as categorias</SelectItem>
-                      {categoryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Filtros Principais Padronizados */}
+        <div className="mb-6">
+          <FilterBar
+            period={filters.period}
+            accountId={filters.accountId}
+            companyId={filters.companyId}
+            dateRange={dateRange}
+            onPeriodChange={(value) => handleFilterChange('period', value)}
+            onAccountChange={(value) => handleFilterChange('accountId', value)}
+            onCompanyChange={(value) => handleFilterChange('companyId', value)}
+            onDateRangeChange={handleDateRangeChange}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
+            isRefetching={isRefetching}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="hidden sm:flex"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddTransaction}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova transação
+            </Button>
+          </FilterBar>
+        </div>
 
-                {/* Tipo */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Tipo de Transação</label>
-                  <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os tipos</SelectItem>
-                      <SelectItem value="income">Apenas Receitas</SelectItem>
-                      <SelectItem value="expense">Apenas Despesas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Barra de Ações Flutuante (quando há seleção) */}
+        {/* Cabeçalho de Seleção em Massa */}
         {isGroupMode && (
-          <Card className="border-border bg-card shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Layers className="h-5 w-5 text-primary" />
-                    <span className="font-medium text-foreground">
-                      {selectionStats.total} transação{selectionStats.total !== 1 ? 'ões' : ''} selecionada{selectionStats.total !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearSelection}
-                      disabled={isMergingCategories || isCreatingRule}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Limpar
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCreateRule}
-                    disabled={!selectionStats.canCreateRule || isMergingCategories || isCreatingRule}
-                  >
-                    <Ruler className="h-4 w-4 mr-2" />
-                    {isCreatingRule ? 'Criando...' : 'Criar Regra'}
-                  </Button>
+          <div className="mb-6 p-4 bg-muted/30 border rounded-lg flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">
+                  {selectedTransactions.size} selecionadas
+                </Badge>
+                <div className="text-sm font-medium text-foreground">
+                  Valor total: {formatCurrency(selectionStats.totalAmount)}
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {getCategoryAnalysis()}
+              </p>
+            </div>
 
-              {/* Seletor de Categoria para Mesclar */}
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-foreground mb-2 block">
-                      Mover para a categoria:
-                    </label>
-                    <Combobox
-                      options={categoryOptions}
-                      value={selectedCategoryId}
-                      onValueChange={setSelectedCategoryId}
-                      disabled={isMergingCategories || isCreatingRule}
-                      placeholder="Buscar categoria..."
-                      searchPlaceholder="Digite o nome da categoria..."
-                      emptyMessage="Nenhuma categoria encontrada"
-                    />
-                  </div>
+            <div className="flex items-center gap-3">
+              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger className="w-[200px] h-10 bg-background">
+                  <SelectValue placeholder="Aplicar Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((option: any) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                  <div className="flex items-center" style={{ paddingTop: '24px' }}>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleMergeCategories}
-                      disabled={!selectedCategoryId || !selectionStats.canMerge || isMergingCategories || isCreatingRule}
-                    >
-                      <CheckSquare className="h-4 w-4 mr-2" />
-                      {isMergingCategories ? 'Mesclando...' : 'Aplicar a Todas'}
-                    </Button>
-                  </div>
-                </div>
+              <Button
+                variant="default"
+                onClick={handleMergeCategories}
+                disabled={!selectedCategoryId || isMergingCategories || isCreatingRule}
+                className="h-10 px-6"
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
+                {isMergingCategories ? 'Mesclando...' : 'Aplicar a Todas'}
+              </Button>
 
-                {/* Análise das categorias selecionadas */}
-                <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground">
-                  <span className="font-medium">Análise:</span> {getCategoryAnalysis()}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="h-10 px-3 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            </div>
+          </div>
         )}
 
 
-        {/* Modal de Detalhes da Transação (Substitui o card antigo) */}
         <TransactionDetailsDialog
           open={!!editingTransaction && !isGroupMode}
           onOpenChange={(open) => {
@@ -740,7 +745,7 @@ export default function TransactionsPage() {
           onCategoryChange={async (transactionId, categoryId) => {
             handleUpdateSingleTransaction(transactionId, categoryId);
           }}
-          companyId={companyId}
+          companyId={filters.companyId}
         />
 
         {/* Tabela de Transações */}
@@ -773,11 +778,14 @@ export default function TransactionsPage() {
                   Tente ajustar os filtros ou verificar outro período.
                 </p>
                 <Button variant="outline" onClick={() => setFilters({
-                  period: '2025-10',
-                  bank: 'all',
+                  period: 'this_month',
+                  companyId: 'all',
+                  accountId: 'all',
                   category: 'all',
                   type: 'all',
-                  search: ''
+                  search: '',
+                  startDate: undefined,
+                  endDate: undefined,
                 })}>
                   Limpar filtros
                 </Button>
@@ -973,7 +981,7 @@ export default function TransactionsPage() {
               id: transactionForRule.selectedCategoryId,
               name: transactionForRule.categoryName || '',
             }}
-            companyId={companyId}
+            companyId={filters.companyId}
             onConfirm={handleRuleDialogConfirm}
           />
         )

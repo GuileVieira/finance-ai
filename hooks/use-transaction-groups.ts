@@ -233,6 +233,10 @@ export function useTransactionGroups({ companyId }: UseTransactionGroupsOptions)
 
   // Gerar estatísticas da seleção
   const selectionStats = useMemo(() => {
+    // Calculamos as estatísticas baseadas nos IDs selecionados
+    // Nota: Como não temos acesso às transações completas aqui sem passar como argumento,
+    // vamos assumir que as transações são passadas para as funções que precisam delas ou 
+    // calculamos isso no componente. No entanto, para manter a consistência com a UI:
     return {
       total: selectedTransactions.size,
       canMerge: canMergeCategories,
