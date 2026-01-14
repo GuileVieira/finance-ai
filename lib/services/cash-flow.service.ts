@@ -24,25 +24,33 @@ export default class CashFlowService {
 
     const now = new Date();
     let startDate: Date;
-    let endDate: Date;
+    let endDate: Date = now;
 
     if (filters.period === 'current') {
       // Mês atual
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    } else if (filters.period) {
-      // Formato YYYY-MM
+    } else if (filters.period === 'last_7_days') {
+      startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    } else if (filters.period === 'last_15_days') {
+      startDate = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
+    } else if (filters.period === 'last_30_days') {
+      startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    } else if (filters.period === 'last_90_days') {
+      startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+    } else if (filters.period === 'last_180_days') {
+      startDate = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+    } else if (filters.period && /^\d{4}-\d{2}$/.test(filters.period)) {
+      // Formato YYYY-MM (validado com regex)
       const [year, month] = filters.period.split('-').map(Number);
       startDate = new Date(year, month - 1, 1);
       endDate = new Date(year, month, 0);
     } else if (filters.days) {
       // Últimos N dias
       startDate = new Date(now.getTime() - (filters.days * 24 * 60 * 60 * 1000));
-      endDate = now;
     } else {
       // Padrão: últimos 30 dias
       startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-      endDate = now;
     }
 
     return {
