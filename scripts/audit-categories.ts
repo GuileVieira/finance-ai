@@ -46,7 +46,7 @@ async function auditCategories() {
                     // Using string comparison for simplicity if date objects verify hard
                     // Correct way to query dates in Drizzle/Postgres
                     sql`${transactions.transactionDate} >= '2025-11-01' AND ${transactions.transactionDate} <= '2025-11-30'`,
-                    inArray(categories.type, ['fixed_cost', 'variable_cost', 'non_operating'])
+                    inArray(categories.type, ['fixed_cost', 'variable_cost', 'non_operational'])
                 )
             )
             .groupBy(categories.name, categories.type, categories.id)

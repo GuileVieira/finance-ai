@@ -27,7 +27,7 @@ async function fixTransactionSigns() {
         // Or dynamic fetch... let's trust the one we found or fetch again to be safe.
 
         // 1. Identification: Find COST categories
-        const costTypes = ['variable_cost', 'fixed_cost', 'expense_variable', 'expense_fixed', 'non_operating'];
+        const costTypes = ['variable_cost', 'fixed_cost', 'expense_variable', 'expense_fixed', 'non_operational'];
 
         const costCategories = await db.select().from(categories).where(
             and(
@@ -60,7 +60,7 @@ async function fixTransactionSigns() {
             .where(
                 // Broaden the search, remove date filter to see EVERYTHING
                 // sql`${transactions.transactionDate} >= '2025-11-01' AND ${transactions.transactionDate} <= '2025-11-30'`
-                inArray(categories.type, ['variable_cost', 'fixed_cost', 'non_operating'])
+                inArray(categories.type, ['variable_cost', 'fixed_cost', 'non_operational'])
             )
             .groupBy(categories.type, categories.name, categories.id)
             .having(sql`sum(${transactions.amount}) > 0`) // Only show the problematic ones

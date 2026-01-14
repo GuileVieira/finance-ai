@@ -101,8 +101,10 @@ export default function CategoryAnalysis({
         return 'Custo Variável';
       case 'fixed_cost':
         return 'Custo Fixo';
-      case 'non_operating':
+      case 'non_operational':
         return 'Não Operacional';
+      case 'financial_movement':
+        return 'Mov. Financeira';
       case 'revenue':
         return 'Receita';
       default:
@@ -116,8 +118,10 @@ export default function CategoryAnalysis({
         return 'bg-warning/10 text-warning';
       case 'fixed_cost':
         return 'bg-danger/10 text-danger';
-      case 'non_operating':
+      case 'non_operational':
         return 'bg-muted-foreground/10 text-muted-foreground';
+      case 'financial_movement':
+        return 'bg-purple-500/10 text-purple-500';
       case 'revenue':
         return 'bg-success/10 text-success';
       default:

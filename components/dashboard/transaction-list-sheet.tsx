@@ -102,7 +102,7 @@ export const TransactionListSheet = memo(function TransactionListSheet({
                                 <SelectItem value="revenue">Receitas</SelectItem>
                                 <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
                                 <SelectItem value="fixed_cost">Custos Fixos</SelectItem>
-                                <SelectItem value="non_operating">Não Operacional</SelectItem>
+                                <SelectItem value="non_operational">Não Operacional</SelectItem>
                                 <SelectItem value="financial_movement">Mov. Financeira</SelectItem>
                             </SelectContent>
                         </Select>

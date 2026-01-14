@@ -96,7 +96,8 @@ async function seedCategories() {
         revenue: 'Receitas',
         variable_cost: 'Custos Variáveis',
         fixed_cost: 'Custos Fixos',
-        non_operating: 'Não Operacionais'
+        non_operational: 'Não Operacionais',
+        financial_movement: 'Movimentações Financeiras'
       };
       console.log(`   ${typeNames[type as keyof typeof typeNames] || type}: ${count}`);
     });

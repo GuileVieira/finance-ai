@@ -106,7 +106,7 @@ async function auditBusinessLogic() {
 
         if (type === 'revenue') {
             totalRevenue += net;
-        } else if (['fixed_cost', 'variable_cost', 'non_operating'].includes(type) || !type) {
+        } else if (['fixed_cost', 'variable_cost', 'non_operational'].includes(type) || !type) {
             // Expenses are usually negative net, so simple subtraction
             // But here we want the magnitude of expense
             if (net < 0) totalExpense += Math.abs(net);

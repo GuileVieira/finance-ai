@@ -27,7 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
     revenue: 'Receitas',
     variable_cost: 'Custos Variáveis',
     fixed_cost: 'Custos Fixos / Despesas',
-    non_operating: 'Não Operacional',
+    non_operational: 'Não Operacional',
     financial_movement: 'Movimentação Financeira (Fora do DRE)',
     FINANCIAL_MOVEMENT: 'Movimentação Financeira (Fora do DRE)',
     // Novos Grupos DRE
@@ -43,7 +43,7 @@ const TYPE_COLORS: Record<string, string> = {
     revenue: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     variable_cost: 'bg-amber-100 text-amber-800 border-amber-200',
     fixed_cost: 'bg-red-100 text-red-800 border-red-200',
-    non_operating: 'bg-slate-100 text-slate-800 border-slate-200',
+    non_operational: 'bg-slate-100 text-slate-800 border-slate-200',
     financial_movement: 'bg-purple-100 text-purple-800 border-purple-200',
     FINANCIAL_MOVEMENT: 'bg-purple-100 text-purple-800 border-purple-200',
     RoB: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -142,7 +142,7 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                             <SelectItem value="revenue">Receitas</SelectItem>
                             <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
                             <SelectItem value="fixed_cost">Custos Fixos</SelectItem>
-                            <SelectItem value="non_operating">Não Operacional</SelectItem>
+                            <SelectItem value="non_operational">Não Operacional</SelectItem>
                             <SelectItem value="financial_movement">Mov. Financeira</SelectItem>
                         </SelectContent>
                     </Select>
@@ -188,7 +188,7 @@ export function DREMappingWidget({ isOpen, onClose }: DREMappingWidgetProps) {
                                                     <SelectItem value="revenue">Receitas</SelectItem>
                                                     <SelectItem value="variable_cost">Custos Variáveis</SelectItem>
                                                     <SelectItem value="fixed_cost">Custos Fixos / Despesas</SelectItem>
-                                                    <SelectItem value="non_operating">Não Operacional</SelectItem>
+                                                    <SelectItem value="non_operational">Não Operacional</SelectItem>
                                                     <SelectItem value="financial_movement">Movimentação Financeira</SelectItem>
                                                 </SelectGroup>
                                                 <SelectGroup>

@@ -128,9 +128,9 @@ async function cleanAndMigrate() {
         { name: 'Tecnologia e Software', type: 'fixed_cost', colorHex: '#991B1B' },
         { name: 'Serviços Profissionais', type: 'fixed_cost', colorHex: '#7F1D1D' },
         { name: 'Tributos e Contribuições', type: 'fixed_cost', colorHex: '#C2410C' },
-        { name: 'Utilidades e Insumos', type: 'non_operating', colorHex: '#6B7280' },
-        { name: 'Manutenção e Serviços', type: 'non_operating', colorHex: '#4B5563' },
-        { name: 'Financeiros e Bancários', type: 'non_operating', colorHex: '#374151' }
+        { name: 'Utilidades e Insumos', type: 'non_operational', colorHex: '#6B7280' },
+        { name: 'Manutenção e Serviços', type: 'non_operational', colorHex: '#4B5563' },
+        { name: 'Financeiros e Bancários', type: 'non_operational', colorHex: '#374151' }
       ];
 
       await db.insert(schema.categories).values(

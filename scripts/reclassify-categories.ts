@@ -41,7 +41,7 @@ async function reclassifyCategories() {
 
     // 2. Check for "SISPAG" transfers that might be internal
     // For now, we only flag them, we don't move them automatically unless user confirms.
-    // The Consultant Audit (Phase 4) revealed these are huge, so maybe we SHOULD move them to 'non_operating' or similar
+    // The Consultant Audit (Phase 4) revealed these are huge, so maybe we SHOULD move them to 'non_operational' or similar
     // to sanitize the "Operating Margin", but they are still cash outflows.
 
     // Let's create a special category for SISPAG if it doesn't exist properly

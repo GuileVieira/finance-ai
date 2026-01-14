@@ -37,8 +37,8 @@ async function reclassifyFinancialArtifacts() {
     // "Antecipação de Recebíveis" for FIDC/Loans (Non-operating inflow, debt)
 
     const categories = [
-        { name: 'Transferências Internas', type: 'non_operating', icon: '🔄' }, // Using a generic icon
-        { name: 'Antecipação de Recebíveis', type: 'non_operating', icon: '🏦' }
+        { name: 'Transferências Internas', type: 'non_operational', icon: '🔄' }, // Using a generic icon
+        { name: 'Antecipação de Recebíveis', type: 'financial_movement', icon: '🏦' }
     ];
 
     const categoryIds: Record<string, string> = {};

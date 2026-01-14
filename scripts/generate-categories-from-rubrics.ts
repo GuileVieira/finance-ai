@@ -153,7 +153,7 @@ export const categoryTypes = [
     description: 'Custos fixos mensais da empresa'
   },
   {
-    value: 'non_operating',
+    value: 'non_operational',
     label: 'Não Operacionais',
     color: '#6B7280',
     description: 'Despesas não relacionadas à operação principal'
@@ -162,7 +162,7 @@ export const categoryTypes = [
 
 // Regras automáticas baseadas nas 57 categorias
 export const mockAutoRules: AutoRule[] = [
-${allCategories.filter(cat => cat.type !== 'non_operating').slice(0, 20).map((cat, index) => `  {
+${allCategories.filter(cat => cat.type !== 'non_operational').slice(0, 20).map((cat, index) => `  {
     id: '${(index + 1).toString()}',
     category: '${cat.name}',
     pattern: '${cat.name}',
@@ -196,7 +196,8 @@ Object.entries(stats).forEach(([type, count]) => {
     revenue: 'Receitas',
     variable_cost: 'Custos Variáveis',
     fixed_cost: 'Custos Fixos',
-    non_operating: 'Não Operacionais'
+    non_operational: 'Não Operacionais',
+    financial_movement: 'Movimentações Financeiras'
   };
   console.log(`   ${typeNames[type as keyof typeof typeNames] || type}: ${count}`);
 });
