@@ -41,6 +41,15 @@ const TAX_PATTERNS_REGEX = [
 const FINANCIAL_COST_PATTERNS = ['juros', 'taxa bancária', 'tarifa bancária', 'tarifas bancárias', 'iof', 'encargos financeiros', 'despesa bancária', 'taxas bancárias'];
 const FINANCIAL_REVENUE_PATTERNS = ['rendimento', 'aplicação', 'juros recebidos', 'receita financeira', 'rendimentos'];
 
+// Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
+const EXCLUDED_DRE_CATEGORIES = [
+  'saldo inicial',
+  'transferências internas',
+  'ajuste de saldo',
+  'transferencia',
+  'transferência'
+];
+
 const isTaxCategory = (name: string): boolean => {
   return TAX_PATTERNS_REGEX.some(pattern => pattern.test(name));
 };
@@ -286,7 +295,23 @@ export default class DREService {
         .orderBy(sql`SUM(ABS(${transactions.amount})) DESC`); // Ordenar por valor total
 
       // Processar categorias
-      const categorizedData = categoryData.filter(cat => cat.categoryId);
+      const categorizedData = categoryData.filter(cat => {
+        if (!cat.categoryId || !cat.categoryName) return false;
+
+        // Excluir categorias de movimentação de caixa/patrimonial
+        const lowerName = cat.categoryName.toLowerCase();
+        if (EXCLUDED_DRE_CATEGORIES.some(excluded => lowerName.includes(excluded))) {
+          return false;
+        }
+
+        // Excluir tipos que não pertencem ao DRE (Movimentação Financeira pura, como empréstimos/antecipações)
+        // OBS: 'revenue' e 'expenses' com nomes 'financeiros' são tratados abaixo (financialCosts/financialRevenue)
+        if (cat.categoryType === 'financial_movement') {
+          return false;
+        }
+
+        return true;
+      });
 
       const dreCategories: DRECategory[] = categorizedData
         .map(cat => {
