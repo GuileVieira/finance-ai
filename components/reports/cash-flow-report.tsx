@@ -9,8 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import {
   ArrowUpCircle,
   ArrowDownCircle,
-  TrendingUp,
-  TrendingDown,
   Calendar,
   DollarSign
 } from 'lucide-react';
@@ -26,12 +24,15 @@ import {
   Bar
 } from 'recharts';
 import { CustomTooltip } from '@/components/ui/custom-tooltip';
+import { TransactionsListDialog } from './transactions-list-dialog';
 
 type Granularity = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual';
 
 interface CashFlowReportProps {
   data: CashFlowReport;
   onExport?: (format: 'pdf' | 'excel') => void;
+  companyId?: string;
+  accountId?: string;
 }
 
 interface AggregatedData {
@@ -47,10 +48,13 @@ interface AggregatedData {
 
 export default function CashFlowReportComponent({
   data,
-  onExport
+  onExport,
+  companyId,
+  accountId
 }: CashFlowReportProps) {
   const [granularity, setGranularity] = useState<Granularity>('daily');
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<AggregatedData | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -468,7 +472,11 @@ export default function CashFlowReportComponent({
                   </thead>
                   <tbody className="text-sm">
                     {aggregatedData.map((item, index) => (
-                      <tr key={`${item.label}-${index}`} className="border-t">
+                      <tr
+                        key={`${item.label}-${index}`}
+                        className="border-t cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setSelectedPeriod(item)}
+                      >
                         <td className="p-3">
                           <div className="font-medium">{item.label}</div>
                           <Badge variant="outline" className="text-xs mt-1">
@@ -500,6 +508,17 @@ export default function CashFlowReportComponent({
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Transações */}
+      <TransactionsListDialog
+        open={!!selectedPeriod}
+        onOpenChange={(open) => !open && setSelectedPeriod(null)}
+        periodLabel={selectedPeriod?.label || ''}
+        startDate={selectedPeriod?.startDate || ''}
+        endDate={selectedPeriod?.endDate || ''}
+        companyId={companyId}
+        accountId={accountId}
+      />
     </div>
   );
 }

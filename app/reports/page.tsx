@@ -237,6 +237,8 @@ export default function ReportsPage() {
               <CashFlowReport
                 data={cashFlowData}
                 onExport={(format) => handleExport(format, 'cashflow')}
+                companyId={filters.companyId}
+                accountId={filters.accountId}
               />
             ) : (
               <div className="text-center py-12">
