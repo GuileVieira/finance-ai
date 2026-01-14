@@ -157,6 +157,8 @@ export class TransactionsAPI {
 
     if (uiFilters.categoryId && uiFilters.categoryId !== 'all') {
       apiFilters.categoryId = uiFilters.categoryId;
+    } else if (uiFilters.category && uiFilters.category !== 'all') {
+      apiFilters.categoryId = uiFilters.category;
     }
 
     if (uiFilters.companyId && uiFilters.companyId !== 'all') {

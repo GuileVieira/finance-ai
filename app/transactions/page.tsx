@@ -46,7 +46,10 @@ export default function TransactionsPage() {
 
   // Hooks para buscar dados dos filtros
   const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(filters.companyId);
-  const { categoryOptions, isLoading: isLoadingCategories } = useAllCategories(filters.companyId);
+  const { categoryOptions: rawCategoryOptions, isLoading: isLoadingCategories } = useAllCategories(filters.companyId);
+  const categoryOptions = useMemo(() => {
+    return [{ value: 'all', label: 'Todas categorias', type: 'all', color: '#6366F1', name: 'Todas categorias' }, ...rawCategoryOptions];
+  }, [rawCategoryOptions]);
   const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const periods = periodsResponse?.periods ?? [];
 
@@ -631,19 +634,16 @@ export default function TransactionsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={extraFilters.category} onValueChange={(value) => handleFilterChange('category', value)} disabled={isLoadingCategories}>
-              <SelectTrigger className="w-[220px] h-11">
-                <SelectValue placeholder={isLoadingCategories ? "Carregando..." : "Todas categorias"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {categoryOptions.map((option: any) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-[220px]">
+              <Combobox
+                options={categoryOptions}
+                value={extraFilters.category}
+                onValueChange={(value) => handleFilterChange('category', value)}
+                placeholder={isLoadingCategories ? "Carregando..." : "Todas categorias"}
+                disabled={isLoadingCategories}
+                className="h-11"
+              />
+            </div>
           </div>
         </div>
 
@@ -699,18 +699,13 @@ export default function TransactionsPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                <SelectTrigger className="w-[200px] h-10 bg-background">
-                  <SelectValue placeholder="Aplicar Categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryOptions.map((option: any) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={categoryOptions}
+                value={selectedCategoryId}
+                onValueChange={setSelectedCategoryId}
+                placeholder="Aplicar Categoria"
+                className="w-[200px]"
+              />
 
               <Button
                 variant="default"
@@ -759,15 +754,12 @@ export default function TransactionsPage() {
                 {isLoading ? 'Carregando...' : `${pagination.total} transações encontradas`}
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isLoading || isRefetching}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
+            <div>
+              <CardTitle>Transações</CardTitle>
+              <CardDescription>
+                {isLoading ? 'Carregando...' : `${pagination.total} transações encontradas`}
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
