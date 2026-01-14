@@ -81,7 +81,7 @@ export default function CategoriesPage() {
     // Evitar atualização desnecessária se não mudou
     if (filters.startDate === startDate && filters.endDate === endDate) return;
 
-    setFilters(prev => ({ ...prev, startDate, endDate: endDate || undefined }));
+    setFilters({ ...filters, startDate, endDate: endDate || undefined });
   }, [filters.period]);
 
   const handleFilterChange = (key: string, value: string) => {
@@ -94,19 +94,19 @@ export default function CategoriesPage() {
         endDate: endDate || undefined
       });
     } else {
-      setFilterValue(key as any, value);
+      setFilterValue(key as keyof typeof filters, value);
     }
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
     if (range?.from) {
-      setFilters(prev => ({
-        ...prev,
+      setFilters({
+        ...filters,
         period: 'custom',
         startDate: range.from ? range.from.toISOString().split('T')[0] : undefined,
         endDate: range.to ? range.to.toISOString().split('T')[0] : (range.from ? range.from.toISOString().split('T')[0] : undefined)
-      }));
+      });
     }
   };
 

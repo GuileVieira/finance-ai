@@ -125,9 +125,11 @@ export default function SettingsCategoriesPage() {
       id: Date.now().toString(),
       name: data.name,
       type: data.type,
+      colorHex: data.color,
       color: data.color,
       description: data.description,
-      amount: 0,
+      totalAmount: 0,
+      transactionCount: 0,
       transactions: 0,
       percentage: 0,
       active: data.active ?? true,
@@ -261,7 +263,7 @@ export default function SettingsCategoriesPage() {
         });
 
         if (!isCancelled) {
-          const normalizedTransactions: CategoryTransaction[] = (response.transactions || []).map((transaction: any) => {
+          const normalizedTransactions: CategoryTransaction[] = (response.transactions || []).map((transaction) => {
             const rawAmount = transaction.amount ?? 0;
             const numericAmount = typeof rawAmount === 'string' ? parseFloat(rawAmount) : Number(rawAmount);
             const signedAmount = transaction.type === 'debit'
@@ -497,7 +499,7 @@ export default function SettingsCategoriesPage() {
                         >
                           <div
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: category.color }}
+                            style={{ backgroundColor: category.color || category.colorHex }}
                           />
                           <div>
                             <p className="font-medium">{category.name}</p>
@@ -539,10 +541,10 @@ export default function SettingsCategoriesPage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-6 h-6 rounded border"
-                            style={{ backgroundColor: category.color }}
+                            style={{ backgroundColor: category.color || category.colorHex }}
                           />
                           <span className="text-sm font-mono">
-                            {category.color}
+                            {category.color || category.colorHex}
                           </span>
                         </div>
                       </TableCell>
@@ -572,7 +574,7 @@ export default function SettingsCategoriesPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
 
-                          <Dialog open={!!editingCategory?.id === category.id} onOpenChange={(open) => !open && setEditingCategory(null)}>
+                          <Dialog open={editingCategory?.id === category.id} onOpenChange={(open) => !open && setEditingCategory(null)}>
                             <DialogTrigger asChild>
                               <Button
                                 variant="outline"
@@ -596,7 +598,7 @@ export default function SettingsCategoriesPage() {
                             </DialogContent>
                           </Dialog>
 
-                          <Dialog open={!!managingRules?.id === category.id} onOpenChange={(open) => !open && setManagingRules(null)}>
+                          <Dialog open={managingRules?.id === category.id} onOpenChange={(open) => !open && setManagingRules(null)}>
                             <DialogTrigger asChild>
                               <Button
                                 variant="outline"

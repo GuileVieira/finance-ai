@@ -70,7 +70,7 @@ export function usePersistedFilters() {
         return () => window.removeEventListener('storage-filters-updated', handleStorageUpdate);
     }, []);
 
-    const setFilterValue = useCallback((key: keyof Filters, value: any) => {
+    const setFilterValue = useCallback((key: keyof Filters, value: string | undefined) => {
         setFilters(prev => {
             const newFilters = { ...prev, [key]: value };
 

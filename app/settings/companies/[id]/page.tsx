@@ -82,6 +82,7 @@ export default function CompanyDetailPage() {
         logo_url: companyData.logoUrl,
         created_at: companyData.createdAt,
         updated_at: companyData.updatedAt,
+        created_by: companyData.createdBy || '',
       });
 
       // Mapear contas
@@ -225,7 +226,7 @@ export default function CompanyDetailPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">{company.corporate_name}</span>
                   <Badge variant="outline">
-                    {getIndustryLabel(company.industry)}
+                    {getIndustryLabel(company.industry || 'other')}
                   </Badge>
                   <Badge variant={company.active ? 'default' : 'secondary'}>
                     {company.active ? 'Ativa' : 'Inativa'}
@@ -274,7 +275,7 @@ export default function CompanyDetailPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Segmento</p>
                 <Badge variant="outline" className="mt-1">
-                  {getIndustryLabel(company.industry)}
+                  {getIndustryLabel(company.industry || 'other')}
                 </Badge>
               </div>
 

@@ -57,6 +57,7 @@ interface Upload {
 
 interface UploadsResponse {
   success: boolean;
+  error?: string;
   data: {
     uploads: Upload[];
     pagination: {

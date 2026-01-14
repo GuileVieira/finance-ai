@@ -656,24 +656,28 @@ export const categoryTypes = [
     value: 'revenue',
     label: 'Receitas',
     colorHex: '#6EE7B7',
+    color: '#6EE7B7',
     description: 'Todas as entradas de dinheiro'
   },
   {
     value: 'variable_cost',
     label: 'Custos Variáveis',
     colorHex: '#FCD34D',
+    color: '#FCD34D',
     description: 'Custos que variam com o volume de vendas'
   },
   {
     value: 'fixed_cost',
     label: 'Custos Fixos',
     colorHex: '#FCA5A5',
+    color: '#FCA5A5',
     description: 'Custos fixos mensais'
   },
   {
     value: 'non_operational',
     label: 'Não Operacionais',
     colorHex: '#D1D5DB',
+    color: '#D1D5DB',
     description: 'Despesas não relacionadas à operação principal'
   }
 ];

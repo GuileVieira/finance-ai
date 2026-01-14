@@ -5,8 +5,12 @@ export interface Category {
   name: string;
   type: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
   colorHex: string;
+  /** @deprecated Use colorHex instead */
+  color?: string;
   totalAmount?: number;
   transactionCount?: number;
+  /** @deprecated Use transactionCount instead */
+  transactions?: number;
   percentage?: number;
   icon?: string;
   description?: string;
@@ -29,6 +33,7 @@ export interface CategoryFormData {
   color: string;
   description: string;
   active: boolean;
+  examples?: string[];
 }
 
 export interface NavigationItem {
