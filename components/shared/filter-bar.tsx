@@ -53,25 +53,6 @@ export function FilterBar({
     return (
         <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 bg-card p-4 rounded-lg border shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                {/* Filtro de Empresa */}
-                <Select value={companyId} onValueChange={onCompanyChange} disabled={isLoadingCompanies}>
-                    <SelectTrigger className="w-full sm:w-[220px]">
-                        <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione uma empresa"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todas as empresas</SelectItem>
-                        {isLoadingCompanies ? (
-                            <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
-                        ) : (
-                            companyOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))
-                        )}
-                    </SelectContent>
-                </Select>
-
                 {/* Filtro de Período */}
                 <DateFilterSelect
                     value={period}
@@ -87,6 +68,25 @@ export function FilterBar({
                     />
                 )}
 
+                {/* Filtro de Empresa */}
+                <Select value={companyId} onValueChange={onCompanyChange} disabled={isLoadingCompanies}>
+                    <SelectTrigger className="w-full sm:w-[220px]">
+                        <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione uma empresa"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todas as empresas</SelectItem>
+                        {isLoadingCompanies ? (
+                            <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+                        ) : (
+                            companyOptions.map((option: any) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))
+                        )}
+                    </SelectContent>
+                </Select>
+
                 {/* Filtro de Conta */}
                 <Select value={accountId} onValueChange={onAccountChange} disabled={isLoadingAccounts}>
                     <SelectTrigger className="w-full sm:w-[220px]">
@@ -97,7 +97,7 @@ export function FilterBar({
                         {isLoadingAccounts ? (
                             <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
                         ) : (
-                            accountOptions.map((option) => (
+                            accountOptions.map((option: any) => (
                                 <SelectItem key={option.value} value={option.value}>
                                     {option.label}
                                 </SelectItem>
