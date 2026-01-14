@@ -69,11 +69,15 @@ export const accountKeys = {
 
 // --- Hooks ---
 
-export function useAccounts() {
+export function useAccounts(companyId?: string) {
   return useQuery({
-    queryKey: accountKeys.lists(),
+    queryKey: companyId ? [...accountKeys.lists(), companyId] : accountKeys.lists(),
     queryFn: async () => {
-      const response = await fetch('/api/accounts');
+      const url = companyId
+        ? `/api/accounts?companyId=${companyId}`
+        : '/api/accounts';
+
+      const response = await fetch(url);
       const result = await response.json();
 
       if (!result.success) {
@@ -84,6 +88,22 @@ export function useAccounts() {
     },
     staleTime: 1000 * 60 * 5, // 5 min
   });
+}
+
+// ... (skip other hooks) ...
+
+export function useAccountsForSelect(companyId?: string) {
+  const { data: accounts, isLoading } = useAccounts(companyId);
+
+  const accountOptions = accounts?.map(account => ({
+    value: account.id,
+    label: `${account.name} (${account.bank_name || 'Banco Desconhecido'})`
+  })) || [];
+
+  return {
+    accountOptions,
+    isLoading
+  };
 }
 
 export function useCreateAccount() {
@@ -230,18 +250,4 @@ export function useSyncAccount() {
       toast.error('Erro ao sincronizar conta');
     }
   });
-}
-
-export function useAccountsForSelect() {
-  const { data: accounts, isLoading } = useAccounts();
-
-  const accountOptions = accounts?.map(account => ({
-    value: account.id,
-    label: `${account.name} (${account.bank_name || 'Banco Desconhecido'})`
-  })) || [];
-
-  return {
-    accountOptions,
-    isLoading
-  };
 }

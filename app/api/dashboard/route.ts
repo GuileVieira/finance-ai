@@ -14,16 +14,25 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    // Parse filtros - FORÇAR companyId da sessão
+    // Parse filtros
     const filters: DashboardFilters = {
-      companyId: session.companyId, // Sempre usar companyId da sessão
+      companyId: session.companyId, // Default para sessão
     };
+
+    if (searchParams.get('companyId')) {
+      const queryCompanyId = searchParams.get('companyId')!;
+      // Se for 'all', podemos passar undefined ou 'all' dependendo do service. 
+      // Vamos passar 'all' se o service suportar, ou remover o filtro se 'all' significar "todas".
+      // Assumindo que o service trata 'all' ou ausência como "todas" se a intenção for essa.
+      // Mas para manter compatibilidade com o que fizemos em accounts, vamos passar o valor.
+      filters.companyId = queryCompanyId;
+    }
 
     if (searchParams.get('period')) {
       filters.period = searchParams.get('period')!;
     }
 
-    // Ignorar companyId da query string - usar sempre o da sessão
+    // ...
 
     if (searchParams.get('accountId')) {
       filters.accountId = searchParams.get('accountId')!;

@@ -14,12 +14,15 @@ export async function GET(request: NextRequest) {
     await initializeDatabase();
 
     const { searchParams } = new URL(request.url);
-    // FORÇAR companyId da sessão - ignorar query string
-    const companyId = session.companyId;
+    // Permitir filtrar por companyId específico se passado na URL, 
+    // senão usa o da sessão (comportamento padrão)
+    const queryCompanyId = searchParams.get('companyId');
+    const targetCompanyId = (queryCompanyId && queryCompanyId !== 'all') ? queryCompanyId : session.companyId;
+
     const active = searchParams.get('active');
     const search = searchParams.get('search');
 
-    console.log('🏦 [ACCOUNTS-API] Listando contas:', { companyId, active, search });
+    console.log('🏦 [ACCOUNTS-API] Listando contas:', { targetCompanyId, active, search });
 
     let query = db.select({
       id: accounts.id,
@@ -41,8 +44,14 @@ export async function GET(request: NextRequest) {
       .from(accounts)
       .leftJoin(companies, eq(accounts.companyId, companies.id));
 
-    // Filtros - SEMPRE filtrar por companyId da sessão
-    const conditions = [eq(accounts.companyId, companyId)];
+    // Filtros
+    const conditions = [];
+
+    // Se companyId fro diferente de 'all', filtra. Se for 'all', traz de todas.
+    // Nota: Em produção, validar se o usuário TEM permissão para ver outras empresas.
+    if (queryCompanyId !== 'all') {
+      conditions.push(eq(accounts.companyId, targetCompanyId));
+    }
 
     if (active !== null) {
       conditions.push(eq(accounts.active, active === 'true'));

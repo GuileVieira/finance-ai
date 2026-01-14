@@ -17,6 +17,7 @@ import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useDashboard } from '@/hooks/use-dashboard';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
+import { useCompaniesForSelect } from '@/hooks/use-companies';
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { TransactionListSheet } from '@/components/dashboard/transaction-list-sheet';
 import { CategorySummary, TopExpense } from '@/lib/api/dashboard';
@@ -170,11 +171,16 @@ export default function DashboardPage() {
     refetchInterval: false, // Manter desativado
   });
 
-  // Buscar contas bancárias para o filtro
-  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect();
+  // Buscar empresas para o filtro
+  const { companyOptions, isLoading: isLoadingCompanies } = useCompaniesForSelect();
 
-  // Converter métricas para formato esperado pelos componentes
+  // Buscar contas bancárias para o filtro (filtradas pela empresa selecionada)
+  const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(filters.companyId);
+
+  // ... (maintain dashboardMetrics logic) ...
+
   const dashboardMetrics = useMemo(() => {
+    // ... logic ...
     console.log('📊 Calculando métricas do dashboard');
 
     if (!metrics) {
@@ -265,7 +271,26 @@ export default function DashboardPage() {
     <LayoutWrapper>
       <div className="space-y-6">
         {/* Filtros do Dashboard */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center">
+          {/* Filtro de Empresa */}
+          <Select value={filters.companyId} onValueChange={(value) => handleFilterChange('companyId', value)}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as empresas</SelectItem>
+              {isLoadingCompanies ? (
+                <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+              ) : (
+                companyOptions.map((option: any) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+
           <Select
             value={filters.period}
             onValueChange={(value) => handleFilterChange('period', value)}
@@ -292,11 +317,13 @@ export default function DashboardPage() {
               className="w-full sm:w-auto"
             />
           )}
+
           <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
             <SelectTrigger className="w-full sm:w-[220px]">
               <SelectValue placeholder={isLoadingAccounts ? "Carregando..." : "Selecione uma conta"} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todas as contas</SelectItem>
               {isLoadingAccounts ? (
                 <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
               ) : (
