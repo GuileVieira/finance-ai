@@ -1,19 +1,20 @@
 export interface Category {
   id: string;
-  companyId: string;
+  companyId: string | null;
   name: string;
-  description?: string;
+  description?: string | null;
   type: CategoryType;
-  parentType?: string;
-  parentCategoryId?: string;
-  colorHex: string;
-  dreGroup?: string;
-  icon: string;
-  examples?: string[];
-  isSystem: boolean;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  parentType?: string | null;
+  parentCategoryId?: string | null;
+  colorHex: string | null;
+  categoryGroup?: string | null;
+  dreGroup?: string | null;
+  icon: string | null;
+  examples?: string[] | null;
+  isSystem: boolean | null;
+  active: boolean | null;
+  createdAt: string | Date | null;
+  updatedAt: string | Date | null;
 }
 
 export interface CategoryWithStats extends Category {

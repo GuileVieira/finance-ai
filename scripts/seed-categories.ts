@@ -8,14 +8,14 @@
  * including icons, descriptions e examples
  */
 
+// Carregar variáveis de ambiente ANTES de importar conexão com banco
 import { config } from 'dotenv';
+config({ path: '.env' });
+
 import { db } from '../lib/db/connection';
-import { companies, accounts, categories } from '../lib/db/schema';
+import { companies, categories } from '../lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { mockCategories } from '../lib/mock-categories';
-
-// Carregar variáveis de ambiente
-config({ path: '.env.local' });
 
 async function seedCategories() {
   try {
@@ -73,6 +73,8 @@ async function seedCategories() {
       description: cat.description,
       type: cat.type,
       colorHex: cat.colorHex,
+      categoryGroup: cat.categoryGroup,
+      dreGroup: cat.dreGroup,
       icon: cat.icon,
       examples: cat.examples,
       isSystem: true,
@@ -90,7 +92,7 @@ async function seedCategories() {
       return acc;
     }, {} as Record<string, number>);
 
-    console.log('\n📊 Estatísticas das categorias inseridas:');
+    console.log('\n📊 Estatísticas por tipo:');
     Object.entries(stats).forEach(([type, count]) => {
       const typeNames = {
         revenue: 'Receitas',
@@ -100,6 +102,18 @@ async function seedCategories() {
         financial_movement: 'Movimentações Financeiras'
       };
       console.log(`   ${typeNames[type as keyof typeof typeNames] || type}: ${count}`);
+    });
+
+    // Estatísticas por categoryGroup
+    const groupStats = mockCategories.reduce((acc, cat) => {
+      const group = cat.categoryGroup || 'SEM GRUPO';
+      acc[group] = (acc[group] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log('\n📊 Estatísticas por grupo (categoryGroup):');
+    Object.entries(groupStats).forEach(([group, count]) => {
+      console.log(`   ${group}: ${count}`);
     });
 
     console.log('\n🎉 Seed de categorias concluído com sucesso!');

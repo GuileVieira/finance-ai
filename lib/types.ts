@@ -1,5 +1,14 @@
 // Tipos compartilhados para o projeto FinanceAI
 
+export type CategoryGroup =
+  | 'PESSOAL' | 'VEÍCULOS' | 'OCUPAÇÃO' | 'UTILIDADES' | 'TRIBUTOS'
+  | 'SERVIÇOS' | 'MANUTENÇÃO' | 'MATERIAIS' | 'VENDAS' | 'CPV/CMV'
+  | 'CUSTO FINANCEIRO' | 'DIRETORIA' | 'COMUNICAÇÃO' | 'OUTROS CF'
+  | 'RECEITAS BRUTAS' | 'RECEITAS NOP' | 'DESPESAS NOP'
+  | 'EMPRÉSTIMOS' | 'TRANSFERÊNCIAS';
+
+export type DreGroupType = 'RoB' | 'TDCF' | 'CF' | 'CV' | 'RNOP' | 'DNOP' | 'EMP' | 'TRANSF';
+
 export interface Category {
   id: string;
   name: string;
@@ -16,7 +25,8 @@ export interface Category {
   description?: string;
   examples?: string[];
   active?: boolean;
-  dreGroup?: 'RoB' | 'TDCF' | 'MP' | 'CF' | 'RNOP' | 'DNOP' | null;
+  categoryGroup?: CategoryGroup | null;
+  dreGroup?: DreGroupType | null;
 }
 
 export interface AutoRule {
@@ -222,8 +232,18 @@ export interface CategoryRule {
   matchCount: number;
 }
 
+export interface ReportsFilters {
+  period?: string;
+  companyId?: string;
+  accountId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface ExportOptions {
   format: 'pdf' | 'excel';
+  reportType: 'dre' | 'cashflow';
+  filters?: ReportsFilters;
   includeDetails: boolean;
   includeCharts: boolean;
   period: ReportPeriod;

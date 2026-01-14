@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CategoryFilters, CategoryWithStats } from '@/lib/api/categories';
+import { CategoryFilters, CategoryWithStats, CategoryType } from '@/lib/api/categories';
 import { db } from '@/lib/db/drizzle';
 import { categories, transactions } from '@/lib/db/schema';
 import { eq, desc, isNull, count, sum, sql, and, gte, lte } from 'drizzle-orm';
@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
         parentType: categories.parentType,
         parentCategoryId: categories.parentCategoryId,
         colorHex: categories.colorHex,
+        categoryGroup: categories.categoryGroup,
+        dreGroup: categories.dreGroup,
         icon: categories.icon,
         examples: categories.examples,
         isSystem: categories.isSystem,
@@ -90,10 +92,12 @@ export async function GET(request: NextRequest) {
         companyId: cat.companyId!,
         name: cat.name,
         description: cat.description || undefined,
-        type: cat.type,
+        type: cat.type as CategoryType,
         parentType: cat.parentType,
         parentCategoryId: cat.parentCategoryId,
         colorHex: cat.colorHex,
+        categoryGroup: cat.categoryGroup,
+        dreGroup: cat.dreGroup,
         icon: cat.icon,
         examples: cat.examples as string[] | undefined,
         isSystem: cat.isSystem,

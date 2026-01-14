@@ -196,6 +196,15 @@ export function CategoryCard({
           )}
         </div>
 
+        {/* Grupo da categoria (categoryGroup) */}
+        {category.categoryGroup && (
+          <div className="mb-2">
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              {category.categoryGroup}
+            </span>
+          </div>
+        )}
+
         {/* Valor */}
         <div className="text-lg font-bold mb-3 cursor-help" style={{ color: category.colorHex }} title={formatCurrency(category.totalAmount)}>
           {formatCurrencyCompact(category.totalAmount)}

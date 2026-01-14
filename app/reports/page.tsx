@@ -112,10 +112,35 @@ export default function ReportsPage() {
 
   const handleExport = async (format: 'pdf' | 'excel', reportType: 'dre' | 'cashflow') => {
     try {
+      // Encontrar detalhes do período selecionado
+      const periodId = filters.period || 'all';
+      let periodDetails = availablePeriods.find(p => p.id === periodId);
+
+      // Se não encontrou (ex: 'custom' ou 'all'), criar fallback
+      if (!periodDetails) {
+        if (periodId === 'custom' && filters.startDate && filters.endDate) {
+          periodDetails = {
+            id: 'custom',
+            name: 'Personalizado',
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            type: 'custom'
+          };
+        } else {
+          periodDetails = {
+            id: periodId,
+            name: periodId === 'all' ? 'Todo o Período' : periodId,
+            startDate: filters.startDate || '',
+            endDate: filters.endDate || '',
+            type: 'custom'
+          };
+        }
+      }
+
       if (reportType === 'dre') {
-        await exportDRE(format, filters);
+        await exportDRE(format, filters, periodDetails);
       } else {
-        await exportCashFlow(format, filters);
+        await exportCashFlow(format, filters, periodDetails);
       }
       toast.success('Exportação concluída com sucesso!');
     } catch (error) {

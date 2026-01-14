@@ -1,866 +1,1288 @@
-// Categorias geradas a partir das 53 rúbricas extraídas dos arquivos XMIND
-import { Category, AutoRule } from '@/lib/types';
+// Categorias baseadas no plano de contas do cliente (consideracoes.txt)
+// Estrutura hierárquica: Máscara DRE (dreGroup) → Categoria (categoryGroup) → Rubrica (name)
 
-// 53 categorias específicas extraídas dos arquivos financeiros
+import { Category, AutoRule, CategoryGroup, DreGroupType } from '@/lib/types';
 
-// Categorias de Receita (adicionadas manualmente, pois não existem no JSON original)
-const revenueCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Vendas de Produtos',
-    type: 'revenue' as const,
-    colorHex: '#6EE7B7',
-    icon: '💰',
-    description: 'Venda de mercadorias e produtos para clientes',
-    examples: ['Venda Mercadorias', 'Receita Vendas', 'Faturamento Clientes'],
-    totalAmount: 156000,
-    transactionCount: 248,
-    percentage: 42.1,
-    dreGroup: 'RoB'
-  },
-  {
-    id: '2',
-    name: 'Vendas de Serviços',
-    type: 'revenue',
-    colorHex: '#4dffc8',
-    icon: '🛠️',
-    description: 'Prestação de serviços especializados e consultoria',
-    examples: ['Honorários de Serviços', 'Consultoria Empresarial', 'Serviços de TI', 'Manutenção de Software'],
-    totalAmount: 89600,
-    transactionCount: 143,
-    percentage: 24.1,
-    dreGroup: 'RoB'
-  },
-  {
-    id: '3',
-    name: 'Receitas Financeiras',
-    type: 'revenue',
-    colorHex: '#C4B5FD',
-    icon: '📈',
-    description: 'Rendimentos de aplicações financeiras, juros e investimentos',
-    examples: ['Juros Ativos', 'Rendimentos Aplicações', 'Dividendos', 'Aluguél Recebido'],
-    totalAmount: 75400,
-    transactionCount: 89,
-    percentage: 20.3,
-    dreGroup: 'RNOP'
-  },
-  {
-    id: '4',
-    name: 'Receitas de Aluguéis',
-    type: 'revenue',
-    colorHex: '#4dffcc',
-    icon: '🏠',
-    description: 'Aluguel de imóveis e receitas de sublocação',
-    examples: ['Aluguel Recebido', 'Sublocação Mensal', 'Aluguel Antecipado'],
-    totalAmount: 12500,
-    transactionCount: 67,
-    percentage: 3.4,
-    dreGroup: 'RNOP'
-  }
-];
+// Cores por categoryGroup
+const groupColors: Record<CategoryGroup, string> = {
+  'RECEITAS BRUTAS': '#22C55E',
+  'RECEITAS NOP': '#10B981',
+  'PESSOAL': '#EF4444',
+  'VEÍCULOS': '#F97316',
+  'OCUPAÇÃO': '#FB923C',
+  'UTILIDADES': '#FBBF24',
+  'COMUNICAÇÃO': '#A855F7',
+  'SERVIÇOS': '#EC4899',
+  'MANUTENÇÃO': '#F472B6',
+  'MATERIAIS': '#F59E0B',
+  'OUTROS CF': '#9CA3AF',
+  'DIRETORIA': '#DC2626',
+  'VENDAS': '#3B82F6',
+  'CPV/CMV': '#6366F1',
+  'TRIBUTOS': '#8B5CF6',
+  'CUSTO FINANCEIRO': '#7C3AED',
+  'DESPESAS NOP': '#64748B',
+  'EMPRÉSTIMOS': '#06B6D4',
+  'TRANSFERÊNCIAS': '#14B8A6',
+};
 
-// Combinar categorias específicas (despesas) com categorias de receita (4)
-export const mockCategories: Category[] = [
-  // Categorias de Receita
-  ...revenueCategories,
-  // Categorias de Despesa
+// Ícones por categoryGroup
+const groupIcons: Record<CategoryGroup, string> = {
+  'RECEITAS BRUTAS': '💰',
+  'RECEITAS NOP': '📈',
+  'PESSOAL': '👥',
+  'VEÍCULOS': '🚗',
+  'OCUPAÇÃO': '🏢',
+  'UTILIDADES': '⚡',
+  'COMUNICAÇÃO': '📱',
+  'SERVIÇOS': '🛠️',
+  'MANUTENÇÃO': '🔧',
+  'MATERIAIS': '📦',
+  'OUTROS CF': '📋',
+  'DIRETORIA': '👔',
+  'VENDAS': '🛒',
+  'CPV/CMV': '🏭',
+  'TRIBUTOS': '📊',
+  'CUSTO FINANCEIRO': '🏦',
+  'DESPESAS NOP': '📄',
+  'EMPRÉSTIMOS': '💳',
+  'TRANSFERÊNCIAS': '🔄',
+};
+
+interface CategoryDefinition {
+  name: string;
+  type: Category['type'];
+  categoryGroup: CategoryGroup;
+  dreGroup: DreGroupType;
+  description: string;
+  examples: string[];
+}
+
+// Definições das categorias baseadas no plano de contas
+const categoryDefinitions: CategoryDefinition[] = [
+  // ============================================
+  // RECEITAS BRUTAS (dreGroup: RoB)
+  // ============================================
   {
-    id: '101',
-    name: '13º SALARIO',
-    type: 'fixed_cost' as const,
-    colorHex: '#FCA5A5',
-    totalAmount: 2632,
-    transactionCount: 22,
-    percentage: 6.1,
-    icon: '👥',
-    description: 'Pagamento do décimo terceiro salário aos funcionários',
-    examples: ["13º SALARIO", "13º SALARIO"]
+    name: 'FATURAMENTO',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Receita de vendas de produtos e serviços',
+    examples: ['FATURAMENTO', 'NF VENDA', 'RECEITA VENDAS', 'FATURA']
   },
   {
-    id: '5',
-    name: 'ALUGUEL',
-    type: 'fixed_cost',
-    colorHex: '#ed5f5f',
-    totalAmount: 10176,
-    transactionCount: 25,
-    percentage: 7.1,
-    icon: '🏠',
-    description: 'Pagamento de aluguel de imóvel comercial ou sede',
-    examples: ["ALUGUEL", "ALUGUEL"]
+    name: 'DUPLICATA DESCONTADA',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Recebimento de duplicatas descontadas em banco',
+    examples: ['DUPLICATA DESCONTADA', 'DESC DUPLICATA', 'ANTECIPACAO DUPLICATA']
   },
   {
-    id: '6',
-    name: 'ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
-    type: 'fixed_cost',
-    colorHex: '#ed5f5f',
-    totalAmount: 7462,
-    transactionCount: 53,
-    percentage: 7.1,
-    icon: '🏠',
-    description: 'Aluguel de máquinas, veículos e equipamentos operacionais',
-    examples: ["ALUGUEL DE MÁQUINAS E EQUIPAMENTOS", "ALUGUEL DE MÁQUINAS E EQUIPAMENTOS"]
+    name: 'DUPLICATA EM CARTEIRA',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Recebimento de duplicatas em carteira',
+    examples: ['DUPLICATA CARTEIRA', 'REC DUPLICATA', 'COBRANCA DUPLICATA']
   },
   {
-    id: '7',
-    name: 'ASSISTÊNCIA MÉDICA',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 5981,
-    transactionCount: 26,
-    percentage: 7.1,
-    icon: '👥',
-    description: 'Plano de saúde e convênio médico para funcionários',
-    examples: ["ASSISTÊNCIA MÉDICA", "ASSISTÊNCIA MÉDICA"]
+    name: 'DEPÓSITO EM DINHEIRO / TED',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Depósitos em dinheiro e transferências recebidas',
+    examples: ['DEPOSITO', 'TED RECEBIDO', 'DOC RECEBIDO', 'PIX RECEBIDO']
   },
   {
-    id: '8',
-    name: 'ASSISTÊNCIA ODONTOLÓGICA',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 7131,
-    transactionCount: 10,
-    percentage: 3.1,
-    icon: '👥',
-    description: 'Convênio e plano odontológico para funcionários',
-    examples: ["ASSISTÊNCIA ODONTOLÓGICA", "ASSISTÊNCIA ODONTOLÓGICA"]
+    name: 'CREDITO DE NOTA COMERCIAL',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Crédito de nota comercial',
+    examples: ['NOTA COMERCIAL', 'CREDITO NOTA']
   },
   {
-    id: '9',
-    name: 'CARTÓRIO',
-    type: 'fixed_cost',
-    colorHex: '#e36868',
-    totalAmount: 1055,
-    transactionCount: 45,
-    percentage: 4.1,
-    icon: '👔',
-    description: 'Taxas e serviços cartoriais, reconhecimento de firma',
-    examples: ["CARTÓRIO", "CARTÓRIO"]
+    name: 'CREDITO SALDO VINCULADA',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS BRUTAS',
+    dreGroup: 'RoB',
+    description: 'Crédito de saldo de conta vinculada',
+    examples: ['SALDO VINCULADA', 'CREDITO VINCULADO']
+  },
+
+  // ============================================
+  // RECEITAS NOP (dreGroup: RNOP)
+  // ============================================
+  {
+    name: 'RECEITAS FINANCEIRAS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Receitas de aplicações e investimentos',
+    examples: ['RECEITA FINANCEIRA', 'REND APLIC', 'RENDIMENTO']
   },
   {
-    id: '10',
-    name: 'COFINS',
-    type: 'non_operational' as const,
-    colorHex: '#fc824f',
-    totalAmount: 5943,
-    transactionCount: 41,
-    percentage: 1.1,
-    icon: '📋',
-    description: 'Contribuição para Financiamento da Seguridade Social',
-    examples: ["COFINS", "COFINS"]
+    name: 'JUROS APLIC FINANCEIRA',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Juros de aplicações financeiras',
+    examples: ['JUROS APLICACAO', 'REND CDB', 'REND POUPANCA']
   },
   {
-    id: '11',
+    name: 'RENDIMENTOS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Rendimentos diversos de investimentos',
+    examples: ['RENDIMENTOS', 'DIVIDENDOS', 'JCP']
+  },
+  {
+    name: 'FOMENTO',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Recebimento de operações de fomento/factoring',
+    examples: ['FOMENTO', 'FACTORING', 'ANTECIPACAO FOMENTO']
+  },
+  {
+    name: 'RECEBIMENTO DE INADIMPLENTES',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Recuperação de créditos de inadimplentes',
+    examples: ['INADIMPLENTE', 'RECUPERACAO CREDITO', 'COBRANCA ATRASADO']
+  },
+  {
+    name: 'VENDA ATIVOS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Venda de ativos e imobilizado',
+    examples: ['VENDA ATIVO', 'VENDA VEICULO', 'VENDA EQUIPAMENTO']
+  },
+  {
+    name: 'RECEITA DE COMISSARIA',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Receita de operações de comissária',
+    examples: ['COMISSARIA', 'REC COMISSARIA']
+  },
+  {
+    name: 'DEVOLUÇÃO PGTOS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Devolução de pagamentos e estornos',
+    examples: ['DEVOLUCAO', 'ESTORNO PGTO', 'REEMBOLSO']
+  },
+  {
+    name: 'ESTORNO DE PAGAMENTOS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Estorno de pagamentos indevidos',
+    examples: ['ESTORNO', 'CANCELAMENTO', 'REVERSAO']
+  },
+  {
+    name: 'OUTRAS RECEITAS NÃO OPERACIONAIS',
+    type: 'revenue',
+    categoryGroup: 'RECEITAS NOP',
+    dreGroup: 'RNOP',
+    description: 'Outras receitas não operacionais',
+    examples: ['OUTRAS RECEITAS', 'RECEITA EVENTUAL']
+  },
+
+  // ============================================
+  // CUSTOS VARIÁVEIS - VENDAS (dreGroup: CV)
+  // ============================================
+  {
     name: 'COMISSÕES',
-    type: 'variable_cost' as const,
-    colorHex: '#ffac4d',
-    totalAmount: 10214,
-    transactionCount: 24,
-    percentage: 8.1,
-    icon: '💸',
-    description: 'Comissões de vendas pagas a vendedores e representantes',
-    examples: ["COMISSÕES", "COMISSÕES"]
-  },
-  {
-    id: '12',
-    name: 'CONSERVAÇÃO E LIMPEZA',
-    type: 'fixed_cost',
-    colorHex: '#FCD34D',
-    totalAmount: 9386,
-    transactionCount: 26,
-    percentage: 4.1,
-    icon: '🔧',
-    description: 'Serviços de limpeza e manutenção do ambiente',
-    examples: ["CONSERVAÇÃO E LIMPEZA", "CONSERVAÇÃO E LIMPEZA"]
-  },
-  {
-    id: '13',
-    name: 'CONSULTORIA',
-    type: 'fixed_cost',
-    colorHex: '#e36868',
-    totalAmount: 5179,
-    transactionCount: 49,
-    percentage: 6.1,
-    icon: '👔',
-    description: 'Serviços de consultoria empresarial ou técnica',
-    examples: ["CONSULTORIA", "CONSULTORIA"]
-  },
-  {
-    id: '14',
-    name: 'CONTRIBUICAO SINDICAL',
-    type: 'non_operational',
-    colorHex: '#fc824f',
-    totalAmount: 7063,
-    transactionCount: 51,
-    percentage: 7.1,
-    icon: '📋',
-    description: 'Contribuição sindical obrigatória ou assistencial',
-    examples: ["CONTRIBUICAO SINDICAL", "CONTRIBUICAO SINDICAL"]
-  },
-  {
-    id: '15',
-    name: 'CORREIOS',
     type: 'variable_cost',
-    colorHex: '#f79255',
-    totalAmount: 7748,
-    transactionCount: 8,
-    percentage: 7.1,
-    icon: '🚚',
-    description: 'Serviços postais, envio de correspondências',
-    examples: ["CORREIOS", "CORREIOS"]
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Comissões de vendas e representação',
+    examples: ['COMISSAO', 'COMISSOES', 'REPRESENTANTE']
   },
   {
-    id: '16',
-    name: 'CUSTAS JUDICIAIS',
-    type: 'non_operational',
-    colorHex: '#98a3b3',
-    totalAmount: 9451,
-    transactionCount: 37,
-    percentage: 0.1,
-    icon: '⚖️',
-    description: 'Custas processuais e despesas judiciais',
-    examples: ["CUSTAS JUDICIAIS", "CUSTAS JUDICIAIS"]
-  },
-  {
-    id: '18',
-    name: 'DESP. LOCOMOÇÃO',
+    name: 'DEVOLUÇÕES',
     type: 'variable_cost',
-    colorHex: '#f79255',
-    totalAmount: 9461,
-    transactionCount: 36,
-    percentage: 9.1,
-    icon: '🚚',
-    description: 'Despesas com transporte urbano, táxi, apps',
-    examples: ["DESP. LOCOMOÇÃO", "DESP. LOCOMOÇÃO"]
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Devoluções de mercadorias vendidas',
+    examples: ['DEVOLUCAO VENDA', 'TROCA', 'RETORNO MERCADORIA']
   },
   {
-    id: '19',
-    name: 'DESPESAS COM VIAGENS',
+    name: 'FRETES E CARRETOS',
     type: 'variable_cost',
-    colorHex: '#f79255',
-    totalAmount: 9386,
-    transactionCount: 31,
-    percentage: 8.1,
-    icon: '✈️',
-    description: 'Passagens, hospedagem e diárias em viagens',
-    examples: ["DESPESAS COM VIAGENS", "DESPESAS COM VIAGENS"]
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Frete de entrega de mercadorias',
+    examples: ['FRETE', 'CARRETO', 'TRANSPORTE VENDA']
   },
   {
-    id: '20',
-    name: 'ENERGIA ELETRICA',
-    type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 9187,
-    transactionCount: 6,
-    percentage: 9.1,
-    icon: '⚡',
-    description: 'Fornecimento de energia elétrica',
-    examples: ["ENERGIA ELETRICA", "ENERGIA ELETRICA"]
-  },
-  {
-    id: '21',
-    name: 'EXAME ADMISSIONAL/PERIODICO',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 7999,
-    transactionCount: 50,
-    percentage: 9.1,
-    icon: '🩺',
-    description: 'Exames médicos de admissão e periódicos',
-    examples: ["EXAME ADMISSIONAL/PERIODICO", "EXAME ADMISSIONAL/PERIODICO"]
-  },
-  {
-    id: '22',
-    name: 'FGTS',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 10101,
-    transactionCount: 17,
-    percentage: 6.1,
-    icon: '👥',
-    description: 'Fundo de Garantia do Tempo de Serviço',
-    examples: ["FGTS", "FGTS"]
-  },
-  {
-    id: '23',
-    name: 'FOLHA PJ',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 8550,
-    transactionCount: 9,
-    percentage: 6.1,
-    icon: '👥',
-    description: 'Pagamento de prestadores PJ (freelancers)',
-    examples: ["FOLHA PJ", "FOLHA PJ"]
-  },
-  {
-    id: '24',
-    name: 'FÉRIAS',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 5652,
-    transactionCount: 42,
-    percentage: 9.1,
-    icon: '🏖️',
-    description: 'Pagamento de férias e abono aos funcionários',
-    examples: ["FÉRIAS", "FÉRIAS"]
-  },
-  {
-    id: '25',
-    name: 'INSS',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 7249,
-    transactionCount: 20,
-    percentage: 4.1,
-    icon: '👥',
-    description: 'Contribuição previdenciária patronal e do funcionário',
-    examples: ["INSS", "INSS"]
-  },
-  {
-    id: '26',
-    name: 'INTERNET',
-    type: 'fixed_cost',
-    colorHex: '#ea6161',
-    totalAmount: 7259,
-    transactionCount: 42,
-    percentage: 1.1,
-    icon: '💻',
-    description: 'Serviço de internet e banda larga',
-    examples: ["INTERNET", "INTERNET"]
-  },
-  {
-    id: '27',
-    name: 'LEASING / FINAME',
-    type: 'non_operational',
-    colorHex: '#93a1b9',
-    totalAmount: 7340,
-    transactionCount: 9,
-    percentage: 5.1,
-    icon: '🏛️',
-    description: 'Financiamento via FINAME ou leasing',
-    examples: ["LEASING / FINAME", "LEASING / FINAME"]
-  },
-  {
-    id: '28',
-    name: 'LICENÇAS DIVERSAS',
-    type: 'fixed_cost',
-    colorHex: '#ea6161',
-    totalAmount: 8197,
-    transactionCount: 42,
-    percentage: 0.1,
-    icon: '💻',
-    description: 'Licenças de software, alvarás e permissões',
-    examples: ["LICENÇAS DIVERSAS", "LICENÇAS DIVERSAS"]
-  },
-  {
-    id: '29',
-    name: 'MANUTENÇÃO DE EQUIPAMENTOS',
-    type: 'fixed_cost',
-    colorHex: '#FCD34D',
-    totalAmount: 1448,
-    transactionCount: 43,
-    percentage: 9.1,
-    icon: '🔧',
-    description: 'Manutenção preventiva e corretiva de equipamentos',
-    examples: ["MANUTENÇÃO DE EQUIPAMENTOS", "MANUTENÇÃO DE EQUIPAMENTOS"]
-  },
-  {
-    id: '30',
-    name: 'MANUTENÇÃO DE HARDWARE',
-    type: 'fixed_cost',
-    colorHex: '#FCD34D',
-    totalAmount: 1789,
-    transactionCount: 7,
-    percentage: 4.1,
-    icon: '🔧',
-    description: 'Manutenção de computadores e servidores',
-    examples: ["MANUTENÇÃO DE HARDWARE", "MANUTENÇÃO DE HARDWARE"]
-  },
-  {
-    id: '31',
-    name: 'MANUTENÇÃO PREDIAL',
-    type: 'fixed_cost',
-    colorHex: '#FCD34D',
-    totalAmount: 8688,
-    transactionCount: 47,
-    percentage: 6.1,
-    icon: '🔧',
-    description: 'Manutenção do prédio e instalações',
-    examples: ["MANUTENÇÃO PREDIAL", "MANUTENÇÃO PREDIAL"]
-  },
-  {
-    id: '32',
-    name: 'MARKETING E PUBLICIDADE',
+    name: 'FRETES SOBRE COMPRAS',
     type: 'variable_cost',
-    colorHex: '#ffac4d',
-    totalAmount: 10741,
-    transactionCount: 27,
-    percentage: 0.1,
-    icon: '📣',
-    description: 'Campanhas de marketing e publicidade',
-    examples: ["MARKETING E PUBLICIDADE", "MARKETING E PUBLICIDADE"]
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Frete de compra de mercadorias',
+    examples: ['FRETE COMPRA', 'FRETE FORNECEDOR']
   },
   {
-    id: '33',
+    name: 'EVENTOS/PROMOÇÕES/BRINDES',
+    type: 'variable_cost',
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Eventos promocionais e brindes',
+    examples: ['EVENTO', 'PROMOCAO', 'BRINDE', 'FEIRA']
+  },
+  {
+    name: 'PROPAGANDA/PATROCINIO',
+    type: 'variable_cost',
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Propaganda e patrocínio',
+    examples: ['PROPAGANDA', 'PATROCINIO', 'ANUNCIO', 'PUBLICIDADE']
+  },
+  {
+    name: 'PREMIAÇÕES',
+    type: 'variable_cost',
+    categoryGroup: 'VENDAS',
+    dreGroup: 'CV',
+    description: 'Premiações e incentivos de vendas',
+    examples: ['PREMIACAO', 'INCENTIVO', 'BONUS VENDAS']
+  },
+
+  // ============================================
+  // CUSTOS VARIÁVEIS - CPV/CMV (dreGroup: CV)
+  // ============================================
+  {
+    name: 'MATÉRIA PRIMA',
+    type: 'variable_cost',
+    categoryGroup: 'CPV/CMV',
+    dreGroup: 'CV',
+    description: 'Compra de matéria prima para produção',
+    examples: ['MATERIA PRIMA', 'INSUMO', 'MP']
+  },
+  {
     name: 'MATERIAL DE EMBALAGEM',
     type: 'variable_cost',
-    colorHex: '#ff9a4d',
-    totalAmount: 4073,
-    transactionCount: 40,
-    percentage: 4.1,
-    icon: '📦',
-    description: 'Caixas e materiais para embalar produtos',
-    examples: ["MATERIAL DE EMBALAGEM", "MATERIAL DE EMBALAGEM"]
+    categoryGroup: 'CPV/CMV',
+    dreGroup: 'CV',
+    description: 'Material de embalagem para produtos',
+    examples: ['EMBALAGEM', 'CAIXA', 'SACOLA', 'ETIQUETA']
   },
   {
-    id: '34',
-    name: 'MATERIAL DE ESCRITÓRIO',
+    name: 'PRODUTO ACABADO',
     type: 'variable_cost',
-    colorHex: '#ff9a4d',
-    totalAmount: 1358,
-    transactionCount: 10,
-    percentage: 5.1,
-    icon: '📦',
-    description: 'Papelaria e suprimentos de escritório',
-    examples: ["MATERIAL DE ESCRITÓRIO", "MATERIAL DE ESCRITÓRIO"]
+    categoryGroup: 'CPV/CMV',
+    dreGroup: 'CV',
+    description: 'Compra de produto acabado para revenda',
+    examples: ['PRODUTO ACABADO', 'MERCADORIA', 'REVENDA']
   },
+
+  // ============================================
+  // CUSTOS FIXOS - PESSOAL (dreGroup: CF)
+  // ============================================
   {
-    id: '35',
-    name: 'MATERIAL DE LIMPEZA',
-    type: 'fixed_cost',
-    colorHex: '#FCD34D',
-    totalAmount: 2560,
-    transactionCount: 48,
-    percentage: 3.1,
-    icon: '🔧',
-    description: 'Materiais de limpeza e higiene',
-    examples: ["MATERIAL DE LIMPEZA", "MATERIAL DE LIMPEZA"]
-  },
-  {
-    id: '36',
-    name: 'OPERADORES LOGÍSTICOS',
-    type: 'variable_cost',
-    colorHex: '#f79255',
-    totalAmount: 3399,
-    transactionCount: 11,
-    percentage: 8.1,
-    icon: '🚚',
-    description: 'Serviços de frete e logística',
-    examples: ["OPERADORES LOGÍSTICOS", "OPERADORES LOGÍSTICOS"]
-  },
-  {
-    id: '37',
-    name: 'OUTRAS DESPESAS NOP',
-    type: 'non_operational',
-    colorHex: '#D1D5DB',
-    totalAmount: 2088,
-    transactionCount: 50,
-    percentage: 9.1,
-    icon: '📄',
-    description: 'Despesas diversas não classificadas',
-    examples: ["OUTRAS DESPESAS NOP", "OUTRAS DESPESAS NOP"]
-  },
-  {
-    id: '38',
-    name: 'OUTROS TRIBUTOS',
-    type: 'non_operational',
-    colorHex: '#fc824f',
-    totalAmount: 6833,
-    transactionCount: 53,
-    percentage: 6.1,
-    icon: '📋',
-    description: 'Outros tributos federais, estaduais ou municipais',
-    examples: ["OUTROS TRIBUTOS", "OUTROS TRIBUTOS"]
-  },
-  {
-    id: '39',
-    name: 'PRO LABORE',
-    type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 5275,
-    transactionCount: 23,
-    percentage: 3.1,
-    icon: '👥',
-    description: 'Remuneração dos sócios administradores',
-    examples: ["PRO LABORE", "PRO LABORE"]
-  },
-  {
-    id: '41',
     name: 'SALARIOS',
     type: 'fixed_cost',
-    colorHex: '#FCA5A5',
-    totalAmount: 2280,
-    transactionCount: 45,
-    percentage: 3.1,
-    icon: '👥',
-    description: 'Folha de pagamento dos funcionários CLT',
-    examples: ["SALARIOS", "SALARIOS"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Folha de pagamento de funcionários CLT',
+    examples: ['SALARIO', 'FOLHA', 'PGTO FUNCIONARIO', 'HOLERITE']
   },
   {
-    id: '42',
-    name: 'SEGUROS DE VIDA',
-    type: 'non_operational',
-    colorHex: '#93a1b9',
-    totalAmount: 4964,
-    transactionCount: 21,
-    percentage: 9.1,
-    icon: '🏛️',
-    description: 'Seguro de vida em grupo para funcionários',
-    examples: ["SEGUROS DE VIDA", "SEGUROS DE VIDA"]
-  },
-  {
-    id: '43',
-    name: 'SEGUROS GERAIS',
-    type: 'non_operational',
-    colorHex: '#93a1b9',
-    totalAmount: 9250,
-    transactionCount: 40,
-    percentage: 5.1,
-    icon: '🏛️',
-    description: 'Seguros patrimoniais e responsabilidade civil',
-    examples: ["SEGUROS GERAIS", "SEGUROS GERAIS"]
-  },
-  {
-    id: '44',
-    name: 'SERVIÇOS DE ADVOCACIA',
+    name: '13º SALARIO',
     type: 'fixed_cost',
-    colorHex: '#e36868',
-    totalAmount: 4970,
-    transactionCount: 49,
-    percentage: 3.1,
-    icon: '👔',
-    description: 'Serviços jurídicos e advocatícios',
-    examples: ["SERVIÇOS DE ADVOCACIA", "SERVIÇOS DE ADVOCACIA"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Décimo terceiro salário',
+    examples: ['13 SALARIO', 'DECIMO TERCEIRO', '13º']
   },
   {
-    id: '45',
-    name: 'SERVIÇOS DE CONTABILIDADE',
+    name: 'FÉRIAS',
     type: 'fixed_cost',
-    colorHex: '#e36868',
-    totalAmount: 5573,
-    transactionCount: 25,
-    percentage: 2.1,
-    icon: '👔',
-    description: 'Serviços contábeis e escrituração fiscal',
-    examples: ["SERVIÇOS DE CONTABILIDADE", "SERVIÇOS DE CONTABILIDADE"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Pagamento de férias e abono',
+    examples: ['FERIAS', 'ABONO FERIAS']
   },
   {
-    id: '46',
-    name: 'SERVIÇOS PRESTADOS PF',
-    type: 'variable_cost',
-    colorHex: '#ff9a4d',
-    totalAmount: 1527,
-    transactionCount: 18,
-    percentage: 3.1,
-    icon: '👷',
-    description: 'Pagamento de serviços por pessoa física',
-    examples: ["SERVIÇOS PRESTADOS PF", "SERVIÇOS PRESTADOS PF"]
-  },
-  {
-    id: '47',
-    name: 'SOFTWARES',
+    name: 'FGTS',
     type: 'fixed_cost',
-    colorHex: '#ea6161',
-    totalAmount: 8488,
-    transactionCount: 32,
-    percentage: 4.1,
-    icon: '💻',
-    description: 'Assinaturas de softwares e SaaS',
-    examples: ["SOFTWARES", "SOFTWARES"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Fundo de Garantia do Tempo de Serviço',
+    examples: ['FGTS', 'FUNDO GARANTIA']
   },
   {
-    id: '48',
-    name: 'TARIFAS BANCÁRIAS',
-    type: 'non_operational',
-    colorHex: '#93a1b9',
-    totalAmount: 10489,
-    transactionCount: 36,
-    percentage: 5.1,
-    icon: '🏛️',
-    description: 'Taxas e tarifas cobradas pelo banco',
-    examples: ["TARIFAS BANCÁRIAS", "TARIFAS BANCÁRIAS"]
-  },
-  {
-    id: '49',
-    name: 'TELEFONES FIXOS',
+    name: 'INSS',
     type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 8956,
-    transactionCount: 45,
-    percentage: 2.1,
-    icon: '⚡',
-    description: 'Serviço de telefonia fixa comercial',
-    examples: ["TELEFONES FIXOS", "TELEFONES FIXOS"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Contribuição previdenciária INSS',
+    examples: ['INSS', 'PREVIDENCIA']
   },
   {
-    id: '50',
-    name: 'TELEFONES MÓVEIS',
+    name: 'GPS',
     type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 8838,
-    transactionCount: 9,
-    percentage: 3.1,
-    icon: '⚡',
-    description: 'Serviço de telefonia móvel corporativa',
-    examples: ["TELEFONES MÓVEIS", "TELEFONES MÓVEIS"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Guia da Previdência Social',
+    examples: ['GPS', 'GUIA PREVIDENCIA']
   },
   {
-    id: '51',
+    name: 'FOLHA PJ',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Pagamento de prestadores PJ',
+    examples: ['FOLHA PJ', 'PRESTADOR PJ', 'FREELANCER']
+  },
+  {
     name: 'VALE ALIMENTAÇÃO',
     type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 4968,
-    transactionCount: 29,
-    percentage: 8.1,
-    icon: '⚡',
-    description: 'Benefício de alimentação (VA)',
-    examples: ["VALE ALIMENTAÇÃO", "VALE ALIMENTAÇÃO"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Benefício de vale alimentação',
+    examples: ['VA', 'VALE ALIMENTACAO', 'ALIMENTACAO']
   },
   {
-    id: '52',
-    name: 'VALE REFEIÇÃO',
+    name: 'VALE REFEIÇÃO / RESTAURANTE',
     type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 8222,
-    transactionCount: 50,
-    percentage: 0.1,
-    icon: '⚡',
-    description: 'Benefício de refeição (VR)',
-    examples: ["VALE REFEIÇÃO", "VALE REFEIÇÃO"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Benefício de vale refeição',
+    examples: ['VR', 'VALE REFEICAO', 'REFEICAO', 'RESTAURANTE']
   },
   {
-    id: '53',
     name: 'VALE TRANSPORTE',
     type: 'fixed_cost',
-    colorHex: '#D1D5DB',
-    totalAmount: 2634,
-    transactionCount: 31,
-    percentage: 8.1,
-    icon: '⚡',
-    description: 'Benefício de transporte (VT)',
-    examples: ["VALE TRANSPORTE", "VALE TRANSPORTE"]
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Benefício de vale transporte',
+    examples: ['VT', 'VALE TRANSPORTE', 'TRANSPORTE']
   },
   {
-    id: '54',
-    name: 'Saldo Inicial',
+    name: 'ASSISTÊNCIA MÉDICA / ODONTOLÓGICA',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Plano de saúde e odontológico',
+    examples: ['PLANO SAUDE', 'ASSISTENCIA MEDICA', 'ODONTOLOGICO', 'CONVENIO']
+  },
+  {
+    name: 'EXAME ADMISSIONAL/PERIODICO',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Exames médicos ocupacionais',
+    examples: ['EXAME ADMISSIONAL', 'EXAME PERIODICO', 'ASO']
+  },
+  {
+    name: 'PLR',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Participação nos Lucros e Resultados',
+    examples: ['PLR', 'PARTICIPACAO LUCROS']
+  },
+  {
+    name: 'RESCISÕES E INDENIZAÇÕES',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Rescisões contratuais e indenizações',
+    examples: ['RESCISAO', 'INDENIZACAO', 'DEMISSAO', 'ACERTO']
+  },
+  {
+    name: 'PENSÃO ALIMENTÍCIA',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Desconto de pensão alimentícia',
+    examples: ['PENSAO ALIMENTICIA', 'PENSAO']
+  },
+  {
+    name: 'MEDICAMENTOS',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Medicamentos para funcionários',
+    examples: ['MEDICAMENTO', 'FARMACIA', 'REMEDIO']
+  },
+  {
+    name: 'UNIFORME / EPI',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Uniformes e EPIs',
+    examples: ['UNIFORME', 'EPI', 'EQUIPAMENTO PROTECAO']
+  },
+  {
+    name: 'FRETADO PARA FUNCIONÁRIO',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Transporte fretado para funcionários',
+    examples: ['FRETADO', 'ONIBUS FUNCIONARIO', 'TRANSPORTE FRETADO']
+  },
+  {
+    name: 'SEGURO DE VIDA',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Seguro de vida em grupo',
+    examples: ['SEGURO VIDA', 'SEGURO FUNCIONARIO']
+  },
+  {
+    name: 'FESTAS E CONFRATERNIZACOES',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Festas e confraternizações de funcionários',
+    examples: ['FESTA', 'CONFRATERNIZACAO', 'ANIVERSARIO', 'FIM ANO']
+  },
+  {
+    name: 'ASSOCIAÇÕES/SINDICATOS',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Contribuições sindicais e associativas',
+    examples: ['SINDICATO', 'ASSOCIACAO', 'CONTRIBUICAO SINDICAL']
+  },
+  {
+    name: 'PESQ /DESENVOLVIMENTO/TREIN.',
+    type: 'fixed_cost',
+    categoryGroup: 'PESSOAL',
+    dreGroup: 'CF',
+    description: 'Pesquisa, desenvolvimento e treinamento',
+    examples: ['TREINAMENTO', 'CAPACITACAO', 'CURSO', 'P&D']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - DIRETORIA (dreGroup: CF)
+  // ============================================
+  {
+    name: 'PRO LABORE',
+    type: 'fixed_cost',
+    categoryGroup: 'DIRETORIA',
+    dreGroup: 'CF',
+    description: 'Remuneração dos sócios administradores',
+    examples: ['PRO LABORE', 'PROLABORE', 'RETIRADA SOCIO']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - VEÍCULOS (dreGroup: CF)
+  // ============================================
+  {
+    name: 'COMBUSTIVEIS/LUBRIFICANTES',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Combustíveis e lubrificantes',
+    examples: ['COMBUSTIVEL', 'GASOLINA', 'DIESEL', 'OLEO', 'LUBRIFICANTE']
+  },
+  {
+    name: 'IPVA/LICENCIAMENTO',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'IPVA e licenciamento de veículos',
+    examples: ['IPVA', 'LICENCIAMENTO', 'DETRAN']
+  },
+  {
+    name: 'SEGURO DE VEÍCULOS',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Seguro de veículos da empresa',
+    examples: ['SEGURO VEICULO', 'SEGURO CARRO', 'SEGURO AUTO']
+  },
+  {
+    name: 'LOCAÇÃO DE VEÍCULOS',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Aluguel de veículos',
+    examples: ['LOCACAO VEICULO', 'ALUGUEL CARRO', 'RENT A CAR']
+  },
+  {
+    name: 'ESTACIONAMENTOS',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Despesas com estacionamento',
+    examples: ['ESTACIONAMENTO', 'PARKING', 'ZONA AZUL']
+  },
+  {
+    name: 'CONSÓRCIOS',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Parcelas de consórcio de veículos',
+    examples: ['CONSORCIO', 'PARCELA CONSORCIO']
+  },
+  {
+    name: 'DESPESAS DE VEÍCULOS',
+    type: 'fixed_cost',
+    categoryGroup: 'VEÍCULOS',
+    dreGroup: 'CF',
+    description: 'Outras despesas com veículos',
+    examples: ['DESPESA VEICULO', 'MANUTENCAO VEICULO', 'PNEU', 'LAVAGEM']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - OCUPAÇÃO (dreGroup: CF)
+  // ============================================
+  {
+    name: 'ALUGUEL',
+    type: 'fixed_cost',
+    categoryGroup: 'OCUPAÇÃO',
+    dreGroup: 'CF',
+    description: 'Aluguel de imóvel comercial',
+    examples: ['ALUGUEL', 'LOCACAO IMOVEL', 'ARRENDAMENTO']
+  },
+  {
+    name: 'CONDOMINIO',
+    type: 'fixed_cost',
+    categoryGroup: 'OCUPAÇÃO',
+    dreGroup: 'CF',
+    description: 'Taxa de condomínio',
+    examples: ['CONDOMINIO', 'TAXA CONDOMINIO']
+  },
+  {
+    name: 'IPTU',
+    type: 'fixed_cost',
+    categoryGroup: 'OCUPAÇÃO',
+    dreGroup: 'CF',
+    description: 'Imposto predial e territorial urbano',
+    examples: ['IPTU', 'IMPOSTO PREDIAL']
+  },
+  {
+    name: 'ALARME E SEGURANÇA PATRIMONIAL',
+    type: 'fixed_cost',
+    categoryGroup: 'OCUPAÇÃO',
+    dreGroup: 'CF',
+    description: 'Segurança e alarme do imóvel',
+    examples: ['ALARME', 'SEGURANCA', 'VIGILANCIA', 'MONITORAMENTO']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - UTILIDADES (dreGroup: CF)
+  // ============================================
+  {
+    name: 'ENERGIA ELETRICA',
+    type: 'fixed_cost',
+    categoryGroup: 'UTILIDADES',
+    dreGroup: 'CF',
+    description: 'Fornecimento de energia elétrica',
+    examples: ['ENERGIA', 'LUZ', 'ELETRICA', 'CEMIG', 'CPFL', 'ENEL']
+  },
+  {
+    name: 'ÁGUA E ESGOTO',
+    type: 'fixed_cost',
+    categoryGroup: 'UTILIDADES',
+    dreGroup: 'CF',
+    description: 'Fornecimento de água e esgoto',
+    examples: ['AGUA', 'ESGOTO', 'SABESP', 'COPASA', 'SANEAMENTO']
+  },
+  {
+    name: 'GÁS',
+    type: 'fixed_cost',
+    categoryGroup: 'UTILIDADES',
+    dreGroup: 'CF',
+    description: 'Fornecimento de gás',
+    examples: ['GAS', 'GAS NATURAL', 'GLP', 'COMGAS']
+  },
+  {
+    name: 'EQUIPAMENTOS',
+    type: 'fixed_cost',
+    categoryGroup: 'UTILIDADES',
+    dreGroup: 'CF',
+    description: 'Aquisição e manutenção de equipamentos',
+    examples: ['EQUIPAMENTO', 'MAQUINA', 'FERRAMENTA']
+  },
+  {
+    name: 'DESPESAS ADMINISTRATIVAS',
+    type: 'fixed_cost',
+    categoryGroup: 'UTILIDADES',
+    dreGroup: 'CF',
+    description: 'Despesas administrativas gerais',
+    examples: ['DESPESA ADM', 'ADMINISTRATIVO']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - COMUNICAÇÃO (dreGroup: CF)
+  // ============================================
+  {
+    name: 'TELEFONE / INTERNET',
+    type: 'fixed_cost',
+    categoryGroup: 'COMUNICAÇÃO',
+    dreGroup: 'CF',
+    description: 'Telefonia e internet',
+    examples: ['TELEFONE', 'INTERNET', 'CELULAR', 'VIVO', 'CLARO', 'TIM', 'OI']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - SERVIÇOS (dreGroup: CF)
+  // ============================================
+  {
+    name: 'ASSESSORIA /CONSULTORIA',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de assessoria e consultoria',
+    examples: ['ASSESSORIA', 'CONSULTORIA', 'CONSULTOR']
+  },
+  {
+    name: 'AUDITORIA',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de auditoria',
+    examples: ['AUDITORIA', 'AUDITOR']
+  },
+  {
+    name: 'SERVIÇOS DE ADVOCACIA',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços advocatícios e jurídicos',
+    examples: ['ADVOCACIA', 'ADVOGADO', 'JURIDICO', 'HONORARIOS']
+  },
+  {
+    name: 'SERVIÇOS PRESTADOS PJ',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços prestados por pessoa jurídica',
+    examples: ['SERVICO PJ', 'TERCEIRIZADO']
+  },
+  {
+    name: 'CONSERVAÇÃO E LIMPEZA',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de limpeza e conservação',
+    examples: ['LIMPEZA', 'CONSERVACAO', 'FAXINA', 'ZELADORIA']
+  },
+  {
+    name: 'COMUNICAÇÃO E MKT',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de comunicação e marketing',
+    examples: ['MARKETING', 'COMUNICACAO', 'AGENCIA', 'MIDIA']
+  },
+  {
+    name: 'CORREIOS',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços postais',
+    examples: ['CORREIOS', 'SEDEX', 'PAC', 'POSTAGEM']
+  },
+  {
+    name: 'MOTORISTA',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de motorista',
+    examples: ['MOTORISTA', 'UBER', '99', 'TAXI']
+  },
+  {
+    name: 'SEGURANÇA DO TRABALHO',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de segurança do trabalho',
+    examples: ['SEGURANCA TRABALHO', 'SESMT', 'CIPA', 'PPRA', 'PCMSO']
+  },
+  {
+    name: 'SERV PROTEÇÃO AO CREDITO',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Serviços de proteção ao crédito',
+    examples: ['SPC', 'SERASA', 'BOA VISTA', 'PROTESTO']
+  },
+  {
+    name: 'TRATAMENTO DE RESÍDUOS',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Tratamento e destinação de resíduos',
+    examples: ['RESIDUO', 'LIXO', 'COLETA', 'DESCARTE']
+  },
+  {
+    name: 'DESPESAS COM TI',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Despesas com tecnologia da informação',
+    examples: ['TI', 'INFORMATICA', 'SUPORTE TI', 'CLOUD', 'SOFTWARE']
+  },
+  {
+    name: 'LOCAÇÃO DE MÁQ E EQUIPAMENTOS',
+    type: 'fixed_cost',
+    categoryGroup: 'SERVIÇOS',
+    dreGroup: 'CF',
+    description: 'Locação de máquinas e equipamentos',
+    examples: ['LOCACAO MAQUINA', 'ALUGUEL EQUIPAMENTO']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - MANUTENÇÃO (dreGroup: CF)
+  // ============================================
+  {
+    name: 'MANUTENÇÃO PREDIAL',
+    type: 'fixed_cost',
+    categoryGroup: 'MANUTENÇÃO',
+    dreGroup: 'CF',
+    description: 'Manutenção do prédio e instalações',
+    examples: ['MANUTENCAO PREDIAL', 'REPARO PREDIO', 'OBRA']
+  },
+  {
+    name: 'MANUTENÇÃO DE EQUIPAMENTOS',
+    type: 'fixed_cost',
+    categoryGroup: 'MANUTENÇÃO',
+    dreGroup: 'CF',
+    description: 'Manutenção de equipamentos',
+    examples: ['MANUTENCAO EQUIPAMENTO', 'CONSERTO', 'REPARO']
+  },
+  {
+    name: 'MANUTENÇÃO INDUSTRIAL',
+    type: 'fixed_cost',
+    categoryGroup: 'MANUTENÇÃO',
+    dreGroup: 'CF',
+    description: 'Manutenção industrial',
+    examples: ['MANUTENCAO INDUSTRIAL', 'MANUTENCAO FABRICA']
+  },
+  {
+    name: 'DESPESAS INDUSTRIAIS',
+    type: 'fixed_cost',
+    categoryGroup: 'MANUTENÇÃO',
+    dreGroup: 'CF',
+    description: 'Despesas industriais diversas',
+    examples: ['DESPESA INDUSTRIAL', 'PRODUCAO']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - MATERIAIS (dreGroup: CF)
+  // ============================================
+  {
+    name: 'COPA E COZINHA',
+    type: 'fixed_cost',
+    categoryGroup: 'MATERIAIS',
+    dreGroup: 'CF',
+    description: 'Materiais de copa e cozinha',
+    examples: ['COPA', 'COZINHA', 'CAFE', 'AGUA MINERAL', 'DESCARTAVEL']
+  },
+  {
+    name: 'MATERIAL DE CONSUMO',
+    type: 'fixed_cost',
+    categoryGroup: 'MATERIAIS',
+    dreGroup: 'CF',
+    description: 'Material de consumo e escritório',
+    examples: ['MATERIAL CONSUMO', 'ESCRITORIO', 'PAPELARIA', 'LIMPEZA']
+  },
+
+  // ============================================
+  // CUSTOS FIXOS - OUTROS CF (dreGroup: CF)
+  // ============================================
+  {
+    name: 'DESPESAS COM VIAGENS',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Despesas com viagens a trabalho',
+    examples: ['VIAGEM', 'PASSAGEM', 'HOSPEDAGEM', 'DIARIA', 'HOTEL']
+  },
+  {
+    name: 'ÁLVARAS/LICENÇAS DIVERSAS',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Alvarás e licenças',
+    examples: ['ALVARA', 'LICENCA', 'TAXA FUNCIONAMENTO']
+  },
+  {
+    name: 'CARTÃO CORPORATIVO',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Despesas de cartão corporativo',
+    examples: ['CARTAO CORPORATIVO', 'CARTAO EMPRESA']
+  },
+  {
+    name: 'DOAÇÕES',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Doações e contribuições',
+    examples: ['DOACAO', 'CONTRIBUICAO', 'PATROCINIO SOCIAL']
+  },
+  {
+    name: 'SEGUROS GERAIS',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Seguros patrimoniais e gerais',
+    examples: ['SEGURO', 'SEGURO EMPRESA', 'SEGURO PATRIMONIAL']
+  },
+  {
+    name: 'OUTROS CUSTOS FIXOS',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Outros custos fixos não classificados',
+    examples: ['OUTROS CF', 'DESPESA DIVERSA']
+  },
+  {
+    name: 'SAQUE EM DINHEIRO',
+    type: 'fixed_cost',
+    categoryGroup: 'OUTROS CF',
+    dreGroup: 'CF',
+    description: 'Saques em dinheiro para despesas',
+    examples: ['SAQUE', 'RETIRADA', 'CAIXA']
+  },
+
+  // ============================================
+  // T.D.C.F. - TRIBUTOS (dreGroup: TDCF)
+  // ============================================
+  {
+    name: 'COFINS',
     type: 'non_operational',
-    colorHex: '#9CA3AF',
-    icon: '💰',
-    description: 'Ajustes de saldo inicial e checkpoints de saldo (ignorado em relatórios)',
-    examples: ['SALDO ANTERIOR', 'SALDO TOTAL DISPONÍVEL', 'SALDO DIA'],
-    totalAmount: 0,
-    transactionCount: 0,
-    percentage: 0
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Contribuição para Financiamento da Seguridade Social',
+    examples: ['COFINS']
+  },
+  {
+    name: 'PIS',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Programa de Integração Social',
+    examples: ['PIS', 'PIS/PASEP']
+  },
+  {
+    name: 'ICMS',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto sobre Circulação de Mercadorias e Serviços',
+    examples: ['ICMS', 'ICMS ST']
+  },
+  {
+    name: 'ISS',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto Sobre Serviços',
+    examples: ['ISS', 'ISSQN']
+  },
+  {
+    name: 'IPI',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto sobre Produtos Industrializados',
+    examples: ['IPI']
+  },
+  {
+    name: 'IOF',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto sobre Operações Financeiras',
+    examples: ['IOF']
+  },
+  {
+    name: 'IRRF',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto de Renda Retido na Fonte',
+    examples: ['IRRF', 'IR RETIDO']
+  },
+  {
+    name: 'IR EXTERIOR',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Imposto de Renda sobre operações no exterior',
+    examples: ['IR EXTERIOR', 'IMPOSTO EXTERIOR']
+  },
+  {
+    name: 'DAE',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Documento de Arrecadação Estadual',
+    examples: ['DAE']
+  },
+  {
+    name: 'DARF',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Documento de Arrecadação de Receitas Federais',
+    examples: ['DARF']
+  },
+  {
+    name: 'OUTROS TRIBUTOS',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Outros tributos federais, estaduais ou municipais',
+    examples: ['TRIBUTO', 'IMPOSTO', 'TAXA']
+  },
+  {
+    name: 'TAXAS ADUANEIRA',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Taxas aduaneiras de importação/exportação',
+    examples: ['ADUANEIRA', 'IMPORTACAO', 'EXPORTACAO', 'SISCOMEX']
+  },
+  {
+    name: 'DESPESAS DE IMPORTAÇÃO',
+    type: 'non_operational',
+    categoryGroup: 'TRIBUTOS',
+    dreGroup: 'TDCF',
+    description: 'Despesas de importação',
+    examples: ['IMPORTACAO', 'DESEMBARACO', 'DESPACHO ADUANEIRO']
+  },
+
+  // ============================================
+  // T.D.C.F. - CUSTO FINANCEIRO (dreGroup: TDCF)
+  // ============================================
+  {
+    name: 'TARIFAS BANCÁRIAS',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Tarifas e taxas bancárias',
+    examples: ['TARIFA', 'TAXA BANCARIA', 'TED', 'DOC', 'MANUTENCAO CONTA']
+  },
+  {
+    name: 'DESCONTO DE DUPLICATAS/CHEQUES',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Custos de desconto de duplicatas e cheques',
+    examples: ['DESCONTO DUPLICATA', 'DESCONTO CHEQUE', 'ANTECIPACAO']
+  },
+  {
+    name: 'CUSTO SOBRE FOMENTO',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Custos de operações de fomento',
+    examples: ['CUSTO FOMENTO', 'TAXA FACTORING']
+  },
+  {
+    name: 'JUROS DUPL DESCONTADAS',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Juros sobre duplicatas descontadas',
+    examples: ['JUROS DUPLICATA', 'ENCARGOS ANTECIPACAO']
+  },
+  {
+    name: 'JUROS/PRORROGAÇÃO',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Juros e custos de prorrogação',
+    examples: ['JUROS', 'PRORROGACAO', 'MORA']
+  },
+  {
+    name: 'JUROS DE NOTA COMERCIAL',
+    type: 'non_operational',
+    categoryGroup: 'CUSTO FINANCEIRO',
+    dreGroup: 'TDCF',
+    description: 'Juros de nota comercial',
+    examples: ['JUROS NOTA COMERCIAL']
+  },
+
+  // ============================================
+  // DESPESAS NOP (dreGroup: DNOP)
+  // ============================================
+  {
+    name: 'CARTÓRIO',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Despesas cartorárias',
+    examples: ['CARTORIO', 'TABELIAO', 'REGISTRO', 'AUTENTICACAO']
+  },
+  {
+    name: 'CUSTO DE PRORROGAÇÃO',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Custos de prorrogação de dívidas',
+    examples: ['PRORROGACAO', 'RENEGOCIACAO']
+  },
+  {
+    name: 'INADIMPLENCIA / RECOMPRAS',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Inadimplência e recompra de títulos',
+    examples: ['INADIMPLENCIA', 'RECOMPRA', 'TITULO DEVOLVIDO']
+  },
+  {
+    name: 'PARCELAMENTO DE IMPOSTOS',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Parcelamento de impostos',
+    examples: ['PARCELAMENTO', 'REFIS', 'PROGRAMA FISCAL']
+  },
+  {
+    name: 'FINANCIAMENTO DE VEÍCULOS',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Financiamento de veículos',
+    examples: ['FINANCIAMENTO VEICULO', 'PARCELA CARRO', 'LEASING']
+  },
+  {
+    name: 'LIQUIDAÇÃO DE FOMENTO',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Liquidação de operações de fomento',
+    examples: ['LIQUIDACAO FOMENTO', 'PAGAMENTO FACTORING']
+  },
+  {
+    name: 'LIQUIDAÇÃO DE NOTA COMERCIAL',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Liquidação de nota comercial',
+    examples: ['LIQUIDACAO NOTA', 'PAGAMENTO NOTA COMERCIAL']
+  },
+  {
+    name: 'MATÉRIA PRIMA (PASSIVO)',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Pagamento de passivo de matéria prima',
+    examples: ['MP PASSIVO', 'DIVIDA FORNECEDOR']
+  },
+  {
+    name: 'PAGAMENTO DE COMISSÁRIA',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Pagamento de operações de comissária',
+    examples: ['COMISSARIA', 'PAGAMENTO COMISSARIA']
+  },
+  {
+    name: 'ROYALTIES',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Pagamento de royalties',
+    examples: ['ROYALTY', 'ROYALTIES', 'FRANQUIA']
+  },
+  {
+    name: 'FEDERAL (IMPOSTOS ATRASADOS)',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Impostos federais atrasados',
+    examples: ['IMPOSTO FEDERAL ATRASADO', 'DIVIDA ATIVA FEDERAL']
+  },
+  {
+    name: 'ESTADUAL (IMPOSTOS ATRASADOS)',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Impostos estaduais atrasados',
+    examples: ['IMPOSTO ESTADUAL ATRASADO', 'DIVIDA ATIVA ESTADUAL']
+  },
+  {
+    name: 'MUNICIPAL (IMPOSTOS ATRASADOS)',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Impostos municipais atrasados',
+    examples: ['IMPOSTO MUNICIPAL ATRASADO', 'DIVIDA ATIVA MUNICIPAL']
+  },
+  {
+    name: 'MULTAS/AUTOS DE INFRAÇÃO',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Multas e autos de infração',
+    examples: ['MULTA', 'AUTO INFRACAO', 'PENALIDADE']
+  },
+  {
+    name: 'JUROS DIVERSOS',
+    type: 'non_operational',
+    categoryGroup: 'DESPESAS NOP',
+    dreGroup: 'DNOP',
+    description: 'Juros diversos não classificados',
+    examples: ['JUROS', 'ENCARGOS', 'MORA']
+  },
+
+  // ============================================
+  // MOVIMENTAÇÕES FINANCEIRAS (dreGroup: EMP/TRANSF)
+  // ============================================
+  {
+    name: 'EMPRÉSTIMOS (+)',
+    type: 'financial_movement',
+    categoryGroup: 'EMPRÉSTIMOS',
+    dreGroup: 'EMP',
+    description: 'Entrada de empréstimos',
+    examples: ['EMPRESTIMO RECEBIDO', 'CREDITO EMPRESTIMO', 'LIBERACAO EMPRESTIMO']
+  },
+  {
+    name: 'EMPRÉSTIMOS (-)',
+    type: 'financial_movement',
+    categoryGroup: 'EMPRÉSTIMOS',
+    dreGroup: 'EMP',
+    description: 'Pagamento de empréstimos',
+    examples: ['PAGAMENTO EMPRESTIMO', 'PARCELA EMPRESTIMO', 'AMORTIZACAO']
+  },
+  {
+    name: 'TRANSFERÊNCIAS (+)',
+    type: 'financial_movement',
+    categoryGroup: 'TRANSFERÊNCIAS',
+    dreGroup: 'TRANSF',
+    description: 'Transferências recebidas entre contas',
+    examples: ['TRANSFERENCIA RECEBIDA', 'TED RECEBIDO', 'CREDITO TRANSFERENCIA']
+  },
+  {
+    name: 'TRANSFERÊNCIAS (-)',
+    type: 'financial_movement',
+    categoryGroup: 'TRANSFERÊNCIAS',
+    dreGroup: 'TRANSF',
+    description: 'Transferências enviadas entre contas',
+    examples: ['TRANSFERENCIA ENVIADA', 'TED ENVIADO', 'DEBITO TRANSFERENCIA']
+  },
+
+  // ============================================
+  // CATEGORIA ESPECIAL - SALDO INICIAL
+  // ============================================
+  {
+    name: 'Saldo Inicial',
+    type: 'financial_movement',
+    categoryGroup: 'TRANSFERÊNCIAS',
+    dreGroup: 'TRANSF',
+    description: 'Ajustes de saldo inicial e checkpoints (ignorado em relatórios)',
+    examples: ['SALDO ANTERIOR', 'SALDO TOTAL', 'SALDO DIA', 'SALDO INICIAL']
   }
 ];
 
-// Configuração dos tipos de categoria (mantido para compatibilidade)
+// Gerar as categorias com IDs sequenciais
+let categoryId = 1;
+
+export const mockCategories: Category[] = categoryDefinitions.map((def) => ({
+  id: String(categoryId++),
+  name: def.name,
+  type: def.type,
+  colorHex: groupColors[def.categoryGroup],
+  icon: groupIcons[def.categoryGroup],
+  description: def.description,
+  examples: def.examples,
+  categoryGroup: def.categoryGroup,
+  dreGroup: def.dreGroup,
+  totalAmount: 0,
+  transactionCount: 0,
+  percentage: 0,
+}));
+
+// Configuração dos tipos de categoria
 export const categoryTypes = [
   {
     value: 'revenue',
     label: 'Receitas',
-    colorHex: '#6EE7B7',
-    color: '#6EE7B7',
+    colorHex: '#22C55E',
+    color: '#22C55E',
     description: 'Todas as entradas de dinheiro'
   },
   {
     value: 'variable_cost',
     label: 'Custos Variáveis',
-    colorHex: '#FCD34D',
-    color: '#FCD34D',
+    colorHex: '#3B82F6',
+    color: '#3B82F6',
     description: 'Custos que variam com o volume de vendas'
   },
   {
     value: 'fixed_cost',
     label: 'Custos Fixos',
-    colorHex: '#FCA5A5',
-    color: '#FCA5A5',
+    colorHex: '#EF4444',
+    color: '#EF4444',
     description: 'Custos fixos mensais'
   },
   {
     value: 'non_operational',
     label: 'Não Operacionais',
-    colorHex: '#D1D5DB',
-    color: '#D1D5DB',
-    description: 'Despesas não relacionadas à operação principal'
+    colorHex: '#8B5CF6',
+    color: '#8B5CF6',
+    description: 'Tributos, custos financeiros e despesas não operacionais'
+  },
+  {
+    value: 'financial_movement',
+    label: 'Movimentações Financeiras',
+    colorHex: '#06B6D4',
+    color: '#06B6D4',
+    description: 'Empréstimos, transferências e ajustes de saldo'
   }
 ];
 
-// Regras automáticas baseadas nas 53 rúbricas
-export const mockAutoRules: AutoRule[] = [
-  {
-    id: '1',
-    category: '13º SALARIO',
-    pattern: '13º SALARIO',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '2',
-    category: 'ALUGUEL',
-    pattern: 'ALUGUEL',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '3',
-    category: 'ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
-    pattern: 'ALUGUEL DE MÁQUINAS E EQUIPAMENTOS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '4',
-    category: 'ASSISTÊNCIA MÉDICA',
-    pattern: 'ASSISTÊNCIA MÉDICA',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '5',
-    category: 'ASSISTÊNCIA ODONTOLÓGICA',
-    pattern: 'ASSISTÊNCIA ODONTOLÓGICA',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '6',
-    category: 'CARTÓRIO',
-    pattern: 'CARTÓRIO',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '7',
-    category: 'CONSERVAÇÃO E LIMPEZA',
-    pattern: 'CONSERVAÇÃO E LIMPEZA',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '8',
-    category: 'CONSULTORIA',
-    pattern: 'CONSULTORIA',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '9',
-    category: 'CORREIOS',
-    pattern: 'CORREIOS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '10',
-    category: 'DESP. LOCOMOÇÃO',
-    pattern: 'DESP. LOCOMOÇÃO',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '11',
-    category: 'ENERGIA ELETRICA',
-    pattern: 'ENERGIA ELETRICA',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '12',
-    category: 'FGTS',
-    pattern: 'FGTS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '13',
-    category: 'FOLHA PJ',
-    pattern: 'FOLHA PJ',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '14',
-    category: 'INSS',
-    pattern: 'INSS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '15',
-    category: 'INTERNET',
-    pattern: 'INTERNET',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '16',
-    category: 'LICENÇAS DIVERSAS',
-    pattern: 'LICENÇAS DIVERSAS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '17',
-    category: 'MANUTENÇÃO DE EQUIPAMENTOS',
-    pattern: 'MANUTENÇÃO DE EQUIPAMENTOS',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '18',
-    category: 'MANUTENÇÃO DE HARDWARE',
-    pattern: 'MANUTENÇÃO DE HARDWARE',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '19',
-    category: 'MANUTENÇÃO PREDIAL',
-    pattern: 'MANUTENÇÃO PREDIAL',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '20',
-    category: 'MARKETING E PUBLICIDADE',
-    pattern: 'MARKETING E PUBLICIDADE',
-    type: 'exact',
-    accuracy: 100,
-    status: 'active'
-  },
-  {
-    id: '54',
-    category: 'Saldo Inicial',
-    pattern: 'SALDO',
-    type: 'contains',
-    accuracy: 100,
-    status: 'active'
-  }
+// Configuração dos grupos de categoria (categoryGroup)
+export const categoryGroups: Array<{ value: CategoryGroup; label: string; dreGroup: DreGroupType }> = [
+  // Receitas
+  { value: 'RECEITAS BRUTAS', label: 'Receitas Brutas', dreGroup: 'RoB' },
+  { value: 'RECEITAS NOP', label: 'Receitas Não Operacionais', dreGroup: 'RNOP' },
+  // Custos Variáveis
+  { value: 'VENDAS', label: 'Vendas', dreGroup: 'CV' },
+  { value: 'CPV/CMV', label: 'CPV/CMV', dreGroup: 'CV' },
+  // Custos Fixos
+  { value: 'PESSOAL', label: 'Pessoal', dreGroup: 'CF' },
+  { value: 'DIRETORIA', label: 'Diretoria', dreGroup: 'CF' },
+  { value: 'VEÍCULOS', label: 'Veículos', dreGroup: 'CF' },
+  { value: 'OCUPAÇÃO', label: 'Ocupação', dreGroup: 'CF' },
+  { value: 'UTILIDADES', label: 'Utilidades', dreGroup: 'CF' },
+  { value: 'COMUNICAÇÃO', label: 'Comunicação', dreGroup: 'CF' },
+  { value: 'SERVIÇOS', label: 'Serviços', dreGroup: 'CF' },
+  { value: 'MANUTENÇÃO', label: 'Manutenção', dreGroup: 'CF' },
+  { value: 'MATERIAIS', label: 'Materiais', dreGroup: 'CF' },
+  { value: 'OUTROS CF', label: 'Outros Custos Fixos', dreGroup: 'CF' },
+  // Não Operacionais
+  { value: 'TRIBUTOS', label: 'Tributos', dreGroup: 'TDCF' },
+  { value: 'CUSTO FINANCEIRO', label: 'Custo Financeiro', dreGroup: 'TDCF' },
+  { value: 'DESPESAS NOP', label: 'Despesas Não Operacionais', dreGroup: 'DNOP' },
+  // Movimentações
+  { value: 'EMPRÉSTIMOS', label: 'Empréstimos', dreGroup: 'EMP' },
+  { value: 'TRANSFERÊNCIAS', label: 'Transferências', dreGroup: 'TRANSF' },
 ];
+
+// Regras automáticas baseadas nas categorias
+export const mockAutoRules: AutoRule[] = mockCategories.slice(0, 20).map((cat, index) => ({
+  id: String(index + 1),
+  category: cat.name,
+  pattern: cat.name,
+  type: 'exact' as const,
+  accuracy: 100,
+  status: 'active' as const
+}));
 
 // Sugestões para nova categoria
 export const categorySuggestions = {
   names: ['Outras Despesas', 'Receitas Eventuais', 'Investimentos'],
   descriptions: ['Categorias adicionais para organizar finanças'],
-  colors: ['#6EE7B7', '#FCD34D', '#FCA5A5']
+  colors: ['#22C55E', '#3B82F6', '#EF4444']
 };

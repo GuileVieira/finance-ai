@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useCallback } from 'react';
-import { DREStatement, CashFlowReport, Insight, CategoryRule } from '@/lib/types';
+import { DREStatement, CashFlowReport, Insight, CategoryRule, ReportPeriod } from '@/lib/types';
 
 export interface ReportsFilters {
   period?: string;
@@ -275,15 +275,26 @@ export function useReportExport() {
   const exportReport = useCallback(async (
     reportType: 'dre' | 'cashflow',
     format: 'pdf' | 'excel',
-    filters: ReportsFilters = {}
+    filters: ReportsFilters = {},
+    periodDetails?: Partial<ReportPeriod>
   ) => {
     try {
+      // Construir objeto de período fallback se não for fornecido
+      const period = periodDetails || {
+        id: filters.period || 'current',
+        name: filters.period || 'Atual',
+        startDate: filters.startDate || '',
+        endDate: filters.endDate || '',
+        type: 'custom'
+      };
+
       const exportData = {
         format,
         reportType,
         filters,
         includeDetails: true,
         includeCharts: true,
+        period,
       };
 
       const response = await fetch('/api/reports/export', {
@@ -302,7 +313,8 @@ export function useReportExport() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${reportType}-${filters.period || 'current'}.${format}`;
+      const extension = format === 'excel' ? 'xlsx' : format;
+      a.download = `${reportType}-${(period as any).name?.replace(/\//g, '-') || filters.period || 'report'}.${extension}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -315,12 +327,12 @@ export function useReportExport() {
     }
   }, []);
 
-  const exportDRE = useCallback(async (format: 'pdf' | 'excel', filters: ReportsFilters = {}) => {
-    return exportReport('dre', format, filters);
+  const exportDRE = useCallback(async (format: 'pdf' | 'excel', filters: ReportsFilters = {}, periodDetails?: Partial<ReportPeriod>) => {
+    return exportReport('dre', format, filters, periodDetails);
   }, [exportReport]);
 
-  const exportCashFlow = useCallback(async (format: 'pdf' | 'excel', filters: ReportsFilters = {}) => {
-    return exportReport('cashflow', format, filters);
+  const exportCashFlow = useCallback(async (format: 'pdf' | 'excel', filters: ReportsFilters = {}, periodDetails?: Partial<ReportPeriod>) => {
+    return exportReport('cashflow', format, filters, periodDetails);
   }, [exportReport]);
 
   return {
