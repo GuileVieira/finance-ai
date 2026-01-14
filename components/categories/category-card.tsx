@@ -75,7 +75,8 @@ export function CategoryCard({
   };
 
   // Função para editar inline
-  const handleNameDoubleClick = () => {
+  const handleNameDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (showEditButton !== false) {
       setIsEditing(true);
     }
@@ -95,8 +96,23 @@ export function CategoryCard({
     setDeleteDialogOpen(false);
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!onView || isEditing) return;
+
+    const target = e.target as HTMLElement;
+    // Ignora cliques em botões, inputs ou elementos interativos
+    if (target.closest('button') || target.closest('input') || target.closest('a')) {
+      return;
+    }
+
+    onView();
+  };
+
   return (
-    <Card className={`group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!category.active ? 'opacity-60' : ''}`}>
+    <Card
+      className={`group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!category.active ? 'opacity-60' : ''} ${onView ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
+    >
       <CardContent className="p-4">
         {/* Header com cor e ícone */}
         <div className="flex items-start justify-between mb-3">
@@ -148,6 +164,7 @@ export function CategoryCard({
                   if (e.key === 'Escape') handleCancel();
                 }}
                 onBlur={handleSave} // Salva automaticamente ao perder foco
+                onClick={(e) => e.stopPropagation()}
               />
               <Button
                 size="sm"
@@ -172,7 +189,7 @@ export function CategoryCard({
             <h3
               className="font-semibold text-sm line-clamp-2 cursor-text hover:text-primary transition-colors capitalize"
               onClick={handleNameDoubleClick}
-              title="Duplo-clique para editar"
+              title="Clique para editar"
             >
               {category.name}
             </h3>
