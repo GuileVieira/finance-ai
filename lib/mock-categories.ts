@@ -135,7 +135,7 @@ export const mockCategories: Category[] = [
   {
     id: '10',
     name: 'COFINS',
-    type: 'non_operating' as const,
+    type: 'non_operational' as const,
     colorHex: '#fc824f',
     totalAmount: 5943,
     transactionCount: 41,
@@ -183,7 +183,7 @@ export const mockCategories: Category[] = [
   {
     id: '14',
     name: 'CONTRIBUICAO SINDICAL',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#fc824f',
     totalAmount: 7063,
     transactionCount: 51,
@@ -207,7 +207,7 @@ export const mockCategories: Category[] = [
   {
     id: '16',
     name: 'CUSTAS JUDICIAIS',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#98a3b3',
     totalAmount: 9451,
     transactionCount: 37,
@@ -327,7 +327,7 @@ export const mockCategories: Category[] = [
   {
     id: '27',
     name: 'LEASING / FINAME',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#93a1b9',
     totalAmount: 7340,
     transactionCount: 9,
@@ -447,7 +447,7 @@ export const mockCategories: Category[] = [
   {
     id: '37',
     name: 'OUTRAS DESPESAS NOP',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#D1D5DB',
     totalAmount: 2088,
     transactionCount: 50,
@@ -459,7 +459,7 @@ export const mockCategories: Category[] = [
   {
     id: '38',
     name: 'OUTROS TRIBUTOS',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#fc824f',
     totalAmount: 6833,
     transactionCount: 53,
@@ -495,7 +495,7 @@ export const mockCategories: Category[] = [
   {
     id: '42',
     name: 'SEGUROS DE VIDA',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#93a1b9',
     totalAmount: 4964,
     transactionCount: 21,
@@ -507,7 +507,7 @@ export const mockCategories: Category[] = [
   {
     id: '43',
     name: 'SEGUROS GERAIS',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#93a1b9',
     totalAmount: 9250,
     transactionCount: 40,
@@ -567,7 +567,7 @@ export const mockCategories: Category[] = [
   {
     id: '48',
     name: 'TARIFAS BANCÁRIAS',
-    type: 'non_operating',
+    type: 'non_operational',
     colorHex: '#93a1b9',
     totalAmount: 10489,
     transactionCount: 36,
@@ -635,6 +635,18 @@ export const mockCategories: Category[] = [
     icon: '⚡',
     description: 'Categoria extraída dos dados financeiros: VALE TRANSPORTE',
     examples: ["VALE TRANSPORTE", "VALE TRANSPORTE"]
+  },
+  {
+    id: '54',
+    name: 'Saldo Inicial',
+    type: 'non_operational',
+    colorHex: '#9CA3AF',
+    icon: '💰',
+    description: 'Ajustes de saldo inicial e checkpoints de saldo (ignorado em relatórios)',
+    examples: ['SALDO ANTERIOR', 'SALDO TOTAL DISPONÍVEL', 'SALDO DIA'],
+    totalAmount: 0,
+    transactionCount: 0,
+    percentage: 0
   }
 ];
 
@@ -659,7 +671,7 @@ export const categoryTypes = [
     description: 'Custos fixos mensais'
   },
   {
-    value: 'non_operating',
+    value: 'non_operational',
     label: 'Não Operacionais',
     colorHex: '#D1D5DB',
     description: 'Despesas não relacionadas à operação principal'
@@ -825,6 +837,14 @@ export const mockAutoRules: AutoRule[] = [
     category: 'MARKETING E PUBLICIDADE',
     pattern: 'MARKETING E PUBLICIDADE',
     type: 'exact',
+    accuracy: 100,
+    status: 'active'
+  },
+  {
+    id: '54',
+    category: 'Saldo Inicial',
+    pattern: 'SALDO',
+    type: 'contains',
     accuracy: 100,
     status: 'active'
   }

@@ -104,7 +104,7 @@ export async function OPTIONS(request: NextRequest) {
     response: {
       id: 'string - UUID único da categoria',
       name: 'string - Nome da categoria',
-      type: 'string - Tipo da categoria (revenue, variable_cost, fixed_cost, non_operating)',
+      type: 'string - Tipo da categoria (revenue, variable_cost, fixed_cost, non_operational)',
       colorHex: 'string - Cor hexadecimal para UI',
       transactionCount: 'number - Quantidade de transações nesta categoria'
     },

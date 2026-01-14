@@ -281,11 +281,11 @@ export default class DREService {
           // So Net Flow = Income - Expense
           const netFlow = incomeAmount - expenseAmount;
 
-          let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
+          let resolvedType: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
           let actualValue: number;
 
           if (cat.categoryType) {
-            resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating' | 'financial_movement';
+            resolvedType = cat.categoryType as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
 
             // If it's a Revenue type, we expect positive NetFlow.
             // If it's a Cost type, we expect negative NetFlow.
@@ -412,7 +412,7 @@ export default class DREService {
 
       // Despesas não operacionais (excluindo custos financeiros e impostos)
       const totalNonOperational = dreCategories
-        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .filter(cat => cat.type === 'non_operational' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
         .reduce((sum, cat) => sum + cat.actual, 0);
 
       const totalExpenses = totalVariableCosts + totalFixedCosts + totalNonOperational + financialCosts;
@@ -522,7 +522,7 @@ export default class DREService {
         }));
 
       const nonOperationalCategories = dreCategories
-        .filter(cat => cat.type === 'non_operating' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
+        .filter(cat => cat.type === 'non_operational' && !isFinancialCost(cat.name) && !isTaxCategory(cat.name))
         .map(cat => ({
           name: cat.name,
           id: cat.id,

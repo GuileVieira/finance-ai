@@ -910,7 +910,7 @@ export default class InsightsService {
     const labels: Record<string, string> = {
       'fixed_cost': 'dos custos fixos',
       'variable_cost': 'dos custos variáveis',
-      'non_operating': 'das despesas não operacionais',
+      'non_operational': 'das despesas não operacionais',
       'revenue': 'das receitas'
     };
     return labels[type] || 'dos custos';

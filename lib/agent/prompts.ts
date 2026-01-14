@@ -38,6 +38,7 @@ ${patternsText}
    - Qualquer transação com "INSS", "FGTS", "PIS", "COFINS" → Tributos
    - Qualquer transação com salários, pró-labore → Salários e Encargos
    - Qualquer transação com aluguel, condomínio → Aluguel e Ocupação
+   - **CRÍTICO**: Qualquer transação que contenha apenas "SALDO", "SALDO TOTAL", "SALDO ANTERIOR" ou similares, representa apenas uma "foto" do saldo atual e NÃO uma movimentação financeira real. Estas devem ser categorizadas como **"Saldo Inicial"** (Não Operacional) para serem ignoradas nos cálculos.
 
 4. **CONTEXTUALIZAÇÃO DE VALOR**:
    - Valores altos para mesma empresa podem indicar categorias diferentes
@@ -92,13 +93,13 @@ Descrição: "DEBITO ALUGUEL PREDIO COMERCIAL 2500.00"
         'revenue': 'RECEITAS',
         'variable_cost': 'CUSTOS VARIÁVEIS',
         'fixed_cost': 'CUSTOS FIXOS',
-        'non_operating': 'NÃO OPERACIONAIS'
+        'non_operational': 'NÃO OPERACIONAIS'
       };
 
       text += `\n### ${typeNames[type as keyof typeof typeNames]}:\n`;
 
       for (const cat of cats) {
-        text += `**${cat.name}** (${cat.color})\n`;
+        text += `**${cat.name}** (${cat.colorHex})\n`;
         if (cat.examples && cat.examples.length > 0) {
           text += `  Exemplos: ${cat.examples.join(', ')}\n`;
         }
@@ -264,14 +265,14 @@ Seja consistente e use o mesmo padrão para transações similares.`;
 ## EXEMPLOS CORRETOS (APRENDA ESTES PADRÕES):
 
 ${correctExamples.slice(0, 10).map((ex, i) =>
-  `${i + 1}. "${ex.description}" R$ ${ex.amount.toFixed(2)} → ${ex.macro} > ${ex.micro}`
-).join('\n')}
+      `${i + 1}. "${ex.description}" R$ ${ex.amount.toFixed(2)} → ${ex.macro} > ${ex.micro}`
+    ).join('\n')}
 
 ## EXEMPLOS INCORRETOS (EVITE ESTES PADRÕES):
 
 ${incorrectExamples.slice(0, 5).map((ex, i) =>
-  `${i + 1}. "${ex.description}" R$ ${ex.amount.toFixed(2)} → ${ex.macro} > ${ex.micro} (ERRADO)`
-).join('\n')}
+      `${i + 1}. "${ex.description}" R$ ${ex.amount.toFixed(2)} → ${ex.macro} > ${ex.micro} (ERRADO)`
+    ).join('\n')}
 
 Identifique os padrões corretos e incorretos para melhorar futuras classificações.
 

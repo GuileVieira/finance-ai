@@ -4,12 +4,12 @@ import { db } from '@/lib/db/connection';
 import { transactions, categories, categoryRules, companies } from '@/lib/db/schema';
 import { eq, ilike, and, not, inArray, sql } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
-import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 
 async function fixBalanceArtifacts() {
     await initializeDatabase();
 
-    console.log('🏁 Starting Smart Balance Artifact Cleanup...');
+    console.log('🏁 Starting Smart Balance Artifact Cleanup (UUID Mode)...');
 
     // 1. Get Default Company ID
     const [defaultCompany] = await db.select().from(companies).limit(1);
@@ -26,7 +26,7 @@ async function fixBalanceArtifacts() {
     if (existingCats.length === 0) {
         console.log('🆕 Creating "Saldo Inicial" category...');
         const result = await db.insert(categories).values({
-            id: nanoid(),
+            id: uuidv4(), // MUST BE UUID
             name: 'Saldo Inicial',
             type: 'non_operational',
             colorHex: '#9CA3AF',
@@ -64,7 +64,6 @@ async function fixBalanceArtifacts() {
 
     if (checkpoints.length > 0) {
         const idsToUpdate = checkpoints.map(t => t.id);
-        // Drizzle update with inArray
         await db.update(transactions)
             .set({
                 categoryId: saldoCategoryId,
@@ -88,7 +87,7 @@ async function fixBalanceArtifacts() {
         const existing = await db.select().from(categoryRules).where(eq(categoryRules.rulePattern, pattern)).limit(1);
         if (existing.length === 0) {
             await db.insert(categoryRules).values({
-                id: nanoid(),
+                id: uuidv4(), // MUST BE UUID
                 categoryId: saldoCategoryId,
                 rulePattern: pattern,
                 ruleType: 'contains',

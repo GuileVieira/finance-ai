@@ -157,7 +157,7 @@ export class ClassificationAgent {
       this.categoriesCache = dbCategories.map(cat => ({
         id: cat.id,
         name: cat.name,
-        type: cat.type as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operating',
+        type: cat.type as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational',
         color: cat.colorHex || '#6B7280',
         icon: cat.icon || '📊',
         description: cat.description || '',

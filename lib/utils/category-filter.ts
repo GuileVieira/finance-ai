@@ -38,7 +38,7 @@ export function filterCategoriesByTransactionType(
     const expenseCategories = allCategories.filter(c =>
       c.type === 'variable_cost' ||
       c.type === 'fixed_cost' ||
-      c.type === 'non_operating' ||
+      c.type === 'non_operational' ||
       c.type === 'expense' // Fallback para categorias antigas
     );
 
