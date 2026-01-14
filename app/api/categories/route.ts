@@ -9,13 +9,15 @@ export async function GET(request: NextRequest) {
 
     // Parse filters from query params - FORÇAR companyId da sessão
     const filters = {
-      type: searchParams.get('type') as 'income' | 'expense' | undefined,
+      type: searchParams.get('type') as any,
       companyId, // SEMPRE da sessão
       isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
       includeStats: searchParams.get('includeStats') === 'true',
       search: searchParams.get('search') || undefined,
       sortBy: (searchParams.get('sortBy') as 'name' | 'totalAmount' | 'transactionCount') || 'totalAmount',
-      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined
     };
 
     const categories = await CategoriesService.getCategories(filters);

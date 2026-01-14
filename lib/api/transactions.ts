@@ -1,4 +1,5 @@
 import { Transaction } from '@/lib/types';
+import { DashboardAPI } from './dashboard';
 
 export interface TransactionFilters {
   accountId?: string;
@@ -124,7 +125,7 @@ export class TransactionsAPI {
     }
     // Caso contrário, converter do string period
     else if (uiFilters.period && uiFilters.period !== 'all' && uiFilters.period !== 'custom') {
-      const { startDate, endDate } = this.convertPeriodToDates(uiFilters.period);
+      const { startDate, endDate } = DashboardAPI.convertPeriodToDates(uiFilters.period);
       if (startDate && endDate) {
         apiFilters.startDate = startDate;
         apiFilters.endDate = endDate;
@@ -173,21 +174,5 @@ export class TransactionsAPI {
     apiFilters.limit = 50;
 
     return apiFilters;
-  }
-
-  /**
-   * Helper param converter period string
-   */
-  private static convertPeriodToDates(period: string): { startDate: string, endDate: string } {
-    try {
-      const [year, month] = period.split('-');
-      const startDate = `${year}-${month}-01`;
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
-      return { startDate, endDate };
-    } catch (e) {
-      console.error("Erro ao converter periodo", period, e);
-      return { startDate: '', endDate: '' };
-    }
   }
 }

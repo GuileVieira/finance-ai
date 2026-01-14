@@ -202,12 +202,97 @@ export class DashboardAPI {
   /**
    * Converte período do formato YYYY-MM para startDate e endDate
    */
+  /**
+   * Converte período do formato YYYY-MM ou chaves dinâmicas para startDate e endDate
+   */
   static convertPeriodToDates(period: string): { startDate: string; endDate: string } {
     if (!period || period === 'all') {
       return { startDate: '', endDate: '' };
     }
 
+    const today = new Date();
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+    // Períodos dinâmicos
+    if (period === 'today') {
+      return { startDate: formatDate(today), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_7_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 7);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_15_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 15);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_30_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 30);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_90_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 90);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_180_days') {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 180);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'this_month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { startDate: formatDate(start), endDate: formatDate(end) };
+    }
+
+    if (period === 'this_year') {
+      const start = new Date(today.getFullYear(), 0, 1);
+      return { startDate: formatDate(start), endDate: formatDate(today) };
+    }
+
+    if (period === 'last_month') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { startDate: formatDate(start), endDate: formatDate(end) };
+    }
+
+    if (period === 'last_year') {
+      const start = new Date(today.getFullYear() - 1, 0, 1);
+      const end = new Date(today.getFullYear() - 1, 11, 31);
+      return { startDate: formatDate(start), endDate: formatDate(end) };
+    }
+
+    if (period === 'last_quarter') {
+      const currentQuarter = Math.floor(today.getMonth() / 3) + 1;
+      let lastQuarterYear = today.getFullYear();
+      let lastQuarterFn = currentQuarter - 1;
+
+      if (lastQuarterFn === 0) {
+        lastQuarterFn = 4;
+        lastQuarterYear -= 1;
+      }
+
+      const quarterStartMonth = (lastQuarterFn - 1) * 3;
+      const start = new Date(lastQuarterYear, quarterStartMonth, 1);
+      const end = new Date(lastQuarterYear, quarterStartMonth + 3, 0);
+      return { startDate: formatDate(start), endDate: formatDate(end) };
+    }
+
+    // Fallback para YYYY-MM
     const [year, month] = period.split('-');
+
+    // Se não tiver hífen, pode ser inválido ou outro formato
+    if (!month) return { startDate: '', endDate: '' };
+
     const yearNum = parseInt(year);
     const monthNum = parseInt(month);
 
@@ -227,6 +312,12 @@ export class DashboardAPI {
 
     // Dias em cada mês (considerando anos bissextos simplificados)
     const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    // Ajuste bissexto simples
+    if (monthNum === 2 && ((yearNum % 4 === 0 && yearNum % 100 !== 0) || yearNum % 400 === 0)) {
+      daysInMonth[1] = 29;
+    }
+
     const lastDay = daysInMonth[monthNum - 1];
 
     const endDate = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;

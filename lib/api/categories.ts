@@ -61,6 +61,8 @@ export interface CategoryFilters {
   sortBy?: 'name' | 'createdAt' | 'transactionCount' | 'totalAmount';
   sortOrder?: 'asc' | 'desc';
   id?: string;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
 }
 
 export interface CreateCategoryData {

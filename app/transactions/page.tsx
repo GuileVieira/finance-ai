@@ -25,6 +25,7 @@ import { TableSkeleton } from '@/components/transactions/table-skeleton';
 import { CategoryRuleDialog } from '@/components/transactions/category-rule-dialog';
 import { useAvailablePeriods } from '@/hooks/use-periods';
 import { TransactionDetailsDialog } from '@/components/dashboard/transaction-details-dialog';
+import { DateFilterSelect } from '@/components/shared/date-filter-select';
 
 export default function TransactionsPage() {
   const [filters, setFilters] = useState({
@@ -585,23 +586,12 @@ export default function TransactionsPage() {
                 {/* Período */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Período</label>
-                  <Select
+                  <DateFilterSelect
                     value={filters.period}
-                    onValueChange={(value) => handleFilterChange('period', value)}
-                    disabled={isLoadingPeriods}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {!isLoadingPeriods && periods.map((period) => (
-                        <SelectItem key={period.id} value={period.id}>
-                          {period.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="all">Todos os períodos</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onChange={(value) => handleFilterChange('period', value)}
+                    periods={periods.map(p => p.id)}
+                    isLoading={isLoadingPeriods}
+                  />
                 </div>
 
                 {/* Banco - dados reais da API */}

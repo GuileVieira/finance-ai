@@ -15,6 +15,7 @@ import { RefreshCw, Download, AlertTriangle, FileUp, Upload, ArrowRight } from '
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DateFilterSelect } from '@/components/shared/date-filter-select';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
 import { Settings } from 'lucide-react';
 import {
@@ -161,23 +162,12 @@ export default function ReportsPage() {
         {/* Filtros e Ações */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <Select
+            <DateFilterSelect
               value={filters.period}
-              onValueChange={(value) => handleFilterChange('period', value)}
-              disabled={isLoadingPeriods}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
-              </SelectTrigger>
-              <SelectContent>
-                {!isLoadingPeriods && availablePeriods.map(period => (
-                  <SelectItem key={period.id} value={period.id}>
-                    {period.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="all">Todos os períodos</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={(value) => handleFilterChange('period', value)}
+              periods={availablePeriods.map(p => p.id)}
+              isLoading={isLoadingPeriods}
+            />
             <Select value={filters.accountId} onValueChange={(value) => handleFilterChange('accountId', value)}>
               <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Conta" />

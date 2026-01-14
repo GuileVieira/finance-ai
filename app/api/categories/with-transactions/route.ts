@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CategoryFilters, CategoryWithStats } from '@/lib/api/categories';
 import { db } from '@/lib/db/drizzle';
 import { categories, transactions } from '@/lib/db/schema';
-import { eq, desc, isNull, count, sum, sql, and } from 'drizzle-orm';
+import { eq, desc, isNull, count, sum, sql, and, gte, lte } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
 
 export async function GET(request: NextRequest) {
@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       includeStats: searchParams.get('includeStats') === 'true',
       search: searchParams.get('search') || undefined,
       sortBy: searchParams.get('sortBy') as any || 'totalAmount',
-      sortOrder: searchParams.get('sortOrder') as any || 'desc'
+      sortOrder: searchParams.get('sortOrder') as any || 'desc',
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined
     };
 
     // Buscar categorias com transações associadas usando query direta
@@ -55,7 +57,13 @@ export async function GET(request: NextRequest) {
         totalAmount: sum(transactions.amount).mapWith(Number),
       })
       .from(categories)
-      .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+      .leftJoin(transactions,
+        and(
+          eq(categories.id, transactions.categoryId),
+          filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
+          filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined
+        )
+      )
       .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
       .groupBy(categories.id)
       .orderBy(desc(sum(transactions.amount)));
@@ -79,9 +87,9 @@ export async function GET(request: NextRequest) {
 
       return {
         id: cat.id,
-        companyId: cat.companyId,
+        companyId: cat.companyId!,
         name: cat.name,
-        description: cat.description,
+        description: cat.description || undefined,
         type: cat.type,
         parentType: cat.parentType,
         parentCategoryId: cat.parentCategoryId,

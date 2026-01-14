@@ -10,11 +10,12 @@ import { TopExpenses } from '@/components/dashboard/top-expenses';
 import { Insights } from '@/components/dashboard/insights';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { RefreshCw } from 'lucide-react';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
+import { DateFilterSelect } from '@/components/shared/date-filter-select';
 import { useDashboard } from '@/hooks/use-dashboard';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useCompaniesForSelect } from '@/hooks/use-companies';
@@ -38,7 +39,7 @@ export default function DashboardPage() {
     startDate?: string;
     endDate?: string;
   }>({
-    period: 'all',
+    period: 'this_month',
     accountId: 'all',
     companyId: 'all'
   });
@@ -131,27 +132,26 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isLoadingPeriods) return;
 
-    if (periods.length === 0) {
-      setFilters(prev => {
-        if (prev.period === 'all' || prev.period === 'custom') return prev;
-        return { ...prev, period: 'all' };
-      });
-      return;
-    }
+    // Lista de chaves estáticas que são sempre válidas
+    const staticKeys = [
+      'all', 'custom', 'today', 'this_month', 'this_year',
+      'last_7_days', 'last_15_days', 'last_30_days', 'last_90_days', 'last_180_days'
+    ];
 
     setFilters(prev => {
-      // Se for custom, manter
-      if (prev.period === 'custom') return prev;
+      // Se for uma chave estática, manter
+      if (staticKeys.includes(prev.period)) return prev;
 
-      // Se o período atual ainda existe na lista, manter
-      if (prev.period !== 'all' && periods.some(period => period.id === prev.period)) {
+      // Se o período atual (ex: YYYY-MM) existe na lista da API, manter
+      if (periods.some(period => period.id === prev.period)) {
         return prev;
       }
-      // Se não, volta para o primeiro (default)
-      if (prev.period === periods[0]?.id) return prev;
-      return { ...prev, period: periods[0].id };
+
+      // Se não, volta para o default (este mês) ou primeiro da lista se preferir
+      // Mas como 'this_month' é estático e válido, podemos não fazer nada ou forçar 'this_month'
+      return { ...prev, period: 'this_month' };
     });
-  }, [isLoadingPeriods, periods.length, periods[0]?.id]);
+  }, [isLoadingPeriods, periods]);
 
   // Usar hook do TanStack Query para buscar dados do dashboard
   const {
@@ -291,24 +291,12 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
 
-          <Select
+          <DateFilterSelect
             value={filters.period}
-            onValueChange={(value) => handleFilterChange('period', value)}
-            disabled={isLoadingPeriods}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder={isLoadingPeriods ? 'Carregando períodos...' : 'Selecione o período'} />
-            </SelectTrigger>
-            <SelectContent>
-              {!isLoadingPeriods && periods.map(period => (
-                <SelectItem key={period.id} value={period.id}>
-                  {period.label}
-                </SelectItem>
-              ))}
-              <SelectItem value="all">Todos os períodos</SelectItem>
-              <SelectItem value="custom">Personalizado</SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={(value) => handleFilterChange('period', value)}
+            periods={periods.map(p => p.id)}
+            isLoading={isLoadingPeriods}
+          />
 
           {filters.period === 'custom' && (
             <DatePickerWithRange

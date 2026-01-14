@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     const filters = {
       type: searchParams.get('type') as any,
       companyId, // Always from session
-      isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined
+      isActive: searchParams.get('isActive') === 'true' ? true : searchParams.get('isActive') === 'false' ? false : undefined,
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined
     };
 
     const summary = await CategoriesService.getCategoriesSummary(filters);

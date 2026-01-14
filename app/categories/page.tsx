@@ -32,6 +32,10 @@ import {
   useCategoriesOperations
 } from '@/hooks/use-categories';
 import { CategoryType } from '@/lib/api/categories';
+import { DateFilterSelect } from '@/components/shared/date-filter-select';
+import { DashboardAPI } from '@/lib/api/dashboard';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 
 // Tipos de categorias disponíveis
 const categoryTypes = [
@@ -65,6 +69,31 @@ export default function CategoriesPage() {
   const transactionsLimit = 15;
   const { toast } = useToast();
 
+  // Estado do filtro de período
+  const [period, setPeriod] = useState<string>('this_month');
+  const [dateRange, setDateRange] = useState<{ startDate: string | undefined; endDate: string | undefined }>({
+    startDate: undefined,
+    endDate: undefined
+  });
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
+
+  // Atualizar datas quando o período muda
+  useEffect(() => {
+    if (period === 'custom') return;
+    const { startDate, endDate } = DashboardAPI.convertPeriodToDates(period);
+    setDateRange({ startDate, endDate: endDate || undefined });
+  }, [period]);
+
+  const handleCustomDateChange = (range: DateRange | undefined) => {
+    setCustomDateRange(range);
+    if (range?.from) {
+      setDateRange({
+        startDate: range.from.toISOString().split('T')[0],
+        endDate: range.to ? range.to.toISOString().split('T')[0] : range.from.toISOString().split('T')[0]
+      });
+    }
+  };
+
   // Buscar categorias com transações usando TanStack Query
   const {
     data: categories = [],
@@ -75,7 +104,9 @@ export default function CategoriesPage() {
     type: activeTab !== 'all' ? activeTab : undefined,
     includeStats: true,
     sortBy: 'totalAmount',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate
   });
 
   // Buscar categorias e regras
@@ -86,7 +117,9 @@ export default function CategoriesPage() {
 
   // Hook combinado para operações com categorias
   const categoryOps = useCategoriesOperations({
-    type: activeTab !== 'all' ? activeTab : undefined
+    type: activeTab !== 'all' ? activeTab : undefined,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate
   });
 
   // Hooks para mutações de regras
@@ -315,27 +348,45 @@ export default function CategoriesPage() {
     <LayoutWrapper>
       <div className="space-y-6">
 
-        {/* Filtro por Tipo de Categoria */}
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            {categoryTypes.map((type) => (
-              <Tooltip key={type.value}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={activeTab === type.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setActiveTab(type.value as CategoryType | 'all')}
-                    disabled={isLoading}
-                  >
-                    {type.label}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{type.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </TooltipProvider>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* Filtro por Tipo de Categoria */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 max-w-full">
+            <TooltipProvider>
+              {categoryTypes.map((type) => (
+                <Tooltip key={type.value}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={activeTab === type.value ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setActiveTab(type.value as CategoryType | 'all')}
+                      disabled={isLoading}
+                      className="whitespace-nowrap"
+                    >
+                      {type.label}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{type.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </TooltipProvider>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            {period === 'custom' && (
+              <DatePickerWithRange
+                date={customDateRange}
+                onDateChange={handleCustomDateChange}
+                className="w-full sm:w-auto"
+              />
+            )}
+            <div className="w-full sm:w-[200px]">
+              <DateFilterSelect
+                value={period}
+                onChange={setPeriod}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Conteúdo Principal */}

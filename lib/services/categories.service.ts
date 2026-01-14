@@ -22,6 +22,7 @@ import {
   avg,
   gt,
   gte,
+  lte,
   isNotNull
 } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -97,7 +98,13 @@ export default class CategoriesService {
             averageAmount: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
           })
           .from(categories)
-          .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+          .leftJoin(transactions,
+            and(
+              eq(categories.id, transactions.categoryId),
+              filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
+              filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined
+            )
+          )
           .where(whereClause)
           .groupBy(categories.id);
 
@@ -346,9 +353,21 @@ export default class CategoriesService {
   /**
    * Deletar categoria
    */
-  static async deleteCategory(id: string): Promise<void> {
+  static async deleteCategory(id: string, companyId?: string): Promise<void> {
     try {
       this.checkDatabaseConnection();
+
+      // Validar propriedade se companyId for fornecido
+      if (companyId) {
+        const [category] = await db
+          .select()
+          .from(categories)
+          .where(and(eq(categories.id, id), eq(categories.companyId, companyId)));
+
+        if (!category) {
+          throw new Error('Category not found or access denied');
+        }
+      }
 
       // Verificar se existem transações associadas
       const [transactionCount] = await db
@@ -423,7 +442,13 @@ export default class CategoriesService {
           averageAmount: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
         })
         .from(categories)
-        .leftJoin(transactions, eq(categories.id, transactions.categoryId))
+        .leftJoin(transactions,
+          and(
+            eq(categories.id, transactions.categoryId),
+            filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
+            filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined
+          )
+        )
         .where(whereClause)
         .groupBy(categories.id)
         .orderBy(desc(count(transactions.id)))
