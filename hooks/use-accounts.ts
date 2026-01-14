@@ -1,110 +1,233 @@
-'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { BankAccount, BankAccountFormData } from '@/lib/types/accounts';
+import { toast } from 'sonner';
 
-// Interface para resposta da API
-export interface AccountResponse {
+// Tipos da API (para tipagem interna do hook)
+interface AccountApiResponse {
   id: string;
+  companyId: string;
   name: string;
   bankName: string;
-  bankCode: string;
-  agencyNumber?: string;
+  bankCode: string | null;
+  agencyNumber: string | null;
   accountNumber: string;
-  accountType?: string;
-  companyId: string;
-  companyName: string;
+  accountType: 'checking' | 'savings' | 'investment';
+  openingBalance: number;
+  currentBalance?: number;
   active: boolean;
-  maskedAccountNumber?: string;
+  lastSyncAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const API_BASE = '/api/accounts';
+// Mappers Helpers
+function mapApiToFrontend(apiAccount: AccountApiResponse): BankAccount {
+  const openingBalance = Number(apiAccount.openingBalance) || 0;
+  const currentBalance = apiAccount.currentBalance !== undefined
+    ? Number(apiAccount.currentBalance)
+    : openingBalance;
 
-export class AccountsAPI {
-  /**
-   * Buscar todas as contas disponíveis
-   */
-  static async getAccounts(companyId?: string): Promise<AccountResponse[]> {
-    const url = companyId ? `${API_BASE}?companyId=${companyId}` : API_BASE;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar contas: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || 'Erro desconhecido ao buscar contas');
-    }
-
-    return data.data.accounts;
-  }
+  return {
+    id: apiAccount.id,
+    company_id: apiAccount.companyId,
+    name: apiAccount.name,
+    bank_name: apiAccount.bankName,
+    bank_code: apiAccount.bankCode || '',
+    agency_number: apiAccount.agencyNumber || undefined,
+    account_number: apiAccount.accountNumber,
+    account_type: apiAccount.accountType.toLowerCase() as 'checking' | 'savings' | 'investment',
+    opening_balance: openingBalance,
+    current_balance: currentBalance,
+    created_at: apiAccount.createdAt,
+    updated_at: apiAccount.updatedAt,
+    active: apiAccount.active,
+    last_sync_at: apiAccount.lastSyncAt || undefined,
+  };
 }
 
-/**
- * Hook principal para buscar contas
- */
-export function useAccounts(companyId?: string, options?: {
-  enabled?: boolean;
-}) {
+function mapFrontendToApi(formData: BankAccountFormData, companyId: string) {
+  return {
+    companyId,
+    name: formData.name,
+    bankName: formData.bank_name,
+    bankCode: formData.bank_code,
+    agencyNumber: formData.agency_number,
+    accountNumber: formData.account_number,
+    accountType: formData.account_type,
+    openingBalance: formData.opening_balance,
+    active: formData.active ?? true,
+  };
+}
+
+// Keys Factory
+export const accountKeys = {
+  all: ['accounts'] as const,
+  lists: () => [...accountKeys.all, 'list'] as const,
+  detail: (id: string) => [...accountKeys.all, 'detail', id] as const,
+};
+
+// --- Hooks ---
+
+export function useAccounts() {
   return useQuery({
-    queryKey: ['accounts', companyId],
-    queryFn: () => AccountsAPI.getAccounts(companyId),
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    gcTime: 1000 * 60 * 15, // 15 minutos
-    enabled: options?.enabled !== false,
-    retry: 2,
-    select: (accounts: AccountResponse[]) => {
-      // Agrupar por banco para melhor organização
-      const accountsByBank = accounts.reduce((acc, account) => {
-        const bankKey = account.bankName;
-        if (!acc[bankKey]) {
-          acc[bankKey] = [];
-        }
-        acc[bankKey].push(account);
-        return acc;
-      }, {} as Record<string, AccountResponse[]>);
+    queryKey: accountKeys.lists(),
+    queryFn: async () => {
+      const response = await fetch('/api/accounts');
+      const result = await response.json();
 
-      return {
-        accounts,
-        accountsByBank,
-        totalAccounts: accounts.length
-      };
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao buscar contas');
+      }
+
+      return (result.data.accounts as AccountApiResponse[]).map(mapApiToFrontend);
+    },
+    staleTime: 1000 * 60 * 5, // 5 min
+  });
+}
+
+export function useCreateAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { formData: BankAccountFormData, companyId: string }) => {
+      const { formData, companyId } = data;
+      const apiData = mapFrontendToApi(formData, companyId);
+
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiData),
+      });
+
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Erro ao criar conta');
+
+      return mapApiToFrontend(result.data.account);
+    },
+    onSuccess: (newAccount) => {
+      queryClient.setQueryData(accountKeys.lists(), (old: BankAccount[] = []) => [...old, newAccount]);
+      toast.success('Conta criada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao criar conta: ${error.message}`);
     }
   });
 }
 
-/**
- * Hook para buscar contas formatadas para select
- */
-export function useAccountsForSelect(companyId?: string) {
-  const { data: accountsData, isLoading } = useAccounts(companyId);
+export function useUpdateAccount() {
+  const queryClient = useQueryClient();
 
-  const accountOptions = useMemo(() => {
-    if (!accountsData) return [];
+  return useMutation({
+    mutationFn: async (data: { id: string, formData: BankAccountFormData, companyId: string }) => {
+      const { id, formData, companyId } = data;
+      const apiData = mapFrontendToApi(formData, companyId);
 
-    // Opção "Todos os bancos"
-    const allOption = {
-      value: 'all',
-      label: 'Todos os bancos',
-      bankName: 'Todos'
-    };
+      const response = await fetch(`/api/accounts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiData),
+      });
 
-    // Opções individuais formatadas
-    const bankOptions = Object.entries(accountsData.accountsByBank).map(([bankName, accounts]) => ({
-      value: bankName,
-      label: `${bankName} (${accounts.length} contas)`,
-      bankName,
-      accounts
-    }));
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Erro ao atualizar conta');
 
-    return [allOption, ...bankOptions];
-  }, [accountsData]);
+      return mapApiToFrontend(result.data.account);
+    },
+    onSuccess: (updatedAccount) => {
+      queryClient.setQueryData(accountKeys.lists(), (old: BankAccount[] = []) =>
+        old.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)
+      );
+      toast.success('Conta atualizada!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao atualizar: ${error.message}`);
+    }
+  });
+}
 
-  return {
-    accountOptions,
-    isLoading,
-    totalAccounts: accountsData?.totalAccounts || 0
-  };
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Erro ao excluir conta');
+      return id;
+    },
+    onSuccess: (deletedId) => {
+      // Soft delete: update query cache to mark as inactive
+      queryClient.setQueryData(accountKeys.lists(), (old: BankAccount[] = []) =>
+        old.map(acc => acc.id === deletedId ? { ...acc, active: false } : acc)
+      );
+      toast.success('Conta desativada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    }
+  });
+}
+
+export function useToggleAccountStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (account: BankAccount) => {
+      const response = await fetch(`/api/accounts/${account.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !account.active }),
+      });
+
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return { id: account.id, active: !account.active };
+    },
+    onMutate: async (variable) => {
+      await queryClient.cancelQueries({ queryKey: accountKeys.lists() });
+      const previousAccounts = queryClient.getQueryData<BankAccount[]>(accountKeys.lists());
+
+      queryClient.setQueryData(accountKeys.lists(), (old: BankAccount[] = []) =>
+        old.map(acc => acc.id === variable.id ? { ...acc, active: !acc.active } : acc)
+      );
+
+      return { previousAccounts };
+    },
+    onError: (err, newTodo, context) => {
+      if (context?.previousAccounts) {
+        queryClient.setQueryData(accountKeys.lists(), context.previousAccounts);
+      }
+      toast.error('Erro ao alterar status');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+    }
+  });
+}
+
+export function useSyncAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/accounts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lastSyncAt: new Date().toISOString() }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return { id, lastSyncAt: new Date().toISOString() };
+    },
+    onSuccess: ({ id, lastSyncAt }) => {
+      queryClient.setQueryData(accountKeys.lists(), (old: BankAccount[] = []) =>
+        old.map(acc => acc.id === id ? { ...acc, last_sync_at: lastSyncAt } : acc)
+      );
+      toast.success('Conta sincronizada!');
+    },
+    onError: () => {
+      toast.error('Erro ao sincronizar conta');
+    }
+  });
 }
