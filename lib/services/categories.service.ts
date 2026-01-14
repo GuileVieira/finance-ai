@@ -273,6 +273,7 @@ export default class CategoriesService {
           parentType: categoryData.parentType,
           parentCategoryId: categoryData.parentCategoryId,
           colorHex: categoryData.colorHex,
+          dreGroup: categoryData.dreGroup,
           icon: categoryData.icon,
           examples: categoryData.examples,
           isSystem: false,

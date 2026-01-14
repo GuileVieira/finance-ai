@@ -99,9 +99,13 @@ Descrição: "DEBITO ALUGUEL PREDIO COMERCIAL 2500.00"
       text += `\n### ${typeNames[type as keyof typeof typeNames]}:\n`;
 
       for (const cat of cats) {
-        text += `**${cat.name}** (${cat.colorHex})\n`;
+        text += `**${cat.name}**\n`;
+        // Incluir descrição se disponível (ajuda o agente a entender melhor a categoria)
+        if (cat.description) {
+          text += `  📝 ${cat.description}\n`;
+        }
         if (cat.examples && cat.examples.length > 0) {
-          text += `  Exemplos: ${cat.examples.join(', ')}\n`;
+          text += `  📌 Exemplos: ${cat.examples.join(', ')}\n`;
         }
         text += '\n';
       }

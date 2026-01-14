@@ -78,9 +78,10 @@ export interface CreateCategoryData {
   examples?: string[];
   companyId?: string;
   active?: boolean;
+  dreGroup?: string; // RoB, TDCF, MP, CF, RNOP, DNOP
 }
 
-export interface UpdateCategoryData extends Partial<CreateCategoryData> {
+export interface UpdateCategoryData extends Partial<Omit<CreateCategoryData, 'dreGroup'>> {
   id: string;
   dreGroup?: string | null;
 }
