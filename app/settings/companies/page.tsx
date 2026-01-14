@@ -34,6 +34,7 @@ interface CompanyApiResponse {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  calculatedRevenue?: number;
 }
 
 // Converter de camelCase (API) para snake_case (frontend)
@@ -56,6 +57,7 @@ function mapApiToFrontend(apiCompany: CompanyApiResponse): Company {
     updated_at: apiCompany.updatedAt,
     active: apiCompany.active,
     created_by: 'system',
+    calculated_revenue: apiCompany.calculatedRevenue,
   };
 }
 
