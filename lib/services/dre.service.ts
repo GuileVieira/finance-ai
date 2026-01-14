@@ -54,8 +54,14 @@ const isFinancialRevenue = (name: string): boolean =>
 export default class DREService {
   /**
    * Obter período anterior para comparação
+   * Retorna null se não houver período anterior válido (ex: 'all')
    */
-  static getPreviousPeriod(period: string): string {
+  static getPreviousPeriod(period: string): string | null {
+    // Para período 'all', não há período anterior para comparação
+    if (period === 'all') {
+      return null;
+    }
+
     if (!period || period === 'current' || period === 'this_month') {
       return 'last_month';
     }
@@ -201,6 +207,12 @@ export default class DREService {
 
         startDate = formatDate(firstDayQuarter);
         endDate = formatDate(lastDayQuarter);
+        break;
+      case 'all':
+        // Buscar desde 2 anos atrás até hoje
+        const twoYearsAgo = new Date(now.getFullYear() - 2, 0, 1);
+        startDate = formatDate(twoYearsAgo);
+        endDate = formatDate(now);
         break;
       default:
         // Default para mês atual se não reconhecido

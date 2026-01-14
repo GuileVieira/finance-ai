@@ -26,12 +26,15 @@ export async function GET(request: NextRequest) {
     // Buscar DRE do período anterior para comparação
     let comparisonData = undefined;
     if (includeComparison) {
-      const previousPeriod = await DREService.getPreviousPeriod(period);
-      comparisonData = await DREService.getDREStatement({
-        period: previousPeriod,
-        companyId,
-        accountId
-      });
+      const previousPeriod = DREService.getPreviousPeriod(period);
+      // Só busca comparação se houver período anterior válido
+      if (previousPeriod) {
+        comparisonData = await DREService.getDREStatement({
+          period: previousPeriod,
+          companyId,
+          accountId
+        });
+      }
     }
 
     return NextResponse.json({
