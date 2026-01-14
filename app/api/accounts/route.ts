@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
       companyName: companies.name,
       companyCnpj: companies.cnpj
     })
-    .from(accounts)
-    .leftJoin(companies, eq(accounts.companyId, companies.id));
+      .from(accounts)
+      .leftJoin(companies, eq(accounts.companyId, companies.id));
 
     // Filtros - SEMPRE filtrar por companyId da sessão
     const conditions = [eq(accounts.companyId, companyId)];
@@ -143,9 +143,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Criar conta com companyId da sessão
+    // Criar conta com companyId fornecido ou da sessão
+    const targetCompanyId = body.companyId || companyId;
+
     const [newAccount] = await db.insert(accounts).values({
-      companyId,
+      companyId: targetCompanyId,
       name: body.name.trim(),
       bankName: body.bankName.trim(),
       bankCode: body.bankCode?.trim() || null,

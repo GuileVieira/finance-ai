@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
-import { companies } from '@/lib/db/schema';
-import { eq, desc, like } from 'drizzle-orm';
+import { companies, accounts, transactions } from '@/lib/db/schema';
+import { eq, desc, like, sql, inArray, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
 
@@ -44,13 +44,50 @@ export async function GET(request: NextRequest) {
 
     const allCompanies = await query;
 
-    console.log(`✅ Encontradas ${allCompanies.length} empresas`);
+    // Calcular faturamento real para cada empresa
+    const companiesWithRevenue = await Promise.all(allCompanies.map(async (company) => {
+      // Buscar contas da empresa
+      const companyAccounts = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(eq(accounts.companyId, company.id));
+
+      let totalRevenue = 0;
+
+      if (companyAccounts.length > 0) {
+        const accountIds = companyAccounts.map(a => a.id);
+
+        // Buscar transações de receita (credit) para essas contas
+        const revenueResult = await db
+          .select({
+            total: sql<string>`sum(${transactions.amount})`
+          })
+          .from(transactions)
+          .where(
+            and(
+              inArray(transactions.accountId, accountIds),
+              eq(transactions.type, 'credit')
+            )
+          );
+
+        if (revenueResult[0]?.total) {
+          totalRevenue = parseFloat(revenueResult[0].total);
+        }
+      }
+
+      return {
+        ...company,
+        calculatedRevenue: totalRevenue
+      };
+    }));
+
+    console.log(`✅ Encontradas ${companiesWithRevenue.length} empresas`);
 
     return NextResponse.json({
       success: true,
       data: {
-        companies: allCompanies,
-        total: allCompanies.length
+        companies: companiesWithRevenue,
+        total: companiesWithRevenue.length
       }
     });
 

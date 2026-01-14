@@ -37,10 +37,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       companyName: companies.name,
       companyCnpj: companies.cnpj
     })
-    .from(accounts)
-    .leftJoin(companies, eq(accounts.companyId, companies.id))
-    .where(and(eq(accounts.id, id), eq(accounts.companyId, companyId)))
-    .limit(1);
+      .from(accounts)
+      .leftJoin(companies, eq(accounts.companyId, companies.id))
+      .where(and(eq(accounts.id, id), eq(accounts.companyId, companyId)))
+      .limit(1);
 
     if (!account) {
       return NextResponse.json({
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalCredits: count(),
       totalDebits: count()
     })
-    .from(transactions)
-    .where(eq(transactions.accountId, id));
+      .from(transactions)
+      .where(eq(transactions.accountId, id));
 
     console.log(`✅ Conta encontrada: ${account.name}`);
 
@@ -109,6 +109,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Preparar dados para atualização (NÃO permitir mudança de companyId)
     const updateData: Record<string, unknown> = {};
     const allowedFields = [
+      'companyId',
       'name', 'bankName', 'bankCode',
       'agencyNumber', 'accountNumber', 'accountType',
       'openingBalance', 'active', 'lastSyncAt'

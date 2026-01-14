@@ -12,6 +12,7 @@ export interface Company {
   logo_url?: string;
   industry?: string;
   monthly_revenue_range?: number;
+  calculated_revenue?: number;
   created_at: string;
   updated_at: string;
   active: boolean;
@@ -94,12 +95,13 @@ export const industries: Industry[] = [
 ];
 
 export const revenueRanges = [
-  { value: '0-10000', label: 'Até R$ 10.000', min: 0, max: 10000 },
-  { value: '10000-50000', label: 'R$ 10.000 - R$ 50.000', min: 10000, max: 50000 },
-  { value: '50000-100000', label: 'R$ 50.000 - R$ 100.000', min: 50000, max: 100000 },
-  { value: '100000-500000', label: 'R$ 100.000 - R$ 500.000', min: 100000, max: 500000 },
+  { value: '0-100000', label: 'Até R$ 100.000', min: 0, max: 100000 },
+  { value: '100000-200000', label: 'R$ 100.000 - R$ 200.000', min: 100000, max: 200000 },
+  { value: '200000-500000', label: 'R$ 200.000 - R$ 500.000', min: 200000, max: 500000 },
   { value: '500000-1000000', label: 'R$ 500.000 - R$ 1.000.000', min: 500000, max: 1000000 },
-  { value: '1000000+', label: 'Acima de R$ 1.000.000', min: 1000000, max: Infinity }
+  { value: '1000000-5000000', label: 'R$ 1.000.000 - R$ 5.000.000', min: 1000000, max: 5000000 },
+  { value: '5000000-10000000', label: 'R$ 5.000.000 - R$ 10.000.000', min: 5000000, max: 10000000 },
+  { value: '10000000+', label: 'Acima de R$ 10.000.000', min: 10000000, max: Infinity }
 ];
 
 export const getIndustryLabel = (value: string) => {

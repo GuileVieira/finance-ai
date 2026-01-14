@@ -63,9 +63,9 @@ function mapApiToFrontend(apiAccount: AccountApiResponse): BankAccount {
 }
 
 // Converter de snake_case (frontend) para camelCase (API)
-function mapFrontendToApi(formData: BankAccountFormData, companyId: string) {
+function mapFrontendToApi(formData: BankAccountFormData, defaultCompanyId: string) {
   return {
-    companyId,
+    companyId: formData.company_id || defaultCompanyId,
     name: formData.name,
     bankName: formData.bank_name,
     bankCode: formData.bank_code,
@@ -81,6 +81,7 @@ export default function SettingsAccountsPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [availableCompanies, setAvailableCompanies] = useState<{ id: string; name: string }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -89,20 +90,28 @@ export default function SettingsAccountsPage() {
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
   const { toast } = useToast();
 
-  // Buscar companyId
+  // Buscar empresas e companyId
   useEffect(() => {
-    async function fetchCompanyId() {
+    async function fetchCompanies() {
       try {
         const response = await fetch('/api/companies');
         const result = await response.json();
-        if (result.success && result.data?.companies?.length > 0) {
-          setCompanyId(result.data.companies[0].id);
+        if (result.success && result.data?.companies) {
+          // Guardar todas as empresas para o select do formulário
+          setAvailableCompanies(result.data.companies.map((c: any) => ({
+            id: c.id,
+            name: c.name
+          })));
+
+          if (result.data.companies.length > 0) {
+            setCompanyId(result.data.companies[0].id);
+          }
         }
       } catch (error) {
-        console.error('Erro ao buscar empresa:', error);
+        console.error('Erro ao buscar empresas:', error);
       }
     }
-    fetchCompanyId();
+    fetchCompanies();
   }, []);
 
   // Buscar contas da API
@@ -133,12 +142,12 @@ export default function SettingsAccountsPage() {
   // Filtrar contas
   const filteredAccounts = accounts.filter(account => {
     const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         account.bank_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         account.account_number.toLowerCase().includes(searchTerm.toLowerCase());
+      account.bank_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.account_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || account.account_type === filterType;
     const matchesStatus = filterStatus === 'all' ||
-                         (filterStatus === 'active' && account.active) ||
-                         (filterStatus === 'inactive' && !account.active);
+      (filterStatus === 'active' && account.active) ||
+      (filterStatus === 'inactive' && !account.active);
     const matchesBank = filterBank === 'all' || account.bank_code === filterBank;
 
     return matchesSearch && matchesType && matchesStatus && matchesBank;
@@ -374,6 +383,7 @@ export default function SettingsAccountsPage() {
                 <DialogTitle>Nova Conta Bancária</DialogTitle>
               </DialogHeader>
               <AccountForm
+                companies={availableCompanies}
                 onSave={handleCreateAccount}
                 onCancel={() => setIsCreateDialogOpen(false)}
               />
@@ -578,11 +588,10 @@ export default function SettingsAccountsPage() {
                               {formatCurrency(account.current_balance)}
                             </p>
                             {account.current_balance !== account.opening_balance && (
-                              <p className={`text-xs ${
-                                account.current_balance > account.opening_balance
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                              }`}>
+                              <p className={`text-xs ${account.current_balance > account.opening_balance
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                                }`}>
                                 {account.current_balance > account.opening_balance ? '+' : ''}
                                 {formatCurrency(account.current_balance - account.opening_balance)}
                               </p>
@@ -645,6 +654,7 @@ export default function SettingsAccountsPage() {
                                 {editingAccount && (
                                   <AccountForm
                                     initialData={editingAccount}
+                                    companies={availableCompanies}
                                     onSave={handleEditAccount}
                                     onCancel={() => setEditingAccount(null)}
                                   />

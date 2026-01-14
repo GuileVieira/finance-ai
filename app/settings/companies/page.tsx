@@ -270,7 +270,7 @@ export default function SettingsCompaniesPage() {
   // Calcular estatísticas
   const totalRevenue = companies
     .filter(comp => comp.active)
-    .reduce((sum, comp) => sum + (comp.monthly_revenue_range || 0), 0);
+    .reduce((sum, comp) => sum + (comp.calculated_revenue || 0), 0);
 
   const activeCompanies = companies.filter(comp => comp.active).length;
   const totalStates = new Set(companies.map(comp => comp.state)).size;
@@ -529,13 +529,13 @@ export default function SettingsCompaniesPage() {
                       <TableCell className="text-right">
                         <div className="text-sm">
                           <p className="font-medium">
-                            {company.monthly_revenue_range
-                              ? formatCurrency(company.monthly_revenue_range)
-                              : 'N/A'
+                            {company.calculated_revenue
+                              ? formatCurrency(company.calculated_revenue)
+                              : 'R$ 0,00'
                             }
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {company.monthly_revenue_range
+                            Meta: {company.monthly_revenue_range
                               ? getRevenueRangeLabel(
                                 revenueRanges.find(r => r.max === company.monthly_revenue_range)?.value || ''
                               )

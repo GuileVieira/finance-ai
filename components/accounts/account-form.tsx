@@ -13,12 +13,14 @@ import { accountTypes } from '@/lib/mock-accounts';
 
 interface AccountFormProps {
   initialData?: Partial<BankAccount>;
+  companies?: { id: string; name: string }[];
   onSave: (data: BankAccountFormData) => void;
   onCancel: () => void;
 }
 
-export function AccountForm({ initialData, onSave, onCancel }: AccountFormProps) {
+export function AccountForm({ initialData, companies = [], onSave, onCancel }: AccountFormProps) {
   const [formData, setFormData] = useState<BankAccountFormData>({
+    company_id: initialData?.company_id || (companies.length > 0 ? companies[0].id : ''),
     name: initialData?.name || '',
     bank_name: initialData?.bank_name || '',
     bank_code: initialData?.bank_code || '',
@@ -75,6 +77,26 @@ export function AccountForm({ initialData, onSave, onCancel }: AccountFormProps)
           <CardTitle className="text-lg">Informações Básicas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Empresa */}
+          <div className="space-y-2">
+            <Label htmlFor="company_id">Empresa *</Label>
+            <Select
+              value={formData.company_id}
+              onValueChange={(value) => handleInputChange('company_id', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Nome da Conta */}
           <div className="space-y-2">
             <Label htmlFor="name">Nome da Conta *</Label>
@@ -221,6 +243,12 @@ export function AccountForm({ initialData, onSave, onCancel }: AccountFormProps)
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Empresa:</span>
+              <span className="font-medium">
+                {companies.find(c => c.id === formData.company_id)?.name || 'Não selecionada'}
+              </span>
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Nome:</span>
               <span className="font-medium">{formData.name || 'Não informado'}</span>
