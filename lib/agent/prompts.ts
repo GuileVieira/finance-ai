@@ -75,43 +75,79 @@ Descrição: "DEBITO ALUGUEL PREDIO COMERCIAL 2500.00"
 - Se não tiver certeza, reduza a confidence mas ainda classifique`;
   }
 
-  // Texto com categorias formatadas
+  // Texto com categorias formatadas usando o Plano de Contas (dreGroup + categoryGroup)
   private static buildCategoriesText(categories: Category[]): string {
     let text = '';
 
-    // Agrupar por tipo
-    const grouped = categories.reduce((acc, cat) => {
-      if (!acc[cat.type]) {
-        acc[cat.type] = [];
+    // Nomes das linhas do DRE
+    const dreGroupNames: Record<string, string> = {
+      'RoB': 'RECEITA BRUTA',
+      'TDCF': 'TRIBUTOS E CUSTOS FINANCEIROS',
+      'CV': 'CUSTOS VARIÁVEIS',
+      'CF': 'CUSTOS FIXOS',
+      'RNOP': 'RECEITAS NÃO OPERACIONAIS',
+      'DNOP': 'DESPESAS NÃO OPERACIONAIS',
+      'EMP': 'EMPRÉSTIMOS (Fora do DRE)',
+      'TRANSF': 'TRANSFERÊNCIAS (Fora do DRE)'
+    };
+
+    // Agrupar por dreGroup primeiro, depois por categoryGroup
+    const groupedByDre: Record<string, Record<string, Category[]>> = {};
+
+    for (const cat of categories) {
+      const dreGroup = cat.dreGroup || this.getDreGroupFallback(cat.type);
+      const catGroup = cat.categoryGroup || 'OUTROS';
+
+      if (!groupedByDre[dreGroup]) {
+        groupedByDre[dreGroup] = {};
       }
-      acc[cat.type].push(cat);
-      return acc;
-    }, {} as Record<string, Category[]>);
+      if (!groupedByDre[dreGroup][catGroup]) {
+        groupedByDre[dreGroup][catGroup] = [];
+      }
+      groupedByDre[dreGroup][catGroup].push(cat);
+    }
 
-    for (const [type, cats] of Object.entries(grouped)) {
-      const typeNames = {
-        'revenue': 'RECEITAS',
-        'variable_cost': 'CUSTOS VARIÁVEIS',
-        'fixed_cost': 'CUSTOS FIXOS',
-        'non_operational': 'NÃO OPERACIONAIS'
-      };
+    // Ordem de apresentação das linhas do DRE
+    const dreOrder = ['RoB', 'TDCF', 'CV', 'CF', 'RNOP', 'DNOP', 'EMP', 'TRANSF'];
 
-      text += `\n### ${typeNames[type as keyof typeof typeNames]}:\n`;
+    for (const dreGroup of dreOrder) {
+      if (!groupedByDre[dreGroup]) continue;
 
-      for (const cat of cats) {
-        text += `**${cat.name}**\n`;
-        // Incluir descrição se disponível (ajuda o agente a entender melhor a categoria)
-        if (cat.description) {
-          text += `  📝 ${cat.description}\n`;
+      const dreName = dreGroupNames[dreGroup] || dreGroup;
+      text += `\n## ${dreName}:\n`;
+
+      const categoryGroups = groupedByDre[dreGroup];
+      for (const [catGroup, cats] of Object.entries(categoryGroups)) {
+        if (catGroup !== 'OUTROS') {
+          text += `\n### ${catGroup}:\n`;
         }
-        if (cat.examples && cat.examples.length > 0) {
-          text += `  📌 Exemplos: ${cat.examples.join(', ')}\n`;
+
+        for (const cat of cats) {
+          text += `• **${cat.name}**`;
+          if (cat.description) {
+            text += ` - ${cat.description}`;
+          }
+          text += '\n';
+          if (cat.examples && cat.examples.length > 0) {
+            text += `  📌 Exemplos: ${cat.examples.join(', ')}\n`;
+          }
         }
-        text += '\n';
       }
     }
 
     return text;
+  }
+
+  // Fallback de dreGroup pelo type para categorias antigas
+  private static getDreGroupFallback(type: string): string {
+    switch (type) {
+      case 'revenue': return 'RoB';
+      case 'variable_cost': return 'CV';
+      case 'fixed_cost': return 'CF';
+      case 'non_operational': return 'DNOP';
+      case 'financial_movement': return 'TRANSF';
+      default: return 'CF';
+    }
   }
 
   // Texto com padrões de classificação

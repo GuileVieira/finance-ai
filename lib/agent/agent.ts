@@ -153,20 +153,19 @@ export class ClassificationAgent {
     try {
       const dbCategories = await CategoriesService.getCategories({ isActive: true });
 
-      // Mapear para o formato esperado pelo prompt
+      // Mapear para o formato esperado pelo prompt (incluindo plano de contas)
       this.categoriesCache = dbCategories.map(cat => ({
         id: cat.id,
         name: cat.name,
-        type: cat.type as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational',
-        color: cat.colorHex || '#6B7280',
+        type: cat.type as 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement',
+        categoryGroup: cat.categoryGroup ?? null,
+        dreGroup: cat.dreGroup ?? null,
+        colorHex: cat.colorHex || '#6B7280',
         icon: cat.icon || '📊',
         description: cat.description || '',
-        amount: 0,
-        transactions: 0,
-        percentage: 0,
-        active: cat.active ?? true,
-        examples: []
-      }));
+        examples: cat.examples || [],
+        active: cat.active ?? true
+      })) as Category[];
       this.categoriesCacheTime = now;
 
       console.log(`[Agent] Categorias carregadas do BD: ${this.categoriesCache.length}`);
