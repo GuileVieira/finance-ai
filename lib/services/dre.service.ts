@@ -713,11 +713,35 @@ export default class DREService {
       return `${months[now.getMonth()]} ${now.getFullYear()}`;
     }
 
-    // Formato YYYY-MM
-    const [year, month] = period.split('-').map(Number);
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    return `${months[month - 1]} ${year}`;
+
+    if (period === 'this_year') {
+      return `${new Date().getFullYear()}`;
+    }
+
+    if (period === 'last_year') {
+      return `${new Date().getFullYear() - 1}`;
+    }
+
+    // Tenta formatar YYYY-MM
+    if (/^\d{4}-\d{2}$/.test(period)) {
+      const [year, month] = period.split('-').map(Number);
+      return `${months[month - 1]} ${year}`;
+    }
+
+    // Fallback para datas se disponíveis, ou o próprio período
+    if (startDate && endDate) {
+      const start = new Date(startDate + 'T12:00:00');
+      const end = new Date(endDate + 'T12:00:00');
+      // Se for mesmo ano e mês inicio/fim (ex: mês fechado)
+      if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${months[start.getMonth()]} ${start.getFullYear()}`;
+      }
+      return this.formatPeriodLabel('custom', startDate, endDate);
+    }
+
+    return period; // Fallback final
   }
 
   /**

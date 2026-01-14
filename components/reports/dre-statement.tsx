@@ -118,7 +118,7 @@ export default function DREStatementComponent({
                 <TooltipTrigger asChild>
                   <div
                     className={`flex items-center gap-1 text-sm cursor-help ${variation.isPositive ? 'text-success' : 'text-destructive'}`}
-                    title="Variação em relação ao mês anterior"
+                    title="Variação em relação ao período anterior"
                   >
                     {variation.isPositive ? (
                       <TrendingUp className="w-4 h-4" />
@@ -129,7 +129,7 @@ export default function DREStatementComponent({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="z-50 bg-popover text-popover-foreground shadow-md border px-3 py-1.5 text-sm rounded-md">
-                  <p>Variação em relação ao mês anterior</p>
+                  <p>Variação em relação ao período anterior</p>
                 </TooltipContent>
               </Tooltip>
             )}
