@@ -1,6 +1,6 @@
 Considerações projeto 03/12/2025
 - Tempo de carga, achei bem bom para iniciarmos.
-- Dashboard: De fácil visualização, bem apresentado, mto bom. Ainda sobre o Dashboard, seria importante ao clicar em algum lançamento ou categoria me leva-se para os lançamentos que chegaram naquele valor, exemplo: Clicar em despesas não operacionais que apresentam um total me abrir essas transações inclusive com a possibilidade de rápida alteração de categoria. Outra necessidade é que no filtro do dash me apresenta para escolher mês ou todo o período... É importante termos a possibilidade do cliente selecionar também uma data personalizada (existem empresas que fazem análises semanais por exemplo).
+- Dashboard: De fácil visualização, bem apresentado, mto bom.Ainda sobre o Dashboard, seria importante ao clicar em algum lançamento ou categoria me leva-se para os lançamentos que chegaram naquele valor, exemplo:Clicar em despesas não operacionais que apresentam um total me abrir essas transações inclusive com a possibilidade de rápida alteração de categoria.Outra necessidade é que no filtro do dash me apresenta para escolher mês ou todo o período... É importante termos a possibilidade do cliente selecionar também uma data personalizada (existem empresas que fazem análises semanais por exemplo).
 
 
 - Insights: Talvez alguns tipos de insights poderiam aparecer conforme os históricos de base sejam alimentados, nesta primeira carga ele já apresentou insights de transações atípicas.
