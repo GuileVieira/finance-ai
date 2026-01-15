@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/connection';
 import { transactions, accounts, companies, categories, uploads } from '@/lib/db/schema';
-import { eq, and, desc, between, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, between, gte, lte, sql, not, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
 
 export interface TransactionFilters {
@@ -247,6 +247,9 @@ export class TransactionsService {
             : and(...conditions)
         );
       }
+
+      // Exclude "Saldo Inicial" from stats
+      query = query.where(not(ilike(categories.name, 'Saldo Inicial')));
 
       const [stats] = await query;
 
