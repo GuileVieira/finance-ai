@@ -52,7 +52,7 @@ export interface CategoryRuleDB {
   updatedAt: string;
 }
 
-export type CategoryType = 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational';
+export type CategoryType = 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
 
 export interface CategoryFilters {
   type?: CategoryType | 'all';
@@ -79,11 +79,13 @@ export interface CreateCategoryData {
   examples?: string[];
   companyId?: string;
   active?: boolean;
-  dreGroup?: string; // RoB, TDCF, MP, CF, RNOP, DNOP
+  categoryGroup?: string; // PESSOAL, VEÍCULOS, TRIBUTOS, etc.
+  dreGroup?: string; // RoB, TDCF, CF, CV, RNOP, DNOP, EMP, TRANSF
 }
 
-export interface UpdateCategoryData extends Partial<Omit<CreateCategoryData, 'dreGroup'>> {
+export interface UpdateCategoryData extends Partial<Omit<CreateCategoryData, 'dreGroup' | 'categoryGroup'>> {
   id: string;
+  categoryGroup?: string | null;
   dreGroup?: string | null;
 }
 
@@ -95,6 +97,7 @@ export interface CategorySummary {
     variable_cost: number;
     fixed_cost: number;
     non_operational: number;
+    financial_movement: number;
   };
   mostUsedCategories: CategoryWithStats[];
   recentCategories: Category[];

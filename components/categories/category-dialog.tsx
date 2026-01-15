@@ -17,17 +17,73 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { CreateCategoryData } from '@/lib/api/categories';
 import { cn } from '@/lib/utils';
+import { CategoryGroup, DreGroupType } from '@/lib/types';
 
-// Tipo interno para opções do select (inclui subtipos para non_operational)
+// Tipo interno para opções do select
 interface CategoryTypeOption {
-  id: string; // Chave única para React
-  value: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational';
+  id: string;
+  value: 'revenue' | 'variable_cost' | 'fixed_cost' | 'non_operational' | 'financial_movement';
   label: string;
   description: string;
   suggestedColor: string;
   suggestedIcon: string;
-  dreGroup: string;
 }
+
+// Mapeamento categoryGroup → dreGroup (automático)
+const categoryGroupToDreGroup: Record<CategoryGroup, DreGroupType> = {
+  'RECEITAS BRUTAS': 'RoB',
+  'RECEITAS NOP': 'RNOP',
+  'VENDAS': 'CV',
+  'CPV/CMV': 'CV',
+  'PESSOAL': 'CF',
+  'DIRETORIA': 'CF',
+  'VEÍCULOS': 'CF',
+  'OCUPAÇÃO': 'CF',
+  'UTILIDADES': 'CF',
+  'COMUNICAÇÃO': 'CF',
+  'SERVIÇOS': 'CF',
+  'MANUTENÇÃO': 'CF',
+  'MATERIAIS': 'CF',
+  'OUTROS CF': 'CF',
+  'TRIBUTOS': 'TDCF',
+  'CUSTO FINANCEIRO': 'TDCF',
+  'DESPESAS NOP': 'DNOP',
+  'EMPRÉSTIMOS': 'EMP',
+  'TRANSFERÊNCIAS': 'TRANSF',
+};
+
+// categoryGroups disponíveis por tipo de categoria
+const categoryGroupsByType: Record<string, { value: CategoryGroup; label: string }[]> = {
+  revenue: [
+    { value: 'RECEITAS BRUTAS', label: 'Receitas Brutas (Faturamento, Vendas)' },
+  ],
+  variable_cost: [
+    { value: 'VENDAS', label: 'Vendas (Comissões, Fretes, Promoções)' },
+    { value: 'CPV/CMV', label: 'CPV/CMV (Matéria-prima, Embalagem, Produto)' },
+  ],
+  fixed_cost: [
+    { value: 'PESSOAL', label: 'Pessoal (Salários, Benefícios, FGTS)' },
+    { value: 'DIRETORIA', label: 'Diretoria (Pró-labore)' },
+    { value: 'VEÍCULOS', label: 'Veículos (Combustível, IPVA, Seguro)' },
+    { value: 'OCUPAÇÃO', label: 'Ocupação (Aluguel, Condomínio, IPTU)' },
+    { value: 'UTILIDADES', label: 'Utilidades (Energia, Água, Gás)' },
+    { value: 'COMUNICAÇÃO', label: 'Comunicação (Telefone, Internet)' },
+    { value: 'SERVIÇOS', label: 'Serviços (Contabilidade, TI, Limpeza)' },
+    { value: 'MANUTENÇÃO', label: 'Manutenção (Predial, Equipamentos)' },
+    { value: 'MATERIAIS', label: 'Materiais (Copa, Escritório)' },
+    { value: 'OUTROS CF', label: 'Outros Custos Fixos' },
+  ],
+  non_operational: [
+    { value: 'RECEITAS NOP', label: 'Receitas NOP (Rendimentos, Juros Recebidos)' },
+    { value: 'TRIBUTOS', label: 'Tributos (PIS, COFINS, ICMS, ISS)' },
+    { value: 'CUSTO FINANCEIRO', label: 'Custo Financeiro (Tarifas, Juros Pagos)' },
+    { value: 'DESPESAS NOP', label: 'Despesas NOP (Multas, Inadimplência)' },
+  ],
+  financial_movement: [
+    { value: 'EMPRÉSTIMOS', label: 'Empréstimos (Entrada/Saída)' },
+    { value: 'TRANSFERÊNCIAS', label: 'Transferências (Entre Contas)' },
+  ],
+};
 
 // 5 tipos de categoria com descrições claras para usuários leigos
 const categoryTypeOptions: CategoryTypeOption[] = [
@@ -38,16 +94,6 @@ const categoryTypeOptions: CategoryTypeOption[] = [
     description: 'Dinheiro que entra das vendas e serviços',
     suggestedColor: '#10B981',
     suggestedIcon: '💰',
-    dreGroup: 'RoB'
-  },
-  {
-    id: 'fixed_cost',
-    value: 'fixed_cost',
-    label: '🏠 Custos Fixos',
-    description: 'Gastos mensais fixos (aluguel, salários, internet)',
-    suggestedColor: '#EF4444',
-    suggestedIcon: '📋',
-    dreGroup: 'CF'
   },
   {
     id: 'variable_cost',
@@ -56,44 +102,49 @@ const categoryTypeOptions: CategoryTypeOption[] = [
     description: 'Custos que variam com as vendas (matéria-prima, comissões)',
     suggestedColor: '#F59E0B',
     suggestedIcon: '🛒',
-    dreGroup: 'MP'
   },
   {
-    id: 'non_operational_revenue',
+    id: 'fixed_cost',
+    value: 'fixed_cost',
+    label: '🏠 Custos Fixos',
+    description: 'Gastos mensais fixos (aluguel, salários, internet)',
+    suggestedColor: '#EF4444',
+    suggestedIcon: '📋',
+  },
+  {
+    id: 'non_operational',
     value: 'non_operational',
-    label: '📈 Receitas Não Operacionais',
-    description: 'Rendimentos, juros recebidos, aluguéis de imóveis',
+    label: '🏛️ Não Operacionais',
+    description: 'Impostos, tarifas bancárias, rendimentos, juros',
     suggestedColor: '#8B5CF6',
-    suggestedIcon: '📈',
-    dreGroup: 'RNOP'
+    suggestedIcon: '🏛️',
   },
   {
-    id: 'non_operational_expense',
-    value: 'non_operational',
-    label: '🏛️ Despesas Não Operacionais',
-    description: 'Impostos, juros pagos, multas, tarifas bancárias',
-    suggestedColor: '#6B7280',
-    suggestedIcon: '🏛️',
-    dreGroup: 'DNOP'
-  }
+    id: 'financial_movement',
+    value: 'financial_movement',
+    label: '🔄 Movimentações Financeiras',
+    description: 'Empréstimos, transferências entre contas',
+    suggestedColor: '#06B6D4',
+    suggestedIcon: '🔄',
+  },
 ];
 
-// Ícones organizados por contexto do tipo
-const iconsByTypeId: Record<string, string[]> = {
+// Ícones organizados por tipo
+const iconsByType: Record<string, string[]> = {
   revenue: ['💰', '💵', '🛒', '📈', '🏷️', '🧾'],
   fixed_cost: ['📋', '🏠', '💼', '👥', '💡', '📞'],
   variable_cost: ['🛒', '📦', '🚚', '📣', '🔧', '✈️'],
-  non_operational_revenue: ['📈', '💹', '🏦', '💳', '📊', '🏠'],
-  non_operational_expense: ['🏛️', '📄', '⚖️', '💳', '📊', '🏦']
+  non_operational: ['🏛️', '📄', '⚖️', '💳', '📊', '🏦'],
+  financial_movement: ['🔄', '💳', '🏦', '📤', '📥', '💱'],
 };
 
-// Cores vinculadas ao tipo (4 opções por tipo)
-const colorsByTypeId: Record<string, { hex: string; name: string }[]> = {
+// Cores por tipo
+const colorsByType: Record<string, { hex: string; name: string }[]> = {
   revenue: [
     { hex: '#10B981', name: 'Verde' },
     { hex: '#059669', name: 'Esmeralda' },
     { hex: '#0EA5E9', name: 'Azul Céu' },
-    { hex: '#6366F1', name: 'Índigo' }
+    { hex: '#22C55E', name: 'Verde Claro' }
   ],
   fixed_cost: [
     { hex: '#EF4444', name: 'Vermelho' },
@@ -107,55 +158,40 @@ const colorsByTypeId: Record<string, { hex: string; name: string }[]> = {
     { hex: '#F97316', name: 'Laranja' },
     { hex: '#FB923C', name: 'Tangerina' }
   ],
-  non_operational_revenue: [
+  non_operational: [
     { hex: '#8B5CF6', name: 'Violeta' },
-    { hex: '#A78BFA', name: 'Lavanda' },
-    { hex: '#7C3AED', name: 'Roxo' },
-    { hex: '#C4B5FD', name: 'Lilás' }
-  ],
-  non_operational_expense: [
     { hex: '#6B7280', name: 'Cinza' },
-    { hex: '#9CA3AF', name: 'Prata' },
-    { hex: '#4B5563', name: 'Chumbo' },
-    { hex: '#374151', name: 'Escuro' }
-  ]
-};
-
-// Sugestões de nome por tipo
-const nameSuggestionsByTypeId: Record<string, string[]> = {
-  revenue: ['Vendas', 'Serviços', 'Faturamento'],
-  fixed_cost: ['Aluguel', 'Salários', 'Internet'],
-  variable_cost: ['Matéria-prima', 'Comissões', 'Frete'],
-  non_operational_revenue: ['Rendimentos', 'Juros Recebidos', 'Aluguel Recebido'],
-  non_operational_expense: ['Impostos', 'Juros', 'Tarifas Bancárias']
+    { hex: '#7C3AED', name: 'Roxo' },
+    { hex: '#64748B', name: 'Ardósia' }
+  ],
+  financial_movement: [
+    { hex: '#06B6D4', name: 'Ciano' },
+    { hex: '#14B8A6', name: 'Teal' },
+    { hex: '#0EA5E9', name: 'Azul Céu' },
+    { hex: '#0891B2', name: 'Cyan' }
+  ],
 };
 
 interface CategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (category: CreateCategoryData & { dreGroup?: string }) => void;
-  initialData?: Partial<CreateCategoryData & { dreGroup?: string }>;
+  onSave: (category: CreateCategoryData & { dreGroup?: string; categoryGroup?: string }) => void;
+  initialData?: Partial<CreateCategoryData & { dreGroup?: string; categoryGroup?: string }>;
 }
 
 export function CategoryDialog({ open, onOpenChange, onSave, initialData }: CategoryDialogProps) {
-  // Determinar o tipo selecionado (id interno) baseado nos dados iniciais
-  const getInitialTypeId = (): string => {
-    if (!initialData?.type) return 'revenue';
-    if (initialData.type === 'non_operational') {
-      // Determinar se é receita ou despesa NOP baseado no dreGroup
-      return initialData.dreGroup === 'RNOP' ? 'non_operational_revenue' : 'non_operational_expense';
-    }
-    return initialData.type;
-  };
-
-  const [selectedTypeId, setSelectedTypeId] = useState(getInitialTypeId());
-  const [formData, setFormData] = useState<CreateCategoryData & { dreGroup?: string }>({
+  const [selectedType, setSelectedType] = useState<string>(initialData?.type || 'revenue');
+  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<CategoryGroup | ''>(
+    (initialData?.categoryGroup as CategoryGroup) || ''
+  );
+  const [formData, setFormData] = useState<CreateCategoryData & { dreGroup?: string; categoryGroup?: string }>({
     name: initialData?.name || '',
     type: initialData?.type || 'revenue',
     colorHex: initialData?.colorHex || '#10B981',
     icon: initialData?.icon || '💰',
     description: initialData?.description || '',
-    dreGroup: initialData?.dreGroup || 'RoB'
+    dreGroup: initialData?.dreGroup || '',
+    categoryGroup: initialData?.categoryGroup || '',
   });
 
   // Atualizar formData quando o tipo muda
@@ -163,13 +199,33 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
     const selectedOption = categoryTypeOptions.find(opt => opt.id === typeId);
     if (!selectedOption) return;
 
-    setSelectedTypeId(typeId);
+    setSelectedType(typeId);
+    setSelectedCategoryGroup(''); // Resetar categoryGroup quando muda o tipo
+
+    // Pegar primeiro categoryGroup do tipo como padrão
+    const groups = categoryGroupsByType[typeId] || [];
+    const defaultGroup = groups[0]?.value || '';
+    const defaultDreGroup = defaultGroup ? categoryGroupToDreGroup[defaultGroup] : '';
+
     setFormData(prev => ({
       ...prev,
       type: selectedOption.value,
       colorHex: selectedOption.suggestedColor,
       icon: selectedOption.suggestedIcon,
-      dreGroup: selectedOption.dreGroup
+      categoryGroup: defaultGroup,
+      dreGroup: defaultDreGroup,
+    }));
+    setSelectedCategoryGroup(defaultGroup);
+  };
+
+  // Atualizar quando categoryGroup muda
+  const handleCategoryGroupChange = (group: CategoryGroup) => {
+    setSelectedCategoryGroup(group);
+    const dreGroup = categoryGroupToDreGroup[group];
+    setFormData(prev => ({
+      ...prev,
+      categoryGroup: group,
+      dreGroup: dreGroup,
     }));
   };
 
@@ -185,26 +241,51 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
   // Atualizar estado quando initialData muda (modo edição)
   useEffect(() => {
     if (initialData) {
-      setSelectedTypeId(getInitialTypeId());
+      setSelectedType(initialData.type || 'revenue');
+      setSelectedCategoryGroup((initialData.categoryGroup as CategoryGroup) || '');
       setFormData({
         name: initialData.name || '',
         type: initialData.type || 'revenue',
         colorHex: initialData.colorHex || '#10B981',
         icon: initialData.icon || '💰',
         description: initialData.description || '',
-        dreGroup: initialData.dreGroup || 'RoB'
+        dreGroup: initialData.dreGroup || '',
+        categoryGroup: initialData.categoryGroup || '',
       });
     }
   }, [initialData]);
 
-  const selectedOption = categoryTypeOptions.find(opt => opt.id === selectedTypeId);
-  const currentIcons = iconsByTypeId[selectedTypeId] || iconsByTypeId.revenue;
-  const currentColors = colorsByTypeId[selectedTypeId] || colorsByTypeId.revenue;
-  const currentNameSuggestions = nameSuggestionsByTypeId[selectedTypeId] || [];
+  // Reset quando abre o dialog para criar nova categoria
+  useEffect(() => {
+    if (open && !initialData) {
+      const defaultType = 'revenue';
+      const defaultOption = categoryTypeOptions.find(opt => opt.id === defaultType);
+      const groups = categoryGroupsByType[defaultType] || [];
+      const defaultGroup = groups[0]?.value || '';
+      const defaultDreGroup = defaultGroup ? categoryGroupToDreGroup[defaultGroup] : '';
+
+      setSelectedType(defaultType);
+      setSelectedCategoryGroup(defaultGroup);
+      setFormData({
+        name: '',
+        type: defaultOption?.value || 'revenue',
+        colorHex: defaultOption?.suggestedColor || '#10B981',
+        icon: defaultOption?.suggestedIcon || '💰',
+        description: '',
+        dreGroup: defaultDreGroup,
+        categoryGroup: defaultGroup,
+      });
+    }
+  }, [open, initialData]);
+
+  const selectedOption = categoryTypeOptions.find(opt => opt.id === selectedType);
+  const currentIcons = iconsByType[selectedType] || iconsByType.revenue;
+  const currentColors = colorsByType[selectedType] || colorsByType.revenue;
+  const availableCategoryGroups = categoryGroupsByType[selectedType] || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Editar Categoria' : 'Nova Categoria Financeira'}
@@ -212,7 +293,7 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
           <DialogDescription>
             {initialData
               ? 'Edite as informações da categoria existente.'
-              : 'Crie uma categoria para organizar suas transações.'
+              : 'Crie uma categoria para organizar suas transações no plano de contas.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -222,7 +303,7 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
           <div className="space-y-2">
             <Label htmlFor="type">Tipo de Categoria *</Label>
             <Select
-              value={selectedTypeId}
+              value={selectedType}
               onValueChange={handleTypeChange}
             >
               <SelectTrigger>
@@ -242,13 +323,42 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
                 ))}
               </SelectContent>
             </Select>
-            {/* Descrição do tipo selecionado */}
             {selectedOption && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <span className="text-muted-foreground/60">ℹ️</span>
                 {selectedOption.description}
               </p>
             )}
+          </div>
+
+          {/* Grupo da Categoria (categoryGroup) */}
+          <div className="space-y-2">
+            <Label htmlFor="categoryGroup">
+              Grupo no Plano de Contas *
+              {formData.dreGroup && (
+                <Badge variant="outline" className="ml-2 text-[10px]">
+                  DRE: {formData.dreGroup}
+                </Badge>
+              )}
+            </Label>
+            <Select
+              value={selectedCategoryGroup}
+              onValueChange={(value) => handleCategoryGroupChange(value as CategoryGroup)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCategoryGroups.map((group) => (
+                  <SelectItem key={group.value} value={group.value}>
+                    {group.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O grupo define onde esta categoria aparece nos relatórios DRE e Fluxo de Caixa.
+            </p>
           </div>
 
           {/* Nome */}
@@ -258,33 +368,19 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Ex: Vendas de Produtos"
+              placeholder="Ex: ALUGUEL, SALÁRIOS, FATURAMENTO"
               required
             />
-            {/* Sugestões baseadas no tipo */}
-            <div className="flex flex-wrap gap-1">
-              <span className="text-xs text-muted-foreground">Sugestões:</span>
-              {currentNameSuggestions.map((suggestion, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="text-xs cursor-pointer hover:bg-accent"
-                  onClick={() => handleInputChange('name', suggestion)}
-                >
-                  {suggestion}
-                </Badge>
-              ))}
-            </div>
           </div>
 
           {/* Descrição */}
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição (opcional)</Label>
+            <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Para que serve essa categoria?"
+              placeholder="Descreva para que serve essa categoria (ajuda na categorização automática)"
               rows={2}
             />
           </div>
@@ -318,17 +414,14 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
 
               {/* Cor */}
               <div className="space-y-2">
-                <Label>
-                  Cor
-                  <span className="text-xs text-muted-foreground ml-1">(recomendada: {currentColors[0]?.name})</span>
-                </Label>
+                <Label>Cor</Label>
                 <div className="flex flex-wrap gap-1">
-                  {currentColors.map((color, index) => (
+                  {currentColors.map((color) => (
                     <button
                       key={color.hex}
                       type="button"
                       className={cn(
-                        "w-7 h-7 rounded border-2 transition-colors relative",
+                        "w-7 h-7 rounded border-2 transition-colors",
                         formData.colorHex === color.hex
                           ? "border-foreground ring-2 ring-offset-1 ring-offset-background ring-primary"
                           : "border-muted hover:border-foreground"
@@ -336,11 +429,7 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
                       style={{ backgroundColor: color.hex }}
                       onClick={() => handleInputChange('colorHex', color.hex)}
                       title={color.name}
-                    >
-                      {index === 0 && (
-                        <span className="absolute -top-1 -right-1 text-[10px]">✓</span>
-                      )}
-                    </button>
+                    />
                   ))}
                 </div>
               </div>
@@ -355,7 +444,7 @@ export function CategoryDialog({ open, onOpenChange, onSave, initialData }: Cate
             >
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={!selectedCategoryGroup}>
               {initialData ? 'Salvar Alterações' : 'Criar Categoria'}
             </Button>
           </DialogFooter>
