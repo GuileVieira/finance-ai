@@ -10,6 +10,7 @@ import {
 } from '@/lib/api/dashboard';
 import { eq, and, gte, lte, desc, sum, count, avg, sql, not, ilike } from 'drizzle-orm';
 import { Transaction } from '@/lib/db/schema';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 export default class DashboardService {
   /**
@@ -157,7 +158,7 @@ export default class DashboardService {
         .where(
           and(
             whereClause,
-            not(ilike(categories.name, 'Saldo Inicial'))
+            getFinancialExclusionClause()
           )
         );
 
@@ -233,7 +234,7 @@ export default class DashboardService {
         .where(
           and(
             whereClause,
-            not(ilike(categories.name, 'Saldo Inicial'))
+            getFinancialExclusionClause()
           )
         )
         .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
@@ -299,7 +300,7 @@ export default class DashboardService {
         .where(
           and(
             whereClause,
-            not(ilike(categories.name, 'Saldo Inicial'))
+            getFinancialExclusionClause()
           )
         )
         .groupBy(transactions.transactionDate)
@@ -362,7 +363,7 @@ export default class DashboardService {
         .where(
           and(
             whereClause,
-            not(ilike(categories.name, 'Saldo Inicial'))
+            getFinancialExclusionClause()
           )
         )
         .orderBy(desc(sql`ABS(${transactions.amount})`))
@@ -435,7 +436,10 @@ export default class DashboardService {
         .where(
           and(
             whereClause,
-            not(ilike(categories.name, 'Saldo Inicial'))
+            // Mantemos a exclusão aqui para consistência com os totais, mas lista de transações
+            // geralmente pode mostrar tudo. Porém o usuário pediu para "não generalizar demais"
+            // mas na Dashboard principal faz sentido focar no resultado financeiro real.
+            getFinancialExclusionClause()
           )
         )
         .orderBy(desc(transactions.transactionDate))
@@ -548,7 +552,7 @@ export default class DashboardService {
           and(
             gte(transactions.transactionDate, filters.startDate!),
             lte(transactions.transactionDate, filters.endDate!),
-            not(ilike(categories.name, 'Saldo Inicial')),
+            getFinancialExclusionClause(),
             ...accountConditions
           )
         );
@@ -567,7 +571,7 @@ export default class DashboardService {
           and(
             gte(transactions.transactionDate, previousStartDate),
             lte(transactions.transactionDate, previousEndDate),
-            not(ilike(categories.name, 'Saldo Inicial')),
+            getFinancialExclusionClause(),
             ...accountConditions
           )
         );

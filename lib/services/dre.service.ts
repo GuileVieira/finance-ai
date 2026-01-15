@@ -3,6 +3,7 @@ import { transactions, categories, accounts } from '@/lib/db/schema';
 import { DREStatement, DRECategory } from '@/lib/types';
 import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 interface DrilldownTransaction {
   id: string;
@@ -288,7 +289,7 @@ export default class DREService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+      const whereClause = whereConditions.length > 0 ? and(...whereConditions, getFinancialExclusionClause()) : getFinancialExclusionClause();
 
       // Buscar totais por categoria
       const categoryData = await db

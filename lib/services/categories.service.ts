@@ -26,6 +26,7 @@ import {
   isNotNull
 } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 export default class CategoriesService {
   /**
@@ -72,6 +73,11 @@ export default class CategoriesService {
       if (filters.id) {
         whereConditions.push(eq(categories.id, filters.id));
       }
+
+      // Apply financial exclusion to hide non-operational/system categories like "Saldo"
+      // from the main list unless specifically requested?
+      // The user wants them gone from the views.
+      whereConditions.push(getFinancialExclusionClause());
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -410,6 +416,9 @@ export default class CategoriesService {
       if (filters.isActive !== undefined) {
         whereConditions.push(eq(categories.active, filters.isActive));
       }
+
+      // Apply exclusion to summary as well
+      whereConditions.push(getFinancialExclusionClause());
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 

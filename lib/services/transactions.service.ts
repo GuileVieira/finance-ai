@@ -2,6 +2,7 @@ import { db } from '@/lib/db/connection';
 import { transactions, accounts, companies, categories, uploads } from '@/lib/db/schema';
 import { eq, and, desc, between, gte, lte, sql, not, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 export interface TransactionFilters {
   accountId?: string;
@@ -139,6 +140,9 @@ export class TransactionsService {
         );
       }
 
+      // Exclude "Saldo" and "Transferência" from the main list view
+      conditions.push(getFinancialExclusionClause());
+
       if (conditions.length > 0) {
         query = query.where(
           conditions.length === 1
@@ -158,7 +162,8 @@ export class TransactionsService {
       // Contar total para paginação
       let countQuery: any = db.select({ count: sql<number>`count(*)` })
         .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id));
 
       if (conditions.length > 0) {
         countQuery = countQuery.where(
@@ -248,8 +253,8 @@ export class TransactionsService {
         );
       }
 
-      // Exclude "Saldo Inicial" from stats
-      query = query.where(not(ilike(categories.name, 'Saldo Inicial')));
+      // Exclude "Saldo" and "Transferência" (non-financial) from stats
+      query = query.where(getFinancialExclusionClause());
 
       const [stats] = await query;
 
