@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
                 'Conta',
                 'Valor',
                 'Tipo',
-                'Status'
+                'Conciliado'
             ].join(',');
 
             return new NextResponse(headers, {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
             'Conta',
             'Valor',
             'Tipo',
-            'Status'
+            'Conciliado'
         ].join(',');
 
         const rows = transactions.map((t: any) => {
