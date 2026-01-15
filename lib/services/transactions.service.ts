@@ -102,23 +102,23 @@ export class TransactionsService {
       // Aplicar filtros
       const conditions = [];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         conditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         conditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      if (filters.categoryId) {
+      if (filters.categoryId && filters.categoryId !== 'all') {
         conditions.push(eq(transactions.categoryId, filters.categoryId));
       }
 
-      if (filters.type) {
+      if (filters.type && (filters.type as string) !== 'all') {
         conditions.push(eq(transactions.type, filters.type));
       }
 
-      if (filters.categoryType) {
+      if (filters.categoryType && filters.categoryType !== 'all') {
         conditions.push(eq(categories.type, filters.categoryType));
       }
 
@@ -221,19 +221,19 @@ export class TransactionsService {
       // Aplicar filtros
       const conditions = [];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         conditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         conditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      if (filters.type) {
+      if (filters.type && (filters.type as string) !== 'all') {
         conditions.push(eq(transactions.type, filters.type));
       }
 
-      if (filters.categoryType) {
+      if (filters.categoryType && filters.categoryType !== 'all') {
         conditions.push(eq(categories.type, filters.categoryType));
       }
 
@@ -322,15 +322,15 @@ export class TransactionsService {
       // Aplicar filtros adicionais
       const conditions = [];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         conditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         conditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      if (filters.type) {
+      if (filters.type && (filters.type as string) !== 'all') {
         conditions.push(eq(transactions.type, filters.type));
       }
 
@@ -387,15 +387,15 @@ export class TransactionsService {
 
       const conditions = [];
 
-      if (filters.accountId) {
+      if (filters.accountId && filters.accountId !== 'all') {
         conditions.push(eq(transactions.accountId, filters.accountId));
       }
 
-      if (filters.companyId) {
+      if (filters.companyId && filters.companyId !== 'all') {
         conditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      if (filters.type) {
+      if (filters.type && (filters.type as string) !== 'all') {
         conditions.push(eq(transactions.type, filters.type));
       }
 

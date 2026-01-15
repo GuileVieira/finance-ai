@@ -42,6 +42,7 @@ export default function TransactionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const { toast } = useToast();
 
@@ -207,11 +208,50 @@ export default function TransactionsPage() {
     setCurrentPage(1);
   };
 
-  const handleExport = () => {
-    toast({
-      title: 'Exportação Iniciada',
-      description: 'Baixando transações em formato CSV...',
-    });
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      toast({
+        title: 'Exportação Iniciada',
+        description: 'Preparando seu arquivo CSV...',
+      });
+
+      const response = await fetch('/api/transactions/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filtersWithPagination),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na exportação');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transacoes-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Exportação Concluída',
+        description: 'O download do arquivo CSV deve começar em instantes.',
+      });
+    } catch (error) {
+      console.error('Erro na exportação:', error);
+      toast({
+        title: 'Erro na Exportação',
+        description: 'Não foi possível gerar o arquivo CSV. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleAddTransaction = () => {
@@ -465,7 +505,7 @@ export default function TransactionsPage() {
   const selectedTransaction = transactions.find(t => t.id === editingTransaction);
 
   // Verificar se é a primeira vez (sem dados no sistema)
-  const isFirstTimeUser = isEmpty && !isLoading && filters.search === '' && filters.category === 'all' && filters.type === 'all' && filters.accountId === 'all';
+  const isFirstTimeUser = isEmpty && !isLoading && extraFilters.search === '' && extraFilters.category === 'all' && extraFilters.type === 'all' && filters.accountId === 'all';
 
   // Se for primeira vez (sem dados), mostrar tela de boas-vindas
   if (isFirstTimeUser) {
@@ -673,6 +713,7 @@ export default function TransactionsPage() {
               size="sm"
               onClick={handleExport}
               className="hidden sm:flex"
+              disabled={isExporting}
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar
