@@ -18,21 +18,28 @@ if (fs.existsSync(envPath)) {
 // Now import connection
 async function run() {
     const { db } = await import('../lib/db/connection');
-    const { users, userCompanies, companies, categories, transactions } = await import('../lib/db/schema');
-    const { eq, and, inArray, sql } = await import('drizzle-orm');
+    const { users, userCompanies } = await import('../lib/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const { default: DREService } = await import('../lib/services/dre.service');
 
-    console.log('--- Debugging DRE ---');
+    console.log('--- Debugging DRE with Service ---');
     console.log('DATABASE_URL present:', !!process.env.DATABASE_URL);
 
     // 1. Get User and Company
-    const userEmail = 'empresa@teste.com';
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, userEmail)
+    let user = await db.query.users.findFirst({
+        where: eq(users.email, 'empresa@teste.com')
     });
 
     if (!user) {
-        console.log('User not found:', userEmail);
-        return;
+        console.log('User empresa@teste.com not found. Listing all users:');
+        const allUsers = await db.select().from(users).limit(5);
+        if (allUsers.length > 0) {
+            user = allUsers[0];
+            console.log(`Using first user: ${user.email}`);
+        } else {
+            console.log('No users found in DB.');
+            return;
+        }
     }
     console.log(`User found: ${user.name} (${user.id})`);
 
@@ -40,111 +47,45 @@ async function run() {
         where: eq(userCompanies.userId, user.id)
     });
 
+    let companyId;
     if (!userCompany) {
-        console.log('User has no company linked.');
-        return;
+        const anyCompany = await db.query.companies.findFirst();
+        if (anyCompany) {
+            companyId = anyCompany.id;
+        } else {
+            return;
+        }
+    } else {
+        companyId = userCompany.companyId;
     }
-    const companyId = userCompany.companyId;
     console.log(`Company ID: ${companyId}`);
 
-    // 2. Check ALL Categories for verify types
-    const allCats = await db.select().from(categories).where(eq(categories.companyId, companyId));
-    console.log(`\nTotal categories: ${allCats.length}`);
+    // 2. Run DRE Service for November 2025
+    console.log('\n--- Generating DRE for Nov 2025 ---');
 
-    // Group by type
-    const byType: Record<string, number> = {};
-    const varCostCats: any[] = [];
+    const dre = await DREService.getDREStatement({
+        period: 'custom',
+        startDate: '2025-11-01',
+        endDate: '2025-11-30',
+        companyId: companyId
+    });
 
-    for (const c of allCats) {
-        byType[c.type] = (byType[c.type] || 0) + 1;
-        if (c.type === 'variable_cost' || c.type === 'expense_variable' || c.type === 'costs' || c.type === 'cost') {
-            varCostCats.push(c);
-        }
-    }
-    console.log('Category Types Distribution:', byType);
+    console.log('--- DRE Analysis ---');
+    console.log(`Gross Revenue:        ${dre.grossRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Taxes:                ${dre.taxes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Net Revenue:          ${dre.netRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Variable Costs:       ${dre.variableCosts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Contribution Margin:  ${dre.contributionMargin.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (${dre.contributionMargin.percentage.toFixed(2)}%)`);
+    console.log(`Fixed Costs:          ${dre.fixedCosts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Operational Result:   ${dre.operationalResult.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Financial Result:     ${dre.financialResult.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`Non-Op Result:        ${dre.nonOperational.netResult.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    console.log(`NET RESULT:           ${dre.netResult.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
 
-    if (varCostCats.length === 0) {
-        console.log('⚠ NO variable cost categories found (looked for variable_cost, expense_variable, etc)');
-    } else {
-        console.log(`Found ${varCostCats.length} potential variable cost categories.`);
-
-        // 3. Transactions in those categories
-        const ids = varCostCats.map(c => c.id);
-        const costTransactions = await db.select({
-            count: sql<number>`count(*)`,
-            totalAmount: sql<number>`sum(${transactions.amount})`
-        })
-            .from(transactions)
-            .where(
-                and(
-                    inArray(transactions.categoryId, ids),
-                    sql`${transactions.transactionDate} >= '2025-11-01' AND ${transactions.transactionDate} <= '2025-11-30'`
-                )
-            );
-        console.log('\nTransactions in Variable Cost Categories (Nov 2025):');
-        console.log(JSON.stringify(costTransactions, null, 2));
-
-        // 4. Analyze Transaction Distribution for Nov 2025
-        console.log('\n--- Transaction Distribution (Nov 2025) ---');
-
-        const distribution = await db.select({
-            type: categories.type,
-            categoryName: categories.name,
-            count: sql<number>`count(*)`,
-            total: sql<number>`sum(${transactions.amount})`
-        })
-            .from(transactions)
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
-            .where(sql`${transactions.transactionDate} >= '2025-11-01' AND ${transactions.transactionDate} <= '2025-11-30'`)
-            .groupBy(categories.type, categories.name)
-            .orderBy(sql`sum(${transactions.amount}) desc`);
-
-        console.table(distribution.map(d => ({
-            type: d.type || 'UNCATEGORIZED',
-            category: d.categoryName || 'Unknown',
-            count: d.count,
-            total: d.total
-        })));
-
-        // Summary by Type
-        const summaryByType = await db.select({
-            type: categories.type,
-            total: sql<number>`sum(${transactions.amount})`
-        })
-            .from(transactions)
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
-            .where(sql`${transactions.transactionDate} >= '2025-11-01' AND ${transactions.transactionDate} <= '2025-11-30'`)
-            .groupBy(categories.type);
-
-        console.log('\nSummary by Type:');
-        console.table(summaryByType);
-        console.log('\n--- Checking Transaction Types for MATERIAL DE EMBALAGEM ---');
-        // Find category ID for 'MATERIAL DE EMBALAGEM'
-        const specificCat = await db.query.categories.findFirst({
-            where: and(
-                eq(categories.companyId, companyId),
-                eq(categories.name, 'MATERIAL DE EMBALAGEM')
-            )
-        });
-
-        if (specificCat) {
-            const txns = await db.select({
-                id: transactions.id,
-                amount: transactions.amount,
-                type: transactions.type,
-                date: transactions.transactionDate,
-                description: transactions.description
-            })
-                .from(transactions)
-                .where(eq(transactions.categoryId, specificCat.id))
-                .limit(5);
-
-            console.table(txns);
-        } else {
-            console.log("Category 'MATERIAL DE EMBALAGEM' not found in this company.");
-        }
-
-    }
+    console.log('\n--- Top 10 Categories included in DRE ---');
+    dre.categories.slice(0, 10).forEach(cat => {
+        console.log(`${cat.name} [${cat.type}]: ${cat.actual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+    });
 }
 
 run().catch(console.error);
