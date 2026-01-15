@@ -144,7 +144,7 @@ export default function CategoryAnalysis({
           <PieChartIcon className="w-5 h-5" />
           Distribuição por Categoria
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
           Visualização percentual dos custos
         </p>
       </CardHeader>
@@ -186,13 +186,13 @@ export default function CategoryAnalysis({
                   style={{ backgroundColor: category.color }}
                 />
                 <span className="truncate flex-1" title={category.name}>{category.name}</span>
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground dark:text-gray-400 text-xs">
                   {formatCurrency(category.actual || 0)}
                 </span>
               </div>
             ))}
             {sortedCategories.length > 9 && (
-              <div className="text-sm text-muted-foreground col-span-full">
+              <div className="text-sm text-muted-foreground dark:text-gray-400 col-span-full">
                 ... e mais {sortedCategories.length - 9} categorias
               </div>
             )}
@@ -209,7 +209,7 @@ export default function CategoryAnalysis({
           <BarChart3 className="w-5 h-5" />
           Comparação de Categorias
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
           Valores absolutos e percentuais
         </p>
       </CardHeader>
@@ -243,7 +243,7 @@ export default function CategoryAnalysis({
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Análise de Categorias</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground dark:text-gray-400">
             Análise detalhada das {categories.length} categorias identificadas
           </p>
         </div>
@@ -265,26 +265,26 @@ export default function CategoryAnalysis({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Geral</div>
+            <div className="text-sm text-muted-foreground dark:text-gray-400">Total Geral</div>
             <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Categorias</div>
+            <div className="text-sm text-muted-foreground dark:text-gray-400">Categorias</div>
             <div className="text-2xl font-bold">{categories.length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Maior Categoria</div>
+            <div className="text-sm text-muted-foreground dark:text-gray-400">Maior Categoria</div>
             <div className="text-lg font-semibold">
               {sortedCategories[0]?.name || '-'}
             </div>
             {sortedCategories[0] && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground dark:text-gray-400">
                 {formatCurrency(sortedCategories[0].actual || 0)}
               </div>
             )}
@@ -293,11 +293,11 @@ export default function CategoryAnalysis({
 
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Regras Ativas</div>
+            <div className="text-sm text-muted-foreground dark:text-gray-400">Regras Ativas</div>
             <div className="text-2xl font-bold">
               {rules.filter(r => r.status === 'active').length}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground dark:text-gray-400">
               de {rules.length} totais
             </div>
           </CardContent>
@@ -359,7 +359,7 @@ export default function CategoryAnalysis({
       <Card>
         <CardHeader>
           <CardTitle>Detalhamento das Categorias</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground dark:text-gray-400">
             {filteredCategories.length} de {categories.length} categorias
           </p>
         </CardHeader>
@@ -386,13 +386,13 @@ export default function CategoryAnalysis({
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div>
-                        <div className="text-muted-foreground">Valor</div>
+                        <div className="text-muted-foreground dark:text-gray-400">Valor</div>
                         <div className="font-semibold text-lg">
                           {formatCurrency(category.actual || 0)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Percentual</div>
+                        <div className="text-muted-foreground dark:text-gray-400">Percentual</div>
                         <div className="font-semibold text-lg">
                           {formatPercentage(category.percentage)}
                         </div>
@@ -405,7 +405,7 @@ export default function CategoryAnalysis({
                         />
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Transações</div>
+                        <div className="text-muted-foreground dark:text-gray-400">Transações</div>
                         <div className="font-semibold text-lg">{category.transactions}</div>
                       </div>
                     </div>

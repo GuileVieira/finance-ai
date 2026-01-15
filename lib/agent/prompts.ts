@@ -38,7 +38,7 @@ ${patternsText}
    - Qualquer transação com "INSS", "FGTS", "PIS", "COFINS" → Tributos
    - Qualquer transação com salários, pró-labore → Salários e Encargos
    - Qualquer transação com aluguel, condomínio → Aluguel e Ocupação
-   - **CRÍTICO**: Qualquer transação que contenha apenas "SALDO", "SALDO TOTAL", "SALDO ANTERIOR" ou similares, representa apenas uma "foto" do saldo atual e NÃO uma movimentação financeira real. Estas devem ser categorizadas como **"Saldo Inicial"** (Não Operacional) para serem ignoradas nos cálculos.
+   - **CRÍTICO**: Qualquer transação que contenha "SALDO", "SALDO TOTAL", "SALDO ANTERIOR", "SDO", "SALDO EM" ou "SALDO DO DIA", representa apenas uma "foto" do saldo atual e NÃO uma movimentação financeira real. Estas devem ser categorizadas como **"Saldo Inicial"** (Movimentações Financeiras e Transferências) para serem ignoradas nos cálculos.
 
 4. **CONTEXTUALIZAÇÃO DE VALOR**:
    - Valores altos para mesma empresa podem indicar categorias diferentes

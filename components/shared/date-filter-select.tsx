@@ -40,6 +40,7 @@ export function DateFilterSelect({
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="custom">Personalizado</SelectItem>
+                <SelectItem value="all">Todo o período</SelectItem>
 
                 <SelectGroup>
                     <SelectLabel>Períodos Rápidos</SelectLabel>
@@ -70,10 +71,7 @@ export function DateFilterSelect({
                     </SelectGroup>
                 )}
 
-                <SelectGroup>
-                    <SelectLabel>Outros</SelectLabel>
-                    <SelectItem value="all">Todo o período</SelectItem>
-                </SelectGroup>
+
             </SelectContent>
         </Select>
     );

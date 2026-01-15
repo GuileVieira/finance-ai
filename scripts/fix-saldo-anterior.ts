@@ -12,7 +12,7 @@ async function fixSaldoAnterior() {
     // 1. Find or Create "Saldo Inicial" Category (Standard Company)
     // assuming we are fixing for the default company found in other scripts
     const company = await db.query.companies.findFirst({
-        where: like(companies.name, '%Empresa Padrão%')
+        where: like(companies.name, '%Empresa Teste%')
     });
 
     if (!company) {

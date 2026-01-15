@@ -1177,11 +1177,11 @@ const categoryDefinitions: CategoryDefinition[] = [
   // ============================================
   {
     name: 'Saldo Inicial',
-    type: 'financial_movement',
+    type: 'non_operational',
     categoryGroup: 'TRANSFERÊNCIAS',
     dreGroup: 'TRANSF',
     description: 'Ajustes de saldo inicial e checkpoints (ignorado em relatórios)',
-    examples: ['SALDO ANTERIOR', 'SALDO TOTAL', 'SALDO DIA', 'SALDO INICIAL']
+    examples: ['SALDO ANTERIOR', 'SALDO TOTAL', 'SALDO DIA', 'SALDO INICIAL', 'SDO', 'SALDO EM', 'SALDO DO DIA', 'SALDO BLOQUEADO', 'SALDO EM DATA', 'SDO CTA', 'SALDO DISPONIVEL', 'S A L D O']
   }
 ];
 

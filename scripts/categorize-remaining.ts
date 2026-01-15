@@ -23,102 +23,98 @@ const CATEGORIZATION_RULES: Array<{
     patterns: RegExp[];
     categoryName: string;
 }> = [
-    // Tarifas bancárias
-    {
-        patterns: [/tarifa/i, /tar /i, /tar\./i, /tar\//i, /taxa/i, /anuidade/i, /custas cobr/i],
-        categoryName: 'TARIFAS BANCÁRIAS'
-    },
-    // SISPAG Tributos (pagamentos de impostos via SISPAG)
-    {
-        patterns: [/sispag tributos/i],
-        categoryName: 'OUTROS TRIBUTOS'
-    },
-    // IOF
-    {
-        patterns: [/\biof\b/i],
-        categoryName: 'IOF'
-    },
-    // Juros
-    {
-        patterns: [/juros/i, /jrs /i, /prorrog/i],
-        categoryName: 'JUROS/PRORROGAÇÃO'
-    },
-    // Transferências
-    {
-        patterns: [/transf/i, /ted /i, /pix /i, /doc /i],
-        categoryName: 'TRANSFERÊNCIAS (+)'
-    },
-    // Salários
-    {
-        patterns: [/salario/i, /folha/i, /pagto func/i],
-        categoryName: 'SALARIOS'
-    },
-    // FGTS
-    {
-        patterns: [/fgts/i],
-        categoryName: 'FGTS'
-    },
-    // INSS
-    {
-        patterns: [/inss/i, /gps /i],
-        categoryName: 'INSS'
-    },
-    // Impostos/Tributos
-    {
-        patterns: [/darf/i, /icms/i, /iss /i, /pis /i, /cofins/i, /simples/i],
-        categoryName: 'OUTROS TRIBUTOS'
-    },
-    // Fornecedores/Matéria Prima
-    {
-        patterns: [/fornec/i, /compra/i, /nf /i, /nota fiscal/i],
-        categoryName: 'MATÉRIA PRIMA'
-    },
-    // Energia
-    {
-        patterns: [/celesc/i, /cpfl/i, /eletro/i, /energia/i, /luz /i],
-        categoryName: 'ENERGIA ELETRICA'
-    },
-    // Água
-    {
-        patterns: [/casan/i, /sabesp/i, /agua/i, /saneamento/i],
-        categoryName: 'ÁGUA E ESGOTO'
-    },
-    // Telefone/Internet
-    {
-        patterns: [/claro/i, /vivo/i, /tim /i, /oi /i, /telefo/i, /internet/i],
-        categoryName: 'TELEFONE / INTERNET'
-    },
-    // Aluguel
-    {
-        patterns: [/aluguel/i, /locacao/i],
-        categoryName: 'ALUGUEL'
-    },
-    // Combustível
-    {
-        patterns: [/combust/i, /gasolina/i, /diesel/i, /posto /i, /shell/i, /ipiranga/i, /br /i],
-        categoryName: 'COMBUSTIVEIS/LUBRIFICANTES'
-    },
-    // Faturamento/Vendas
-    {
-        patterns: [/venda/i, /receb/i, /cliente/i, /faturamento/i],
-        categoryName: 'FATURAMENTO'
-    },
-    // Empréstimos
-    {
-        patterns: [/emprest/i, /financ/i, /parcela/i],
-        categoryName: 'EMPRÉSTIMOS (-)'
-    },
-    // Saldo Inicial
-    {
-        patterns: [/saldo inicial/i, /saldo anterior/i],
-        categoryName: 'SALDO INICIAL'
-    },
-    // Receitas Financeiras
-    {
-        patterns: [/rendimento/i, /aplicacao/i, /resgate/i, /cdb /i, /lci /i, /lca /i],
-        categoryName: 'RECEITAS FINANCEIRAS'
-    },
-];
+        // Tarifas bancárias
+        {
+            patterns: [/tarifa/i, /tar /i, /tar\./i, /tar\//i, /taxa/i, /anuidade/i, /custas cobr/i],
+            categoryName: 'TARIFAS BANCÁRIAS'
+        },
+        // SISPAG Tributos (pagamentos de impostos via SISPAG)
+        {
+            patterns: [/sispag tributos/i, /darf/i, /icms/i, /iss /i, /pis /i, /cofins/i, /simples/i],
+            categoryName: 'OUTROS TRIBUTOS'
+        },
+        // SISPAG Salários
+        {
+            patterns: [/sispag salarios/i, /salario/i, /folha/i, /pagto func/i],
+            categoryName: 'SALARIOS'
+        },
+        // SISPAG Fornecedores -> MATÉRIA PRIMA (Default for Industry)
+        {
+            patterns: [/sispag fornecedores/i, /fornec/i, /compra/i, /nf /i, /nota fiscal/i],
+            categoryName: 'MATÉRIA PRIMA'
+        },
+        // Recebimentos de Clientes -> FATURAMENTO
+        {
+            patterns: [/recebimentos/i, /recebido/i, /venda/i, /cliente/i, /faturamento/i, /dupl /i],
+            categoryName: 'FATURAMENTO'
+        },
+        // Rendimentos Financeiros -> RENDIMENTOS
+        {
+            patterns: [/rendimentos/i, /aplicacao/i, /resgate/i, /cdb /i, /lci /i, /lca /i],
+            categoryName: 'RENDIMENTOS'
+        },
+        // Transferências Interbancárias -> TRANSFERÊNCIAS (+)
+        {
+            patterns: [/transf/i, /ted /i, /pix /i, /doc /i, /deposito/i],
+            categoryName: 'TRANSFERÊNCIAS (+)'
+        },
+        // IOF
+        {
+            patterns: [/\biof\b/i],
+            categoryName: 'IOF'
+        },
+        // Juros -> JUROS/PRORROGAÇÃO
+        {
+            patterns: [/juros/i, /jrs /i, /prorrog/i],
+            categoryName: 'JUROS/PRORROGAÇÃO'
+        },
+        // FGTS
+        {
+            patterns: [/fgts/i],
+            categoryName: 'FGTS'
+        },
+        // INSS
+        {
+            patterns: [/inss/i, /gps /i],
+            categoryName: 'INSS'
+        },
+        // Energia
+        {
+            patterns: [/celesc/i, /cpfl/i, /eletro/i, /energia/i, /luz /i],
+            categoryName: 'ENERGIA ELETRICA'
+        },
+        // Água
+        {
+            patterns: [/casan/i, /sabesp/i, /agua/i, /saneamento/i],
+            categoryName: 'ÁGUA E ESGOTO'
+        },
+        // Telefone/Internet
+        {
+            patterns: [/claro/i, /vivo/i, /tim /i, /oi /i, /telefo/i, /internet/i],
+            categoryName: 'TELEFONE / INTERNET'
+        },
+        // Aluguel
+        {
+            patterns: [/aluguel/i, /locacao/i],
+            categoryName: 'ALUGUEL'
+        },
+        // Combustível
+        {
+            patterns: [/combust/i, /gasolina/i, /diesel/i, /posto /i, /shell/i, /ipiranga/i, /br /i],
+            categoryName: 'COMBUSTIVEIS/LUBRIFICANTES'
+        },
+        // Empréstimos -> EMPRÉSTIMOS (-) ? Or just EMPRÉSTIMOS (+) ? 
+        // DB had EMPRÉSTIMOS (+) and (-). Usually payments are (-).
+        {
+            patterns: [/emprest/i, /financ/i, /parcela/i],
+            categoryName: 'EMPRÉSTIMOS (-)'
+        },
+        // Saldo Inicial / Balance Snapshots -> Saldo Inicial (Case insensitive match logic handles it)
+        {
+            patterns: [/saldo inicial/i, /saldo anterior/i, /saldo total/i],
+            categoryName: 'Saldo Inicial'
+        },
+    ];
 
 async function run() {
     const { db } = await import('../lib/db/connection');

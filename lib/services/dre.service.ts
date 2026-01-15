@@ -27,7 +27,9 @@ export interface DREFilters {
 type DreGroupType = 'RoB' | 'TDCF' | 'CF' | 'CV' | 'RNOP' | 'DNOP' | 'EMP' | 'TRANSF';
 
 // Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
-const EXCLUDED_DRE_GROUPS: DreGroupType[] = ['EMP', 'TRANSF'];
+// Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
+// Usuário solicitou ver Empréstimos e Transferências, então removemos as restrições
+const EXCLUDED_DRE_GROUPS: DreGroupType[] = [/*'EMP', 'TRANSF'*/];
 
 /**
  * Determina o dreGroup de uma categoria.
@@ -333,9 +335,9 @@ export default class DREService {
         }
 
         // Excluir tipos financial_movement (empréstimos/antecipações)
-        if (cat.categoryType === 'financial_movement') {
+        /*if (cat.categoryType === 'financial_movement') {
           return false;
-        }
+        }*/
 
         return true;
       });

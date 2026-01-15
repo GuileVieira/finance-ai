@@ -318,6 +318,7 @@ export default function ReportsPage() {
         </Tabs>
 
         {/* Insights Financeiros - sempre visível */}
+        {/* Insights Financeiros - sempre visível
         <div className="mt-8">
           {isLoading ? (
             <Skeleton className="h-48 w-full" />
@@ -331,7 +332,7 @@ export default function ReportsPage() {
               <p className="text-gray-500">Nenhum insight disponível no momento.</p>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
     </LayoutWrapper>
   );

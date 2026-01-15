@@ -1,8 +1,9 @@
 import { db } from '@/lib/db/drizzle';
-import { transactions, accounts } from '@/lib/db/schema';
+import { transactions, accounts, categories } from '@/lib/db/schema';
 import { CashFlowReport, CashFlowDay } from '@/lib/types';
 import { eq, and, gte, lte, lt, sum, count, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 export interface CashFlowFilters {
   period?: string;
@@ -85,7 +86,7 @@ export default class CashFlowService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = and(...whereConditions);
+      const whereClause = and(...whereConditions, getFinancialExclusionClause());
 
       // Buscar transações individuais para calcular fluxo diário
       const allTransactions = await db!
@@ -96,6 +97,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(whereClause || undefined)
         .orderBy(transactions.transactionDate);
 
@@ -177,11 +179,11 @@ export default class CashFlowService {
       // Encontrar melhor e pior dia
       const bestDay = cashFlowDays.reduce((best, current) =>
         current.netCashFlow > best.netCashFlow ? current : best
-      , cashFlowDays[0] || { netCashFlow: 0, date: '' });
+        , cashFlowDays[0] || { netCashFlow: 0, date: '' });
 
       const worstDay = cashFlowDays.reduce((worst, current) =>
         current.netCashFlow < worst.netCashFlow ? current : worst
-      , cashFlowDays[0] || { netCashFlow: 0, date: '' });
+        , cashFlowDays[0] || { netCashFlow: 0, date: '' });
 
       // Formatar período
       const periodLabel = this.formatPeriodLabel(startDate, endDate);
@@ -227,7 +229,7 @@ export default class CashFlowService {
     const end = new Date(endDate);
 
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-                    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
     if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
       // Mesmo mês
@@ -276,7 +278,7 @@ export default class CashFlowService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = and(...whereConditions);
+      const whereClause = and(...whereConditions, getFinancialExclusionClause());
 
       // Calcular médias diárias
       const result = await db!
@@ -287,6 +289,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(whereClause || undefined);
 
       const data = result[0];
@@ -349,7 +352,7 @@ export default class CashFlowService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = and(...whereConditions);
+      const whereClause = and(...whereConditions, getFinancialExclusionClause());
 
       const latestBalance = await db!
         .select({
@@ -357,6 +360,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(whereClause || undefined)
         .orderBy(desc(transactions.transactionDate))
         .limit(1);
@@ -384,7 +388,9 @@ export default class CashFlowService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+      const whereClause = whereConditions.length > 0
+        ? and(...whereConditions, getFinancialExclusionClause())
+        : getFinancialExclusionClause();
 
       const latestBalance = await db!
         .select({
@@ -392,6 +398,7 @@ export default class CashFlowService {
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
         .where(whereClause || undefined)
         .orderBy(desc(transactions.transactionDate))
         .limit(1);
