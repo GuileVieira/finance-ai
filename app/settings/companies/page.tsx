@@ -302,7 +302,7 @@ export default function SettingsCompaniesPage() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold">Empresas</h1>
             <p className="text-muted-foreground">
-              Gerencie as empresas e configure multitenancy
+              Gerencie suas empresas e diferentes CNPJs em um só lugar
             </p>
           </div>
 
