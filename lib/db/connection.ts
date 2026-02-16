@@ -20,7 +20,7 @@ export async function withUser<T>(userId: string, callback: (tx: any) => Promise
   return db.transaction(async (tx) => {
     // Define a variável de sessão para o RLS
     // O SET LOCAL garante que o valor vale apenas para esta transação
-    await tx.execute(sql`SET LOCAL app.current_user_id = ${userId}`);
+    await tx.execute(sql`SELECT set_config('app.current_user_id', ${userId}, true)`);
     return callback(tx);
   });
 }
