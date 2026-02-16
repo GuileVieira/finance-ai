@@ -446,11 +446,28 @@ export class FileStorageService {
   private isValidOFXFile(filename: string, buffer: ArrayBuffer): boolean {
     const extension = this.getFileExtension(filename);
     if (extension !== 'ofx') return false;
-    const content = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
-    const normalizedContent = content.toUpperCase().trim();
-    return normalizedContent.includes('OFXHEADER') &&
-           normalizedContent.includes('SIGNONMSGSRSV1') &&
-           (normalizedContent.includes('BANKMSGSRSV1') || normalizedContent.includes('CREDITCARDMSGSRSV1'));
+    
+    // Tentar converter para string para verificar conteúdo básico
+    // Note: Alguns OFX usam encodings diferentes (cp1252), então não falhamos se o decode falhar
+    try {
+      const content = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+      const normalizedContent = content.toUpperCase();
+      
+      // Validação básica: deve conter pelo menos uma das tags fundamentais do OFX
+      // Banks use different headers, so we look for signs of OFX structure
+      const hasStructure = normalizedContent.includes('OFX') || 
+                          normalizedContent.includes('SIGNONMSG') ||
+                          normalizedContent.includes('BANKMSG') ||
+                          normalizedContent.includes('CREDITCARDMSG') ||
+                          normalizedContent.includes('STMTTRN');
+      
+      return hasStructure;
+    } catch (e) {
+      // Se não conseguirmos ler o conteúdo, mas a extensão for .ofx, 
+      // permitimos o upload e deixamos o parser lidar com encodings específicos
+      console.warn('⚠️ Não foi possível ler conteúdo do arquivo para validação, confiando na extensão .ofx');
+      return true;
+    }
   }
 
   private getFileExtension(filename: string): string {

@@ -65,6 +65,8 @@ export default function UploadPage() {
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
     setIsUploading(true);
     setCompletedCount(0);
     setErrorCount(0);
@@ -80,15 +82,30 @@ export default function UploadPage() {
     });
   }, [toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, fileRejections, open } = useDropzone({
     onDrop,
     accept: {
       'application/ofx': ['.ofx'],
-      'text/ofx': ['.ofx']
+      'text/ofx': ['.ofx'],
+      'application/x-ofx': ['.ofx']
     },
     maxFiles: 10,
-    disabled: isUploading
+    disabled: isUploading,
+    noClick: true, // Impedir que clique na área abra o seletor (evita bugs no drag)
+    noKeyboard: true
   });
+
+  // Efeito para mostrar toast de arquivos rejeitados
+  React.useEffect(() => {
+    if (fileRejections.length > 0) {
+      const fileNames = fileRejections.map(r => r.file.name).join(', ');
+      toast({
+        title: 'Arquivo(s) ignorado(s)',
+        description: `Formato inválido ou limite excedido: ${fileNames}. Use apenas arquivos .ofx`,
+        variant: 'destructive'
+      });
+    }
+  }, [fileRejections, toast]);
 
   const handleUploadComplete = (uploadId: string) => {
     setCompletedCount(prev => prev + 1);
@@ -122,38 +139,58 @@ export default function UploadPage() {
             <div
               {...getRootProps()}
               data-tutorial="upload-dropzone"
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-10 text-center transition-all duration-200 ${
                 isDragActive
-                  ? 'border-primary bg-primary/5'
+                  ? 'border-primary bg-primary/10 scale-[1.01] shadow-lg'
                   : isUploading
-                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                  : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-muted bg-muted/30 cursor-not-allowed'
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/5'
               }`}
             >
               <input {...getInputProps()} />
-              <div className="space-y-4">
-                <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div className="text-lg font-medium mb-2">
-                  {isDragActive ? (
-                    'Solte os arquivos aqui'
-                  ) : isUploading ? (
-                    'Upload em andamento...'
-                  ) : (
-                    'Arraste extratos aqui ou clique para selecionar'
-                  )}
+              <div className="space-y-6">
+                <div className={`p-4 rounded-full bg-primary/10 w-fit mx-auto transition-transform duration-200 ${isDragActive ? 'scale-110' : ''}`}>
+                  <Upload className={`h-12 w-12 mx-auto ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Suporte: OFX (Bancos Brasileiros) • Máximo: 10 arquivos
-                </p>
-                <div className="flex gap-2 justify-center flex-wrap">
-                  <Badge variant="secondary" className="text-xs">
-                    Upload instantâneo
+                
+                <div className="space-y-2">
+                  <div className="text-xl font-semibold tracking-tight">
+                    {isDragActive ? (
+                      'Solte para iniciar o upload'
+                    ) : isUploading ? (
+                      'Processando arquivos...'
+                    ) : (
+                      'Arraste seus extratos bancários'
+                    )}
+                  </div>
+                  <p className="text-muted-foreground">
+                    O sistema irá identificar automaticamente o banco e a conta.
+                  </p>
+                </div>
+
+                {!isUploading && !isDragActive && (
+                  <div className="pt-2">
+                    <Button 
+                      type="button" 
+                      onClick={open}
+                      variant="outline"
+                      className="relative z-10"
+                    >
+                      Selecionar Arquivos
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex gap-3 justify-center flex-wrap pt-4">
+                  <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-primary/20">
+                    <span className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                    OFX (Bradesco, Itaú, BB, etc)
                   </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    Progresso em tempo real
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-primary/20">
                     Categorização com IA
+                  </Badge>
+                  <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-primary/20">
+                    Multi-upload (máx 10)
                   </Badge>
                 </div>
               </div>
