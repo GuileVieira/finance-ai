@@ -8,9 +8,10 @@
  * including icons, descriptions e examples
  */
 
-// Carregar variáveis de ambiente ANTES de importar conexão com banco
-import { config } from 'dotenv';
-config({ path: '.env' });
+// Carregar variáveis de ambiente ANTES de qualquer outro import
+import * as dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 import { db } from '../lib/db/connection';
 import { companies, categories } from '../lib/db/schema';
