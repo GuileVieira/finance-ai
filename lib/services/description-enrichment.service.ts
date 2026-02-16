@@ -32,9 +32,9 @@ const BANKING_TERMS: Record<string, BankingTermInfo> = {
   'SISPAG': {
     term: 'SISPAG',
     bank: 'Itaú',
-    meaning: 'Sistema de Pagamentos do Itaú para fornecedores e tributos',
-    categoryHint: 'Pagamento (ver complemento: FORNECEDORES → Fornecedores, TRIBUTOS → Impostos)',
-    keywords: ['pagamento', 'itau', 'fornecedor', 'tributo']
+    meaning: 'Sistema de Pagamentos do Itaú (pode ser Fornecedores, Salários ou Tributos)',
+    categoryHint: 'Pagamento em Lote (Verificar complemento ou marcar como ambíguo)',
+    keywords: ['pagamento', 'itau', 'lote', 'tributo']
   },
   'PAGFOR': {
     term: 'PAGFOR',
@@ -44,33 +44,65 @@ const BANKING_TERMS: Record<string, BankingTermInfo> = {
     keywords: ['pagamento', 'bradesco', 'fornecedor']
   },
 
-  // Transferências
+  // FIDC e Antecipação
+  'FIDC': {
+    term: 'FIDC',
+    meaning: 'Fundo de Investimento em Direitos Creditórios (Antecipação)',
+    categoryHint: 'Desconto de Títulos ou Empréstimos (Entrada)',
+    keywords: ['fidc', 'antecipacao', 'desconto', 'titulos']
+  },
+  'REC TIT': {
+    term: 'REC TIT',
+    meaning: 'Recebimento de Títulos (Antecipação ou Cobrança)',
+    categoryHint: 'Receita de Vendas ou Desconto de Títulos',
+    keywords: ['recebimento', 'titulo', 'antecipacao']
+  },
+
+  // Transferências e Devoluções
+  'DEV TED': {
+    term: 'DEV TED',
+    meaning: 'Devolução de TED (Estorno)',
+    categoryHint: 'Estorno de pagamentos',
+    keywords: ['devolucao', 'estorno', 'ted']
+  },
+  'DEVOLUCAO': {
+    term: 'DEVOLUCAO',
+    meaning: 'Devolução de valores',
+    categoryHint: 'Estorno de pagamentos',
+    keywords: ['devolucao', 'estorno']
+  },
   'TEV': {
     term: 'TEV',
-    meaning: 'Transferência Eletrônica de Valores',
-    categoryHint: 'Transferência bancária',
-    keywords: ['transferencia', 'bancaria']
+    meaning: 'Transferência Eletrônica de Valores (mesmo banco)',
+    categoryHint: 'Transferência interna (verificar titularidade)',
+    keywords: ['transferencia', 'bancaria', 'mesmo', 'banco']
   },
   'TED': {
     term: 'TED',
-    meaning: 'Transferência Eletrônica Disponível (entre bancos diferentes)',
-    categoryHint: 'Transferência bancária',
+    meaning: 'Transferência Eletrônica Disponível',
+    categoryHint: 'Transferência bancária (ou Pagamento se externo)',
     keywords: ['transferencia', 'bancaria', 'interbancaria']
   },
   'DOC': {
     term: 'DOC',
-    meaning: 'Documento de Ordem de Crédito (entre bancos, D+1)',
+    meaning: 'Documento de Ordem de Crédito',
     categoryHint: 'Transferência bancária',
     keywords: ['transferencia', 'bancaria']
   },
   'PIX': {
     term: 'PIX',
-    meaning: 'Sistema de Pagamentos Instantâneos do Banco Central',
-    categoryHint: 'Transferência/Pagamento instantâneo',
+    meaning: 'Sistema de Pagamentos Instantâneos',
+    categoryHint: 'Transferência ou Pagamento',
     keywords: ['transferencia', 'pagamento', 'instantaneo']
   },
 
   // Operações Bancárias
+  'ESTORNO': {
+    term: 'ESTORNO',
+    meaning: 'Estorno de lançamentos',
+    categoryHint: 'Estorno/Devolução',
+    keywords: ['estorno', 'devolucao', 'reversao']
+  },
   'EST': {
     term: 'EST',
     meaning: 'Estorno de transação',
@@ -96,18 +128,50 @@ const BANKING_TERMS: Record<string, BankingTermInfo> = {
     keywords: ['boleto', 'pagamento', 'liquidacao']
   },
 
-  // Impostos e Taxas (antigos/legados)
+  // Impostos e Taxas
+  'DA REC FED': {
+    term: 'DA REC FED',
+    meaning: 'Documento de Arrecadação de Receitas Federais (DARF)',
+    categoryHint: 'Impostos e Tributos (ou Estorno se crédito)',
+    keywords: ['imposto', 'darf', 'receita', 'federal']
+  },
+  'DARF': {
+    term: 'DARF',
+    meaning: 'Documento de Arrecadação de Receitas Federais',
+    categoryHint: 'Impostos e Tributos',
+    keywords: ['imposto', 'darf', 'federal']
+  },
+  'DAS': {
+    term: 'DAS',
+    meaning: 'Documento de Arrecadação do Simples Nacional',
+    categoryHint: 'Impostos e Tributos',
+    keywords: ['imposto', 'simples', 'nacional']
+  },
+  'GPS': {
+    term: 'GPS',
+    meaning: 'Guia da Previdência Social',
+    categoryHint: 'Encargos Sociais',
+    keywords: ['imposto', 'inss', 'previdencia']
+  },
+  'FGTS': {
+    term: 'FGTS',
+    meaning: 'Fundo de Garantia do Tempo de Serviço',
+    categoryHint: 'Encargos Sociais',
+    keywords: ['encargos', 'fgts', 'trabalhista']
+  },
+
+  // Legados e Outros
   'CPMF': {
     term: 'CPMF',
-    meaning: 'Contribuição Provisória sobre Movimentação Financeira (extinto em 2007, ainda aparece em sistemas legados)',
+    meaning: 'Contribuição Provisória (Extinto)',
     categoryHint: 'Taxa bancária histórica',
-    keywords: ['imposto', 'taxa', 'cpmf', 'movimentacao']
+    keywords: ['imposto', 'taxa', 'cpmf']
   },
   'IOF': {
     term: 'IOF',
     meaning: 'Imposto sobre Operações Financeiras',
     categoryHint: 'Imposto federal',
-    keywords: ['imposto', 'iof', 'operacoes', 'financeiras']
+    keywords: ['imposto', 'iof', 'financeiras']
   },
 
   // Investimentos

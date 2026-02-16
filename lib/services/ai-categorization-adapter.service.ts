@@ -129,7 +129,7 @@ export class AICategorization implements AICategorizationService {
       try {
         enrichment = await descriptionEnrichmentService.enrichDescription(
           context.description,
-          context.memo
+          context.memo ?? undefined // Converter null/undefined para undefined explícito
         );
         if (enrichment.bankingTerm) {
           console.log(`[AI-ADAPTER] Termo bancário detectado: ${enrichment.bankingTerm.term} (${enrichment.bankingTerm.meaning})`);
@@ -142,10 +142,32 @@ export class AICategorization implements AICategorizationService {
       const allCategories = await getCategoriesFromDB();
 
       // Filtrar categorias baseado no tipo da transação
-      const transactionType: 'credit' | 'debit' = context.amount >= 0 ? 'credit' : 'debit';
+      // Garantir que amount tenha valor default caso venha undefined
+      const amount = context.amount ?? 0;
+      const transactionType: 'credit' | 'debit' = amount >= 0 ? 'credit' : 'debit';
       const filteredCategories = filterCategoriesByTransactionType(transactionType, allCategories);
 
       const availableCategories = filteredCategories.map(c => c.name);
+
+      // --- REGRA DETERMINÍSTICA (Prioridade sobre IA) ---
+      // Certos termos têm significado inequívoco e devem ser categorizados diretamente
+      const forcedCategory = this.applyRuleBasedCategorization(
+        context,
+        enrichment?.bankingTerm,
+        availableCategories
+      );
+
+      if (forcedCategory) {
+        console.log(`[AI-ADAPTER] Regra Determinística aplicada: "${forcedCategory.category}"`);
+        return {
+          category: forcedCategory.category,
+          confidence: 1.0, // Confiança máxima
+          reasoning: forcedCategory.reasoning,
+          modelUsed: 'rule-based-override'
+        };
+      }
+      // --------------------------------------------------
+
       const formattedCategoriesList = `• ${availableCategories.join('\n• ')}`;
 
       // Montar contexto enriquecido para o prompt
@@ -168,9 +190,9 @@ export class AICategorization implements AICategorizationService {
               role: 'system' as const,
               content: `Você é um especialista em finanças empresariais brasileiras. Sua tarefa é categorizar transações financeiras.
 
-CONTEXTO DA TRANSAÇÃO:
+CONTRATO DA TRANSAÇÃO:
 • DESCRIÇÃO: "${context.description}"
-• VALOR: R$ ${context.amount.toFixed(2)}
+• VALOR: R$ ${(context.amount ?? 0).toFixed(2)}
 • MEMO: "${context.memo || 'N/A'}"${enrichedContextText}${categoryHintText}
 
 CATEGORIAS DISPONÍVEIS:
@@ -184,7 +206,7 @@ REGRAS:
             },
             {
               role: 'user' as const,
-              content: `Categorize a transação: "${context.description}" (R$ ${context.amount.toFixed(2)})`
+              content: `Categorize a transação: "${context.description}" (R$ ${(context.amount ?? 0).toFixed(2)})`
             }
           ];
 
@@ -251,6 +273,84 @@ REGRAS:
       console.error('[AI-ADAPTER-ERROR]', error);
       throw error;
     }
+  }
+
+  /**
+   * Aplica regras determinísticas baseadas em termos técnicos conhecidos
+   * Retorna null se nenhuma regra se aplicar (deixando para a IA decidir)
+   */
+  private applyRuleBasedCategorization(
+    context: TransactionContext,
+    bankingTerm: { term: string } | undefined,
+    availableCategories: string[]
+  ): { category: string; reasoning: string } | null {
+    const description = context.description.toUpperCase();
+    const amount = context.amount ?? 0;
+    const isCredit = amount >= 0;
+
+    // 1. Tratamento de Impostos Federais (DARF, DA REC FED)
+    // Se for entrada (+) de DARF, é certamente um Estorno ou Restituição
+    if (bankingTerm?.term === 'DA REC FED' || bankingTerm?.term === 'DARF') {
+      if (isCredit) {
+        const estornoCategory = availableCategories.find(c => 
+          c.includes('ESTORNO') || c.includes('RESTITUICAO')
+        );
+        if (estornoCategory) {
+          return {
+            category: estornoCategory,
+            reasoning: 'Regra: DARF/Imposto recebido (Crédito) é categorizado como Estorno/Restituição.'
+          };
+        }
+      }
+    }
+
+    // 2. Devolução de TED / Estornos
+    if (bankingTerm?.term === 'DEV TED' || bankingTerm?.term === 'DEVOLUCAO' || bankingTerm?.term === 'EST') {
+       const estornoCategory = availableCategories.find(c => 
+          c.includes('ESTORNO')
+        );
+        if (estornoCategory) {
+          return {
+            category: estornoCategory,
+            reasoning: `Regra: Termo "${bankingTerm.term}" indica Estorno/Devolução.`
+          };
+        }
+    }
+
+    // 3. FIDC / Antecipação
+    // Se conter FIDC e for entrada, é Desconto de Títulos ou Empréstimo, NUNCA Transferência
+    if (description.includes('FIDC') || bankingTerm?.term === 'FIDC' || bankingTerm?.term === 'REC TIT') {
+      if (isCredit) {
+         // Prioridade: DESCONTO DE TÍTULOS -> EMPRÉSTIMOS -> RECEITA
+         const targetCategory = availableCategories.find(c => c.includes('DESCONTO DE TITULOS')) 
+             || availableCategories.find(c => c.includes('EMPRESTIMO'))
+             || availableCategories.find(c => c.includes('RECEITA'));
+         
+         if (targetCategory) {
+           return {
+             category: targetCategory,
+             reasoning: 'Regra: Transação envolvendo FIDC/Antecipação classificada como Desconto de Títulos/Empréstimo.'
+           };
+         }
+      }
+    }
+
+    // 4. Prevenção de "Transferências (+)" indevidas
+    // Se a IA tende a classificar tudo como transferência, forçamos verificação
+    // Transferência só é válida se NÃO tiver cara de pagamento comercial
+    const isTransfer = bankingTerm?.term === 'TED' || bankingTerm?.term === 'DOC' || bankingTerm?.term === 'PIX';
+    if (isCredit && isTransfer) {
+       // Se tem FIDC, FACTORING, PAGAMENTO, FORNECEDOR no nome, NÃO é transferência interna
+       const forbiddenTerms = ['FIDC', 'FACTORING', 'PAGAMENTO', 'FORNECEDOR', 'SERV', 'LTDA', 'SA'];
+       if (forbiddenTerms.some(term => description.includes(term))) {
+          // Deixa passar para a IA, mas DANDO DICA para não usar transferência
+          // (Isso seria feito no prompt, mas aqui podemos tentar forçar RECEITA se não tivermos certeza)
+          // Por enquanto, apenas não aplicamos regra e deixamos IA com o prompt enriquecido resolver,
+          // mas o "bankingTerm" FIDC acima já deve ter capturado.
+       }
+    }
+
+    return null;
   }
 }
 

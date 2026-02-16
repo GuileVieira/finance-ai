@@ -53,6 +53,10 @@ export interface CategorizationResult {
     similarTransactionId?: string;
     aiModel?: string;
     attemptedSources?: string[]; // Quais fontes foram tentadas
+    ambiguity?: {
+      isAmbiguous: boolean;
+      reason: string;
+    };
   };
 }
 
@@ -180,16 +184,36 @@ export class TransactionCategorizationService {
 
         // CAMADA 5: Auto-aprendizado - Criar regra automática se confiança >= 75%
         if (!skipAutoLearning && result.confidence >= 75) {
-          this.tryAutoLearning(
-            context.description,
-            result.categoryName,
-            companyId,
-            result.confidence,
-            result.reasoning
-          ).catch(err => {
-            // Não bloquear o fluxo se auto-learning falhar
-            console.warn('Auto-learning failed (non-blocking):', err);
-          });
+          const isAmbiguous = this.checkAmbiguity(context.description);
+          
+          if (!isAmbiguous) {
+             this.tryAutoLearning(
+              context.description,
+              result.categoryName,
+              companyId,
+              result.confidence,
+              result.reasoning
+            ).catch(err => {
+              // Não bloquear o fluxo se auto-learning falhar
+              console.warn('Auto-learning failed (non-blocking):', err);
+            });
+          } else {
+             console.log('[AUTO-LEARNING] Skipped ambiguous transaction:', context.description);
+          }
+        }
+
+        // Check for ambiguity to flag in UI
+        const ambiguityCheck = this.checkAmbiguity(context.description);
+        if (ambiguityCheck) {
+           result.metadata = {
+             ...result.metadata,
+             ambiguity: {
+                isAmbiguous: true,
+                reason: 'Descrição genérica (Pagamento em Lote SISPAG). Verifique o comprovante detalhado.'
+             }
+           };
+           // Reduz confiança visualmente para alertar usuário (mas mantém categoria)
+           result.confidence = Math.min(result.confidence, 60);
         }
 
         return result;
@@ -382,7 +406,7 @@ export class TransactionCategorizationService {
     context: TransactionContext,
     companyId: string
   ): Promise<CategorizationResult | null> {
-    if (!this.aiService) {
+      if (!this.aiService) {
       console.warn('AI service not configured. Skipping AI categorization.');
       return null;
     }
@@ -392,6 +416,8 @@ export class TransactionCategorizationService {
         ...context,
         companyId
       });
+
+      if (!result) return null;
 
       // Buscar categoryId do nome retornado pela IA
       const category = await db
@@ -682,6 +708,28 @@ export class TransactionCategorizationService {
       bySource,
       averageConfidence
     };
+  }
+
+  /**
+   * Verifica se a transação é ambígua (ex: SISPAG genérico)
+   */
+  private static checkAmbiguity(description: string): boolean {
+    const upper = description.toUpperCase();
+    
+    // SISPAG sem complemento claro é ambíguo
+    if (upper.includes('SISPAG')) {
+        // Se tiver termos específicos de tributos ou folha, não é ambíguo
+        const specificTerms = ['DARF', 'GPS', 'FGTS', 'SALARIO', 'FOLHA', 'RESCISAO', 'FERIAS'];
+        if (specificTerms.some(term => upper.includes(term))) {
+           return false;
+        }
+
+        // Caso contrário, é ambíguo (Fornecedores, Concessionárias, etc)
+        // Mesmo 'FORNECEDORES' é ambíguo pois não diz QUEM é o fornecedor.
+        return true; 
+    }
+
+    return false;
   }
 }
 
