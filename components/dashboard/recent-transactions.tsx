@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Transaction } from '@/lib/db/schema';
 import { useTransactionDetails } from '@/components/providers/transaction-details-provider';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Split } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -111,6 +111,16 @@ export function RecentTransactions({ transactions, isLoading, isEmpty, companyId
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Transação Ambígua: {metadata.ambiguity?.reason || 'Verifique os detalhes'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {(transaction as any).splitCount > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Split className="h-4 w-4 text-blue-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Transação Desmembrada ({ (transaction as any).splitCount } itens)</p>
                         </TooltipContent>
                       </Tooltip>
                     )}

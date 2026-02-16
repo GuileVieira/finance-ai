@@ -168,6 +168,34 @@ export function useTransactions(
     },
   });
 
+  // Mutação para desmembrar (split) uma transação
+  const updateTransactionSplits = useMutation({
+    mutationFn: async ({ transactionId, splits }: { transactionId: string; splits: any[] }) => {
+      const response = await fetch(`/api/transactions/${transactionId}/splits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ splits }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao desmembrar transação');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidar todas as queries de transações para refletir as mudanças nos relatórios
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['dre'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-flow'] });
+    },
+  });
+
   return {
     // Dados
     transactions,
@@ -188,6 +216,7 @@ export function useTransactions(
     invalidateCache,
     prefetchNextPage,
     updateTransactionCategory,
+    updateTransactionSplits,
 
     // Flags úteis
     isEmpty: !isLoading && transactions.length === 0,

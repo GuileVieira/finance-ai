@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/connection';
-import { transactions, accounts, companies, categories, uploads } from '@/lib/db/schema';
+import { transactions, accounts, companies, categories, uploads, transactionSplits, type NewTransactionSplit } from '@/lib/db/schema';
 import { eq, and, desc, between, gte, lte, sql, not, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
 import { getFinancialExclusionClause } from './financial-exclusion';
@@ -91,7 +91,9 @@ export class TransactionsService {
         categoryType: categories.type,
         categoryColor: categories.colorHex,
         uploadFilename: uploads.filename,
-        uploadOriginalName: uploads.originalName
+        uploadOriginalName: uploads.originalName,
+        // Adicionar informação de split
+        splitCount: sql<number>`(SELECT count(*) FROM ${transactionSplits} WHERE ${transactionSplits.transactionId} = ${transactions.id})`
       })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -455,6 +457,76 @@ export class TransactionsService {
    */
   async getRecentTransactions(limit = 10) {
     return this.getTransactions({ limit, page: 1 });
+  }
+
+  /**
+   * Obter desmembramentos (splits) de uma transação
+   */
+  async getTransactionSplits(transactionId: string) {
+    try {
+      await initializeDatabase();
+      console.log(`🔍 [TRANSACTIONS-SERVICE] Buscando splits para a transação: ${transactionId}`);
+
+      const splits = await db.select({
+        id: transactionSplits.id,
+        transactionId: transactionSplits.transactionId,
+        categoryId: transactionSplits.categoryId,
+        amount: transactionSplits.amount,
+        description: transactionSplits.description,
+        categoryName: categories.name,
+        categoryType: categories.type,
+      })
+      .from(transactionSplits)
+      .leftJoin(categories, eq(transactionSplits.categoryId, categories.id))
+      .where(eq(transactionSplits.transactionId, transactionId));
+
+      return splits;
+    } catch (error) {
+      console.error('❌ Erro ao buscar splits da transação:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualizar/Definir desmembramentos (splits) de uma transação
+   */
+  async updateTransactionSplits(transactionId: string, splits: NewTransactionSplit[]) {
+    try {
+      await initializeDatabase();
+      console.log(`💾 [TRANSACTIONS-SERVICE] Atualizando splits para a transação: ${transactionId}`);
+
+      // Executar em transação para garantir atomicidade
+      await db.transaction(async (tx) => {
+        // 1. Remover splits existentes
+        await tx.delete(transactionSplits).where(eq(transactionSplits.transactionId, transactionId));
+
+        // 2. Inserir novos splits (se houver)
+        if (splits.length > 0) {
+          await tx.insert(transactionSplits).values(splits.map(s => ({
+            ...s,
+            transactionId, // Garantir que o ID da transação esteja correto
+          })));
+
+          // 3. Marcar a transação como categorizada manualmente se houver splits
+          // ou se for um split total, talvez queiramos limpar o categoryId original?
+          // Por enquanto, vamos manter o categoryId original como "referência" ou "vazio"
+          await tx.update(transactions)
+            .set({ 
+              manuallyCategorized: true,
+              updatedAt: new Date(),
+              // Se tiver split, o categoryId da transação principal pode ser nulo ou ser um indicador
+              // Decisão: vamos manter o categoryId original para não quebrar queries simples,
+              // mas serviços como DRE devem priorizar a tabela de splits.
+            })
+            .where(eq(transactions.id, transactionId));
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Erro ao atualizar splits da transação:', error);
+      throw error;
+    }
   }
 }
 

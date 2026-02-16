@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { transactions, categories, accounts } from '@/lib/db/schema';
+import { transactions, categories, accounts, transactionSplits } from '@/lib/db/schema';
 import { DREStatement, DRECategory } from '@/lib/types';
 import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -276,15 +276,15 @@ export default class DREService {
       const whereConditions = [];
 
       if (startDate) {
-        whereConditions.push(gte(transactions.transactionDate, startDate));
+        whereConditions.push(sql`combined_transactions.transaction_date >= ${startDate}`);
       }
 
       if (endDate) {
-        whereConditions.push(lte(transactions.transactionDate, endDate));
+        whereConditions.push(sql`combined_transactions.transaction_date <= ${endDate}`);
       }
 
       if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
+        whereConditions.push(sql`combined_transactions.account_id = ${filters.accountId}`);
       }
 
       if (filters.companyId && filters.companyId !== 'all') {
@@ -294,28 +294,53 @@ export default class DREService {
       const whereClause = whereConditions.length > 0 ? and(...whereConditions, getFinancialExclusionClause()) : getFinancialExclusionClause();
 
       // Buscar totais por categoria
+      // Nova lógica: Combina transações sem splits + splits individuais
       const categoryData = await db
         .select({
-          categoryId: transactions.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
           categoryType: categories.type,
           categoryGroup: categories.categoryGroup,
           dreGroup: categories.dreGroup,
           colorHex: categories.colorHex,
           icon: categories.icon,
-          totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
-          incomeAmount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          expenseAmount: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactionCount: count(transactions.id).mapWith(Number),
-          creditCount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN 1 ELSE 0 END`).mapWith(Number),
-          debitCount: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN 1 ELSE 0 END`).mapWith(Number),
+          totalAmount: sum(sql`ABS(amount_to_sum)`).mapWith(Number),
+          incomeAmount: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+          expenseAmount: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
+          transactionCount: count(sql`transaction_id`).mapWith(Number),
+          creditCount: sum(sql`CASE WHEN type_to_sum = 'credit' THEN 1 ELSE 0 END`).mapWith(Number),
+          debitCount: sum(sql`CASE WHEN type_to_sum = 'debit' THEN 1 ELSE 0 END`).mapWith(Number),
         })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(whereClause)
-        .groupBy(transactions.categoryId, categories.name, categories.type, categories.categoryGroup, categories.dreGroup, categories.colorHex, categories.icon)
-        .orderBy(sql`SUM(ABS(${transactions.amount})) DESC`); // Ordenar por valor total
+        .from(sql`(
+          -- Transações que NÃO possuem desmembramentos
+          SELECT 
+            t.id as transaction_id,
+            t.category_id as category_id,
+            t.amount as amount_to_sum,
+            t.type as type_to_sum,
+            t.transaction_date,
+            t.account_id
+          FROM ${transactions} t
+          WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
+          
+          UNION ALL
+          
+          -- Desmembramentos individuais
+          SELECT 
+            ts.transaction_id,
+            ts.category_id,
+            ts.amount as amount_to_sum,
+            t.type as type_to_sum, -- Mantém o tipo original da transação
+            t.transaction_date,
+            t.account_id
+          FROM ${transactionSplits} ts
+          JOIN ${transactions} t ON ts.transaction_id = t.id
+        ) as combined_transactions`)
+        .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+        .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+        .where(whereClause) // O whereClause agora opera sobre as colunas da subquery/join
+        .groupBy(categories.id, categories.name, categories.type, categories.categoryGroup, categories.dreGroup, categories.colorHex, categories.icon)
+        .orderBy(sql`SUM(ABS(combined_transactions.amount_to_sum)) DESC`);
 
       // Processar categorias - excluir movimentações financeiras (empréstimos, transferências)
       const categorizedData = categoryData.filter(cat => {

@@ -345,6 +345,20 @@ export const projections = pgTable('financeai_projections', {
   uniqueProjection: unique('unique_projection').on(table.companyId, table.year, table.month, table.dreGroup)
 }));
 
+// Desmembramento de transações (Splits)
+export const transactionSplits = pgTable('financeai_transaction_splits', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  transactionId: uuid('transaction_id').references(() => transactions.id, { onDelete: 'cascade' }).notNull(),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }).notNull(),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  transactionIdIdx: index('idx_transaction_splits_transaction_id').on(table.transactionId),
+  categoryIdIdx: index('idx_transaction_splits_category_id').on(table.categoryId)
+}));
+
 // Export types
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
@@ -390,3 +404,5 @@ export type NewInsightThreshold = typeof insightThresholds.$inferInsert;
 
 export type Projection = typeof projections.$inferSelect;
 export type NewProjection = typeof projections.$inferInsert;
+export type TransactionSplit = typeof transactionSplits.$inferSelect;
+export type NewTransactionSplit = typeof transactionSplits.$inferInsert;

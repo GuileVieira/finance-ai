@@ -80,6 +80,7 @@ export interface Transaction {
   account?: { name: string };
   accountId?: string;
   verified?: boolean;
+  splitCount?: number;
 }
 
 export interface UserData {

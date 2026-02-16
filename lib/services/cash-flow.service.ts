@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { transactions, accounts, categories } from '@/lib/db/schema';
+import { transactions, accounts, categories, transactionSplits } from '@/lib/db/schema';
 import { CashFlowReport, CashFlowDay } from '@/lib/types';
 import { eq, and, gte, lte, lt, sum, count, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -74,16 +74,16 @@ export default class CashFlowService {
       const openingBalance = await this.getOpeningBalance(filters, startDate);
 
       const whereConditions = [
-        gte(transactions.transactionDate, startDate),
-        lte(transactions.transactionDate, endDate)
+        sql`combined_transactions.transaction_date >= ${startDate}`,
+        sql`combined_transactions.transaction_date <= ${endDate}`
       ];
 
       if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
+        whereConditions.push(sql`combined_transactions.account_id = ${filters.accountId}`);
       }
 
       if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
+        whereConditions.push(sql`(combined_transactions.company_id = ${filters.companyId} OR accounts.company_id = ${filters.companyId})`);
       }
 
       const whereClause = and(...whereConditions, getFinancialExclusionClause());
@@ -91,15 +91,38 @@ export default class CashFlowService {
       // Buscar transações individuais para calcular fluxo diário
       const allTransactions = await db!
         .select({
-          date: transactions.transactionDate,
-          type: transactions.type,
-          amount: transactions.amount,
+          date: sql<string>`transaction_date`,
+          type: sql<'credit' | 'debit'>`type_to_sum`,
+          amount: sql<number>`amount_to_sum`,
         })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .from(sql`(
+          -- Transações que NÃO possuem desmembramentos
+          SELECT 
+            t.id as transaction_id,
+            t.amount as amount_to_sum,
+            t.type as type_to_sum,
+            t.transaction_date,
+            t.account_id,
+            t.company_id
+          FROM ${transactions} t
+          WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
+          
+          UNION ALL
+          
+          -- Desmembramentos individuais
+          SELECT 
+            ts.transaction_id,
+            ts.amount as amount_to_sum,
+            t.type as type_to_sum,
+            t.transaction_date,
+            t.account_id,
+            t.company_id
+          FROM ${transactionSplits} ts
+          JOIN ${transactions} t ON ts.transaction_id = t.id
+        ) as combined_transactions`)
+        .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
         .where(whereClause || undefined)
-        .orderBy(transactions.transactionDate);
+        .orderBy(sql`combined_transactions.transaction_date`);
 
       // Agrupar transações por dia e calcular totais
       const dailyMap = new Map<string, {
