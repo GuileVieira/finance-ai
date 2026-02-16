@@ -7,6 +7,7 @@ export interface DashboardFilters {
   bankName?: string; // Filtrar por nome do banco (ex: "Banco Santander S.a.")
   startDate?: string;
   endDate?: string;
+  userId?: string;
 }
 
 export interface DashboardMetrics {

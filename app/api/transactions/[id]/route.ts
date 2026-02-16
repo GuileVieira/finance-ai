@@ -9,7 +9,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id: transactionId } = await params;
     const { categoryId } = await request.json();
@@ -23,17 +23,22 @@ export async function PUT(
 
     console.log(`📝 Atualizando transação ${transactionId} para categoria ${categoryId}`);
 
-    // Atualizar a transação
-    const updatedTransaction = await db
-      .update(transactions)
-      .set({
-        categoryId: categoryId,
-        updatedAt: new Date()
-      })
-      .where(eq(transactions.id, transactionId))
-      .returning();
+    const { withUser } = await import('@/lib/db/connection');
 
-    if (updatedTransaction.length === 0) {
+    // Atualizar a transação dentro de um contexto com RLS
+    const updatedTransaction = await withUser(session.userId, async (tx) => {
+      return tx
+        .update(transactions)
+        .set({
+          categoryId: categoryId,
+          updatedAt: new Date(),
+          manuallyCategorized: true
+        })
+        .where(eq(transactions.id, transactionId))
+        .returning();
+    });
+
+    if (!updatedTransaction || updatedTransaction.length === 0) {
       return NextResponse.json({
         success: false,
         error: 'Transação não encontrada'

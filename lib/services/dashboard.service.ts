@@ -99,421 +99,476 @@ export default class DashboardService {
   /**
    * Buscar métricas principais do dashboard
    */
-  static async getMetrics(filters: DashboardFilters = {}): Promise<DashboardMetrics> {
-    try {
-      console.log('🎯 DashboardService.getMetrics chamado com filtros:', filters);
+  static async getMetrics(filters: DashboardFilters = {}, tx: any = db): Promise<DashboardMetrics> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        console.log('🎯 DashboardService.getMetrics chamado com filtros:', cleanFilters);
 
-      // Proteção contra datas absurdas
-      if (filters.startDate) {
-        const startYear = parseInt(filters.startDate.split('-')[0]);
-        if (startYear < 2000 || startYear > 2100) {
-          console.error('❌ Data inicial inválida:', filters.startDate);
-          throw new Error('Data inicial inválida');
+        // Proteção contra datas absurdas
+        if (cleanFilters.startDate) {
+          const startYear = parseInt(cleanFilters.startDate.split('-')[0]);
+          if (startYear < 2000 || startYear > 2100) {
+            console.error('❌ Data inicial inválida:', cleanFilters.startDate);
+            throw new Error('Data inicial inválida');
+          }
         }
-      }
 
-      if (filters.endDate) {
-        const endYear = parseInt(filters.endDate.split('-')[0]);
-        if (endYear < 2000 || endYear > 2100) {
-          console.error('❌ Data final inválida:', filters.endDate);
-          throw new Error('Data final inválida');
+        if (cleanFilters.endDate) {
+          const endYear = parseInt(cleanFilters.endDate.split('-')[0]);
+          if (endYear < 2000 || endYear > 2100) {
+            console.error('❌ Data final inválida:', cleanFilters.endDate);
+            throw new Error('Data final inválida');
+          }
         }
+
+        this.checkDatabaseConnection();
+
+        // Construir where clause
+        const whereConditions = [];
+        console.log('📋 Constru condições where...');
+
+        if (cleanFilters.startDate) {
+          console.log('📅 Adicionando filtro startDate >=', cleanFilters.startDate);
+          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        }
+
+        if (cleanFilters.endDate) {
+          console.log('📅 Adicionando filtro endDate <=', cleanFilters.endDate);
+          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
+
+        // Usar função auxiliar para filtros de conta/banco
+        this.addAccountFilters(whereConditions, cleanFilters);
+
+        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
+
+        // Métricas principais
+        const metricsResult = await innerTx
+          .select({
+            totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+            totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+            transactionCount: count(transactions.id).mapWith(Number),
+            incomeCount: count(sql`CASE WHEN ${transactions.type} = 'credit' THEN 1 END`).mapWith(Number),
+            expenseCount: count(sql`CASE WHEN ${transactions.type} = 'debit' THEN 1 END`).mapWith(Number),
+            averageTicket: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .where(
+            and(
+              whereClause,
+              getFinancialExclusionClause()
+            )
+          );
+
+        const metrics = metricsResult[0];
+
+        // Calcular saldo e taxa de crescimento
+        const netBalance = (metrics.totalIncome || 0) - (metrics.totalExpenses || 0);
+
+        // Buscar comparações com o período anterior
+        const comparisons = await this.calculateAllComparisons(cleanFilters, userId, innerTx);
+
+        // Garante que o valor tenha no máximo 2 casas decimais
+        const formatToTwoDecimals = (value: number | null | undefined): number => {
+          if (!value) return 0;
+          return Math.round(value * 100) / 100;
+        };
+
+        return {
+          totalIncome: formatToTwoDecimals(metrics.totalIncome),
+          totalExpenses: formatToTwoDecimals(metrics.totalExpenses),
+          netBalance: formatToTwoDecimals(netBalance),
+          transactionCount: metrics.transactionCount || 0,
+          incomeCount: metrics.incomeCount || 0,
+          expenseCount: metrics.expenseCount || 0,
+          averageTicket: formatToTwoDecimals(metrics.averageTicket),
+          growthRate: comparisons.growthRate,
+          expensesGrowthRate: comparisons.expensesGrowthRate,
+          balanceGrowthRate: comparisons.balanceGrowthRate,
+          transactionsGrowthRate: comparisons.transactionsGrowthRate
+        };
+
+      } catch (error) {
+        console.error('Error getting dashboard metrics:', error);
+        throw new Error('Failed to fetch dashboard metrics');
       }
+    };
 
-      this.checkDatabaseConnection();
-
-      // Construir where clause
-      const whereConditions = [];
-      console.log('📋 Constru condições where...');
-
-      if (filters.startDate) {
-        console.log('📅 Adicionando filtro startDate >=', filters.startDate);
-        whereConditions.push(gte(transactions.transactionDate, filters.startDate));
-      }
-
-      if (filters.endDate) {
-        console.log('📅 Adicionando filtro endDate <=', filters.endDate);
-        whereConditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
-
-      // Usar função auxiliar para filtros de conta/banco
-      this.addAccountFilters(whereConditions, filters);
-
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-      console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
-
-      // Métricas principais
-      const metricsResult = await db
-        .select({
-          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactionCount: count(transactions.id).mapWith(Number),
-          incomeCount: count(sql`CASE WHEN ${transactions.type} = 'credit' THEN 1 END`).mapWith(Number),
-          expenseCount: count(sql`CASE WHEN ${transactions.type} = 'debit' THEN 1 END`).mapWith(Number),
-          averageTicket: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .where(
-          and(
-            whereClause,
-            getFinancialExclusionClause()
-          )
-        );
-
-      const metrics = metricsResult[0];
-
-      // Calcular saldo e taxa de crescimento
-      const netBalance = (metrics.totalIncome || 0) - (metrics.totalExpenses || 0);
-
-      // Buscar comparações com o período anterior
-      const comparisons = await this.calculateAllComparisons(filters);
-
-      // Garante que o valor tenha no máximo 2 casas decimais
-      const formatToTwoDecimals = (value: number | null | undefined): number => {
-        if (!value) return 0;
-        return Math.round(value * 100) / 100;
-      };
-
-      return {
-        totalIncome: formatToTwoDecimals(metrics.totalIncome),
-        totalExpenses: formatToTwoDecimals(metrics.totalExpenses),
-        netBalance: formatToTwoDecimals(netBalance),
-        transactionCount: metrics.transactionCount || 0,
-        incomeCount: metrics.incomeCount || 0,
-        expenseCount: metrics.expenseCount || 0,
-        averageTicket: formatToTwoDecimals(metrics.averageTicket),
-        growthRate: comparisons.growthRate,
-        expensesGrowthRate: comparisons.expensesGrowthRate,
-        balanceGrowthRate: comparisons.balanceGrowthRate,
-        transactionsGrowthRate: comparisons.transactionsGrowthRate
-      };
-
-    } catch (error) {
-      console.error('Error getting dashboard metrics:', error);
-      throw new Error('Failed to fetch dashboard metrics');
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Buscar resumo de categorias
    */
-  static async getCategorySummary(filters: DashboardFilters = {}): Promise<CategorySummary[]> {
-    try {
-      this.checkDatabaseConnection();
-      const whereConditions = [];
+  static async getCategorySummary(filters: DashboardFilters = {}, tx: any = db): Promise<CategorySummary[]> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        this.checkDatabaseConnection();
+        const whereConditions = [];
 
-      if (filters.startDate) {
-        whereConditions.push(gte(transactions.transactionDate, filters.startDate));
-      }
+        if (cleanFilters.startDate) {
+          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        }
 
-      if (filters.endDate) {
-        whereConditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
+        if (cleanFilters.endDate) {
+          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
 
-      // Usar função auxiliar para filtros de conta/banco
-      this.addAccountFilters(whereConditions, filters);
+        // Usar função auxiliar para filtros de conta/banco
+        this.addAccountFilters(whereConditions, cleanFilters);
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      // Buscar totais por categoria
-      const categoryTotals = await db
-        .select({
-          categoryId: transactions.categoryId,
-          categoryName: categories.name,
-          categoryType: categories.type,
-          colorHex: categories.colorHex,
-          icon: categories.icon,
-          totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
-          transactionCount: count(transactions.id).mapWith(Number),
-        })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(
-          and(
-            whereClause,
-            getFinancialExclusionClause()
+        // Buscar totais por categoria
+        const categoryTotals = await innerTx
+          .select({
+            categoryId: transactions.categoryId,
+            categoryName: categories.name,
+            categoryType: categories.type,
+            colorHex: categories.colorHex,
+            icon: categories.icon,
+            totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
+            transactionCount: count(transactions.id).mapWith(Number),
+          })
+          .from(transactions)
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .where(
+            and(
+              whereClause,
+              getFinancialExclusionClause()
+            )
           )
-        )
-        .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon)
-      // Removendo ORDER BY para evitar erro de GROUP BY
-      // .orderBy(desc(sql`ABS(${transactions.amount})`));
+          .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon);
+        // Removendo ORDER BY para evitar erro de GROUP BY
+        // .orderBy(desc(sql`ABS(${transactions.amount})`));
 
-      // Calcular total geral para porcentagens
-      const totalAmount = categoryTotals.reduce((sum, cat) => sum + (cat.totalAmount || 0), 0);
+        // Calcular total geral para porcentagens
+        const totalAmount = categoryTotals.reduce((sum: number, cat: any) => sum + (cat.totalAmount || 0), 0);
 
-      // Formatar resultado e ordenar por totalAmount (maior primeiro)
-      return categoryTotals
-        .filter(cat => cat.categoryId) // Remover categorias nulas
-        .map(cat => ({
-          id: cat.categoryId!,
-          name: cat.categoryName || 'Sem Categoria',
-          type: cat.categoryType || 'unknown',
-          totalAmount: cat.totalAmount || 0,
-          transactionCount: cat.transactionCount || 0,
-          percentage: totalAmount > 0 ? (cat.totalAmount || 0) / totalAmount * 100 : 0,
-          color: cat.colorHex || '#6366F1',
-          icon: cat.icon || '📊',
-        }))
-        .sort((a, b) => b.totalAmount - a.totalAmount); // Ordenar por valor total (maior primeiro)
+        // Formatar resultado e ordenar por totalAmount (maior primeiro)
+        return categoryTotals
+          .filter((cat: any) => cat.categoryId) // Remover categorias nulas
+          .map((cat: any) => ({
+            id: cat.categoryId!,
+            name: cat.categoryName || 'Sem Categoria',
+            type: cat.categoryType || 'unknown',
+            totalAmount: cat.totalAmount || 0,
+            transactionCount: cat.transactionCount || 0,
+            percentage: totalAmount > 0 ? (cat.totalAmount || 0) / totalAmount * 100 : 0,
+            color: cat.colorHex || '#6366F1',
+            icon: cat.icon || '📊',
+          }))
+          .sort((a: any, b: any) => b.totalAmount - a.totalAmount); // Ordenar por valor total (maior primeiro)
 
-    } catch (error) {
-      console.error('Error getting category summary:', error);
-      throw new Error('Failed to fetch category summary');
+      } catch (error) {
+        console.error('Error getting category summary:', error);
+        throw new Error('Failed to fetch category summary');
+      }
+    };
+
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Buscar dados de tendência para gráficos
    */
-  static async getTrendData(filters: DashboardFilters = {}): Promise<TrendData[]> {
-    try {
-      this.checkDatabaseConnection();
-      const whereConditions = [];
+  static async getTrendData(filters: DashboardFilters = {}, tx: any = db): Promise<TrendData[]> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        this.checkDatabaseConnection();
+        const whereConditions = [];
 
-      if (filters.startDate) {
-        whereConditions.push(gte(transactions.transactionDate, filters.startDate));
-      }
+        if (cleanFilters.startDate) {
+          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        }
 
-      if (filters.endDate) {
-        whereConditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
+        if (cleanFilters.endDate) {
+          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
 
-      // Usar função auxiliar para filtros de conta/banco
-      this.addAccountFilters(whereConditions, filters);
+        // Usar função auxiliar para filtros de conta/banco
+        this.addAccountFilters(whereConditions, cleanFilters);
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      // Agrupar por dia
-      const dailyData = await db
-        .select({
-          date: transactions.transactionDate,
-          income: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          expenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactions: count(transactions.id).mapWith(Number),
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .where(
-          and(
-            whereClause,
-            getFinancialExclusionClause()
+        // Agrupar por dia
+        const dailyData = await innerTx
+          .select({
+            date: transactions.transactionDate,
+            income: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+            expenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+            transactions: count(transactions.id).mapWith(Number),
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .where(
+            and(
+              whereClause,
+              getFinancialExclusionClause()
+            )
           )
-        )
-        .groupBy(transactions.transactionDate)
-        .orderBy(transactions.transactionDate);
+          .groupBy(transactions.transactionDate)
+          .orderBy(transactions.transactionDate);
 
-      // Calcular saldo cumulativo
-      let runningBalance = 0;
-      return dailyData.map(day => {
-        runningBalance += (day.income || 0) - (day.expenses || 0);
-        return {
-          date: day.date,
-          income: day.income || 0,
-          expenses: day.expenses || 0,
-          balance: runningBalance,
-          transactions: day.transactions || 0,
-        };
-      });
+        // Calcular saldo cumulativo
+        let runningBalance = 0;
+        return dailyData.map((day: any) => {
+          runningBalance += (day.income || 0) - (day.expenses || 0);
+          return {
+            date: day.date,
+            income: day.income || 0,
+            expenses: day.expenses || 0,
+            balance: runningBalance,
+            transactions: day.transactions || 0,
+          };
+        });
 
-    } catch (error) {
-      console.error('Error getting trend data:', error);
-      throw new Error('Failed to fetch trend data');
+      } catch (error) {
+        console.error('Error getting trend data:', error);
+        throw new Error('Failed to fetch trend data');
+      }
+    };
+
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Buscar top despesas
    */
-  static async getTopExpenses(filters: DashboardFilters = {}, limit: number = 10): Promise<TopExpense[]> {
-    try {
-      this.checkDatabaseConnection();
-      const whereConditions = [
-        eq(transactions.type, 'debit') // Apenas despesas
-      ];
+  static async getTopExpenses(filters: DashboardFilters = {}, limit: number = 10, tx: any = db): Promise<TopExpense[]> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        this.checkDatabaseConnection();
+        const whereConditions = [
+          eq(transactions.type, 'debit') // Apenas despesas
+        ];
 
-      if (filters.startDate) {
-        whereConditions.push(gte(transactions.transactionDate, filters.startDate));
-      }
+        if (cleanFilters.startDate) {
+          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        }
 
-      if (filters.endDate) {
-        whereConditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
+        if (cleanFilters.endDate) {
+          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
 
-      // Usar função auxiliar para filtros de conta/banco
-      this.addAccountFilters(whereConditions, filters);
+        // Usar função auxiliar para filtros de conta/banco
+        this.addAccountFilters(whereConditions, cleanFilters);
 
-      const whereClause = and(...whereConditions);
+        const whereClause = and(...whereConditions);
 
-      const topExpenses = await db
-        .select({
-          id: transactions.id,
-          description: transactions.description,
-          amount: transactions.amount,
-          category: categories.name,
-          date: transactions.transactionDate,
-          accountName: accounts.bankName,
-        })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(
-          and(
-            whereClause,
-            getFinancialExclusionClause()
+        const topExpenses = await innerTx
+          .select({
+            id: transactions.id,
+            description: transactions.description,
+            amount: transactions.amount,
+            category: categories.name,
+            date: transactions.transactionDate,
+            accountName: accounts.bankName,
+          })
+          .from(transactions)
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .where(
+            and(
+              whereClause,
+              getFinancialExclusionClause()
+            )
           )
-        )
-        .orderBy(desc(sql`ABS(${transactions.amount})`))
-        .limit(limit);
+          .orderBy(desc(sql`ABS(${transactions.amount})`))
+          .limit(limit);
 
-      return topExpenses.map(expense => ({
-        id: expense.id,
-        description: expense.description || 'Sem Descrição',
-        amount: Math.abs(Number(expense.amount) || 0),
-        category: expense.category || 'Sem Categoria',
-        date: expense.date,
-        accountName: expense.accountName || 'Banco Não Identificado',
-      }));
+        return topExpenses.map((expense: any) => ({
+          id: expense.id,
+          description: expense.description || 'Sem Descrição',
+          amount: Math.abs(Number(expense.amount) || 0),
+          category: expense.category || 'Sem Categoria',
+          date: expense.date,
+          accountName: expense.accountName || 'Banco Não Identificado',
+        }));
 
-    } catch (error) {
-      console.error('Error getting top expenses:', error);
-      throw new Error('Failed to fetch top expenses');
+      } catch (error) {
+        console.error('Error getting top expenses:', error);
+        throw new Error('Failed to fetch top expenses');
+      }
+    };
+
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Buscar transações recentes
    */
-  static async getRecentTransactions(filters: DashboardFilters = {}, limit: number = 10): Promise<Transaction[]> {
-    try {
-      this.checkDatabaseConnection();
-      const whereConditions = [];
+  static async getRecentTransactions(filters: DashboardFilters = {}, limit: number = 10, tx: any = db): Promise<Transaction[]> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        this.checkDatabaseConnection();
+        const whereConditions = [];
 
-      if (filters.startDate) {
-        whereConditions.push(gte(transactions.transactionDate, filters.startDate));
-      }
+        if (cleanFilters.startDate) {
+          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        }
 
-      if (filters.endDate) {
-        whereConditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
+        if (cleanFilters.endDate) {
+          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
 
-      // Usar função auxiliar para filtros de conta/banco
-      this.addAccountFilters(whereConditions, filters);
+        // Usar função auxiliar para filtros de conta/banco
+        this.addAccountFilters(whereConditions, cleanFilters);
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-      const recentTransactions = await db
-        .select({
-          id: transactions.id,
-          accountId: transactions.accountId,
-          categoryId: transactions.categoryId,
-          uploadId: transactions.uploadId,
-          description: transactions.description,
-          amount: transactions.amount,
-          type: transactions.type,
-          transactionDate: transactions.transactionDate,
-          balanceAfter: transactions.balanceAfter,
-          rawDescription: transactions.rawDescription,
-          metadata: transactions.metadata,
-          manuallyCategorized: transactions.manuallyCategorized,
-          verified: transactions.verified,
-          confidence: transactions.confidence,
-          reasoning: transactions.reasoning,
-          createdAt: transactions.createdAt,
-          updatedAt: transactions.updatedAt,
-          // Adicionar campos da categoria
-          categoryName: categories.name,
-          categoryType: categories.type,
-          categoryColor: categories.colorHex,
-          categoryIcon: categories.icon
-        })
-        .from(transactions)
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(
-          and(
-            whereClause,
-            // Mantemos a exclusão aqui para consistência com os totais, mas lista de transações
-            // geralmente pode mostrar tudo. Porém o usuário pediu para "não generalizar demais"
-            // mas na Dashboard principal faz sentido focar no resultado financeiro real.
-            getFinancialExclusionClause()
+        const recentTransactions = await innerTx
+          .select({
+            id: transactions.id,
+            accountId: transactions.accountId,
+            categoryId: transactions.categoryId,
+            uploadId: transactions.uploadId,
+            description: transactions.description,
+            amount: transactions.amount,
+            type: transactions.type,
+            transactionDate: transactions.transactionDate,
+            balanceAfter: transactions.balanceAfter,
+            rawDescription: transactions.rawDescription,
+            metadata: transactions.metadata,
+            manuallyCategorized: transactions.manuallyCategorized,
+            verified: transactions.verified,
+            confidence: transactions.confidence,
+            reasoning: transactions.reasoning,
+            createdAt: transactions.createdAt,
+            updatedAt: transactions.updatedAt,
+            // Adicionar campos da categoria
+            categoryName: categories.name,
+            categoryType: categories.type,
+            categoryColor: categories.colorHex,
+            categoryIcon: categories.icon
+          })
+          .from(transactions)
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .where(
+            and(
+              whereClause,
+              // Mantemos a exclusão aqui para consistência com os totais, mas lista de transações
+              // geralmente pode mostrar tudo. Porém o usuário pediu para "não generalizar demais"
+              // mas na Dashboard principal faz sentido focar no resultado financeiro real.
+              getFinancialExclusionClause()
+            )
           )
-        )
-        .orderBy(desc(transactions.transactionDate))
-        .limit(limit);
+          .orderBy(desc(transactions.transactionDate))
+          .limit(limit);
 
-      // Adicionar campos necessários para satisfazer o tipo Transaction
-      return recentTransactions.map(transaction => {
-        const anyTx = transaction as any;
-        return {
-          id: transaction.id,
-          name: transaction.description || 'Sem descrição',
-          description: transaction.description || 'Sem descrição',
-          memo: null,
-          amount: transaction.amount,
-          type: transaction.type,
-          transactionDate: transaction.transactionDate,
-          accountId: transaction.accountId,
-          categoryId: transaction.categoryId,
-          uploadId: transaction.uploadId || null,
-          rawDescription: anyTx.rawDescription || transaction.description,
-          categorizationSource: anyTx.categorizationSource || 'ai',
-          ruleId: anyTx.ruleId || null,
-          createdAt: anyTx.createdAt ? new Date(anyTx.createdAt) : new Date(),
-          updatedAt: anyTx.updatedAt ? new Date(anyTx.updatedAt) : new Date(),
-          categoryName: transaction.categoryName
-            ? this.capitalizeText(transaction.categoryName)
-            : 'Sem Categoria'
-        };
-      }) as unknown as Transaction[];
+        // Adicionar campos necessários para satisfazer o tipo Transaction
+        return recentTransactions.map((transaction: any) => {
+          const anyTx = transaction as any;
+          return {
+            id: transaction.id,
+            name: transaction.description || 'Sem descrição',
+            description: transaction.description || 'Sem descrição',
+            memo: null,
+            amount: transaction.amount,
+            type: transaction.type,
+            transactionDate: transaction.transactionDate,
+            accountId: transaction.accountId,
+            categoryId: transaction.categoryId,
+            uploadId: transaction.uploadId || null,
+            rawDescription: anyTx.rawDescription || transaction.description,
+            categorizationSource: anyTx.categorizationSource || 'ai',
+            ruleId: anyTx.ruleId || null,
+            createdAt: anyTx.createdAt ? new Date(anyTx.createdAt) : new Date(),
+            updatedAt: anyTx.updatedAt ? new Date(anyTx.updatedAt) : new Date(),
+            categoryName: transaction.categoryName
+              ? this.capitalizeText(transaction.categoryName)
+              : 'Sem Categoria'
+          };
+        }) as unknown as Transaction[];
 
-    } catch (error) {
-      console.error('Error getting recent transactions:', error);
-      throw new Error('Failed to fetch recent transactions');
+      } catch (error) {
+        console.error('Error getting recent transactions:', error);
+        throw new Error('Failed to fetch recent transactions');
+      }
+    };
+
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Buscar dados completos do dashboard
    */
   static async getDashboardData(filters: DashboardFilters = {}): Promise<DashboardData> {
-    try {
-      // Buscar todos os dados em paralelo
-      const [metrics, categorySummary, trendData, topExpenses, recentTransactions] = await Promise.all([
-        this.getMetrics(filters),
-        this.getCategorySummary(filters),
-        this.getTrendData(filters),
-        this.getTopExpenses(filters),
-        this.getRecentTransactions(filters)
-      ]);
+    const { userId } = filters;
+    const execute = async (tx: any) => {
+      try {
+        // Buscar todos os dados em paralelo
+        const [metrics, categorySummary, trendData, topExpenses, recentTransactions] = await Promise.all([
+          this.getMetrics(filters, tx),
+          this.getCategorySummary(filters, tx),
+          this.getTrendData(filters, tx),
+          this.getTopExpenses(filters, 10, tx),
+          this.getRecentTransactions(filters, 10, tx)
+        ]);
 
-      return {
-        metrics,
-        categorySummary,
-        trendData,
-        topExpenses,
-        recentTransactions,
-      };
+        return {
+          metrics,
+          categorySummary,
+          trendData,
+          topExpenses,
+          recentTransactions,
+        };
 
-    } catch (error) {
-      console.error('Error getting dashboard data:', error);
-      throw new Error('Failed to fetch dashboard data');
+      } catch (error) {
+        console.error('Error getting dashboard data:', error);
+        throw new Error('Failed to fetch dashboard data');
+      }
+    };
+
+    if (userId) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(db);
   }
 
   /**
    * Calcular comparações com o mês anterior usando SQL direto (sem recursão)
    */
-  private static async calculateAllComparisons(filters: DashboardFilters): Promise<{
+  private static async calculateAllComparisons(filters: DashboardFilters, userId?: string, tx: any = db): Promise<{
     growthRate: number;
     expensesGrowthRate: number;
     balanceGrowthRate: number;
     transactionsGrowthRate: number;
   }> {
-    try {
+    const execute = async (innerTx: any) => {
+      try {
       if (!filters.startDate || !filters.endDate) {
         return {
           growthRate: 0,
@@ -539,7 +594,7 @@ export default class DashboardService {
       const accountConditions = this.getAccountFilterConditions(filters);
 
       // Mês atual - SQL direto sem chamar getMetrics novamente
-      const currentMetricsResult = await db
+      const currentMetricsResult = await innerTx
         .select({
           totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
           totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
@@ -558,7 +613,7 @@ export default class DashboardService {
         );
 
       // Mês anterior - SQL direto
-      const previousMetricsResult = await db
+      const previousMetricsResult = await innerTx
         .select({
           totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
           totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
@@ -612,7 +667,14 @@ export default class DashboardService {
         transactionsGrowthRate: 0
       };
     }
+  };
+
+  if (userId && tx === db) {
+    const { withUser } = await import('@/lib/db/connection');
+    return withUser(userId, execute);
   }
+  return execute(tx);
+}
 
   /**
    * Calcular taxa de crescimento comparando com período anterior

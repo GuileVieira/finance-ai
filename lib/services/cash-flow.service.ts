@@ -12,6 +12,7 @@ export interface CashFlowFilters {
   endDate?: string;
   companyId?: string;
   accountId?: string;
+  userId?: string;
 }
 
 export default class CashFlowService {
@@ -66,182 +67,191 @@ export default class CashFlowService {
   /**
    * Buscar relatório de fluxo de caixa
    */
-  static async getCashFlowReport(filters: CashFlowFilters = {}): Promise<CashFlowReport> {
-    try {
-      const { startDate, endDate } = this.convertFiltersToDates(filters);
+  static async getCashFlowReport(filters: CashFlowFilters = {}, tx: any = db): Promise<CashFlowReport> {
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        const { startDate, endDate } = this.convertFiltersToDates(cleanFilters);
 
-      // Buscar saldo inicial (último saldo antes do período)
-      const openingBalance = await this.getOpeningBalance(filters, startDate);
+        // Buscar saldo inicial (último saldo antes do período)
+        const openingBalance = await this.getOpeningBalance(cleanFilters, startDate, userId, innerTx);
 
-      const whereConditions = [
-        sql`combined_transactions.transaction_date >= ${startDate}`,
-        sql`combined_transactions.transaction_date <= ${endDate}`
-      ];
+        const whereConditions = [
+          sql`combined_transactions.transaction_date >= ${startDate}`,
+          sql`combined_transactions.transaction_date <= ${endDate}`
+        ];
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(sql`combined_transactions.account_id = ${filters.accountId}`);
-      }
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+        }
 
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(sql`(combined_transactions.company_id = ${filters.companyId} OR accounts.company_id = ${filters.companyId})`);
-      }
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(sql`(combined_transactions.company_id = ${cleanFilters.companyId} OR accounts.company_id = ${cleanFilters.companyId})`);
+        }
 
-      const whereClause = and(...whereConditions, getFinancialExclusionClause());
+        const whereClause = and(...whereConditions, getFinancialExclusionClause());
 
-      // Buscar transações individuais para calcular fluxo diário
-      const allTransactions = await db!
-        .select({
-          date: sql<string>`transaction_date`,
-          type: sql<'credit' | 'debit'>`type_to_sum`,
-          amount: sql<number>`amount_to_sum`,
-        })
-        .from(sql`(
-          -- Transações que NÃO possuem desmembramentos
-          SELECT 
-            t.id as transaction_id,
-            t.amount as amount_to_sum,
-            t.type as type_to_sum,
-            t.transaction_date,
-            t.account_id,
-            t.company_id
-          FROM ${transactions} t
-          WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
-          
-          UNION ALL
-          
-          -- Desmembramentos individuais
-          SELECT 
-            ts.transaction_id,
-            ts.amount as amount_to_sum,
-            t.type as type_to_sum,
-            t.transaction_date,
-            t.account_id,
-            t.company_id
-          FROM ${transactionSplits} ts
-          JOIN ${transactions} t ON ts.transaction_id = t.id
-        ) as combined_transactions`)
-        .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
-        .where(whereClause || undefined)
-        .orderBy(sql`combined_transactions.transaction_date`);
+        // Buscar transações individuais para calcular fluxo diário
+        const allTransactions = await innerTx
+          .select({
+            date: sql<string>`transaction_date`,
+            type: sql<'credit' | 'debit'>`type_to_sum`,
+            amount: sql<number>`amount_to_sum`,
+          })
+          .from(sql`(
+            -- Transações que NÃO possuem desmembramentos
+            SELECT 
+              t.id as transaction_id,
+              t.amount as amount_to_sum,
+              t.type as type_to_sum,
+              t.transaction_date,
+              t.account_id,
+              t.company_id
+            FROM ${transactions} t
+            WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
+            
+            UNION ALL
+            
+            -- Desmembramentos individuais
+            SELECT 
+              ts.transaction_id,
+              ts.amount as amount_to_sum,
+              t.type as type_to_sum,
+              t.transaction_date,
+              t.account_id,
+              t.company_id
+            FROM ${transactionSplits} ts
+            JOIN ${transactions} t ON ts.transaction_id = t.id
+          ) as combined_transactions`)
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+          .where(whereClause || undefined)
+          .orderBy(sql`combined_transactions.transaction_date`);
 
-      // Agrupar transações por dia e calcular totais
-      const dailyMap = new Map<string, {
-        income: number;
-        expenses: number;
-        transactions: number;
-      }>();
+        // Agrupar transações por dia e calcular totais
+        const dailyMap = new Map<string, {
+          income: number;
+          expenses: number;
+          transactions: number;
+        }>();
 
-      for (const transaction of allTransactions) {
-        const date = transaction.date;
-        const isIncome = transaction.type === 'credit';
-        const amount = Number(transaction.amount) || 0;
+        for (const transaction of allTransactions) {
+          const date = transaction.date;
+          const isIncome = transaction.type === 'credit';
+          const amount = Number(transaction.amount) || 0;
 
-        if (!dailyMap.has(date)) {
-          dailyMap.set(date, {
-            income: 0,
-            expenses: 0,
-            transactions: 0,
+          if (!dailyMap.has(date)) {
+            dailyMap.set(date, {
+              income: 0,
+              expenses: 0,
+              transactions: 0,
+            });
+          }
+
+          const dayData = dailyMap.get(date)!;
+          dayData.transactions++;
+
+          if (isIncome) {
+            dayData.income += amount;
+          } else {
+            dayData.expenses += Math.abs(amount);
+          }
+        }
+
+        // Converter para array e ordenar por data
+        const dailyData = Array.from(dailyMap.entries())
+          .map(([date, data]) => ({
+            date,
+            income: data.income,
+            expenses: data.expenses,
+            transactions: data.transactions,
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Processar dados diários com cálculo correto de saldos
+        let runningBalance = openingBalance;
+        const cashFlowDays: CashFlowDay[] = [];
+
+        for (let i = 0; i < dailyData.length; i++) {
+          const day = dailyData[i];
+          const income = day.income || 0;
+          const expenses = day.expenses || 0;
+          const netCashFlow = income - expenses;
+
+          const openingBalanceForDay = runningBalance;
+          runningBalance += netCashFlow;
+
+          cashFlowDays.push({
+            date: day.date,
+            openingBalance: openingBalanceForDay,
+            income,
+            expenses,
+            netCashFlow,
+            closingBalance: runningBalance,
+            transactions: day.transactions || 0,
           });
         }
 
-        const dayData = dailyMap.get(date)!;
-        dayData.transactions++;
+        // Calcular totais do período
+        const totalIncome = cashFlowDays.reduce((sum, day) => sum + day.income, 0);
+        const totalExpenses = cashFlowDays.reduce((sum, day) => sum + day.expenses, 0);
+        const netCashFlow = totalIncome - totalExpenses;
 
-        if (isIncome) {
-          dayData.income += amount;
-        } else {
-          dayData.expenses += Math.abs(amount);
-        }
-      }
+        const firstDay = cashFlowDays[0];
+        const lastDay = cashFlowDays[cashFlowDays.length - 1];
 
-      // Converter para array e ordenar por data
-      const dailyData = Array.from(dailyMap.entries())
-        .map(([date, data]) => ({
-          date,
-          income: data.income,
-          expenses: data.expenses,
-          transactions: data.transactions,
-        }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+        const periodOpeningBalance = firstDay?.openingBalance || openingBalance;
+        const closingBalance = lastDay?.closingBalance || openingBalance;
 
-      // Processar dados diários com cálculo correto de saldos
-      let runningBalance = openingBalance;
-      const cashFlowDays: CashFlowDay[] = [];
+        // Encontrar melhor e pior dia
+        const bestDay = cashFlowDays.reduce((best, current) =>
+          current.netCashFlow > best.netCashFlow ? current : best
+          , cashFlowDays[0] || { netCashFlow: 0, date: '' });
 
-      for (let i = 0; i < dailyData.length; i++) {
-        const day = dailyData[i];
-        const income = day.income || 0;
-        const expenses = day.expenses || 0;
-        const netCashFlow = income - expenses;
+        const worstDay = cashFlowDays.reduce((worst, current) =>
+          current.netCashFlow < worst.netCashFlow ? current : worst
+          , cashFlowDays[0] || { netCashFlow: 0, date: '' });
 
-        const openingBalanceForDay = runningBalance;
-        runningBalance += netCashFlow;
+        // Formatar período
+        const periodLabel = this.formatPeriodLabel(startDate, endDate);
 
-        cashFlowDays.push({
-          date: day.date,
-          openingBalance: openingBalanceForDay,
-          income,
-          expenses,
+        // Calcular número REAL de dias no período (não apenas dias com transações)
+        const startDateObj = new Date(startDate);
+        const endDateObj = new Date(endDate);
+        const daysInPeriod = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+        return {
+          period: periodLabel,
+          openingBalance: periodOpeningBalance,
+          closingBalance,
+          totalIncome,
+          totalExpenses,
           netCashFlow,
-          closingBalance: runningBalance,
-          transactions: day.transactions || 0,
-        });
+          // CORREÇÃO: média diária usa TODOS os dias do período, não apenas dias com transações
+          averageDailyIncome: daysInPeriod > 0 ? totalIncome / daysInPeriod : 0,
+          averageDailyExpenses: daysInPeriod > 0 ? totalExpenses / daysInPeriod : 0,
+          cashFlowDays,
+          bestDay: {
+            date: bestDay.date,
+            amount: bestDay.netCashFlow
+          },
+          worstDay: {
+            date: worstDay.date,
+            amount: worstDay.netCashFlow
+          },
+          generatedAt: new Date().toISOString(),
+        };
+
+      } catch (error) {
+        console.error('Error generating cash flow report:', error);
+        throw new Error('Failed to generate cash flow report');
       }
+    };
 
-      // Calcular totais do período
-      const totalIncome = cashFlowDays.reduce((sum, day) => sum + day.income, 0);
-      const totalExpenses = cashFlowDays.reduce((sum, day) => sum + day.expenses, 0);
-      const netCashFlow = totalIncome - totalExpenses;
-
-      const firstDay = cashFlowDays[0];
-      const lastDay = cashFlowDays[cashFlowDays.length - 1];
-
-      const periodOpeningBalance = firstDay?.openingBalance || openingBalance;
-      const closingBalance = lastDay?.closingBalance || openingBalance;
-
-      // Encontrar melhor e pior dia
-      const bestDay = cashFlowDays.reduce((best, current) =>
-        current.netCashFlow > best.netCashFlow ? current : best
-        , cashFlowDays[0] || { netCashFlow: 0, date: '' });
-
-      const worstDay = cashFlowDays.reduce((worst, current) =>
-        current.netCashFlow < worst.netCashFlow ? current : worst
-        , cashFlowDays[0] || { netCashFlow: 0, date: '' });
-
-      // Formatar período
-      const periodLabel = this.formatPeriodLabel(startDate, endDate);
-
-      // Calcular número REAL de dias no período (não apenas dias com transações)
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      const daysInPeriod = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-      return {
-        period: periodLabel,
-        openingBalance: periodOpeningBalance,
-        closingBalance,
-        totalIncome,
-        totalExpenses,
-        netCashFlow,
-        // CORREÇÃO: média diária usa TODOS os dias do período, não apenas dias com transações
-        averageDailyIncome: daysInPeriod > 0 ? totalIncome / daysInPeriod : 0,
-        averageDailyExpenses: daysInPeriod > 0 ? totalExpenses / daysInPeriod : 0,
-        cashFlowDays,
-        bestDay: {
-          date: bestDay.date,
-          amount: bestDay.netCashFlow
-        },
-        worstDay: {
-          date: worstDay.date,
-          amount: worstDay.netCashFlow
-        },
-        generatedAt: new Date().toISOString(),
-      };
-
-    } catch (error) {
-      console.error('Error generating cash flow report:', error);
-      throw new Error('Failed to generate cash flow report');
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
@@ -271,7 +281,8 @@ export default class CashFlowService {
    */
   static async projectCashFlow(
     filters: CashFlowFilters = {},
-    projectionDays: number = 30
+    projectionDays: number = 30,
+    tx: any = db
   ): Promise<{
     projections: Array<{
       date: string;
@@ -281,156 +292,179 @@ export default class CashFlowService {
     }>;
     assumptions: string[];
   }> {
-    try {
-      // Buscar dados históricos para calcular médias
-      const { startDate, endDate } = this.convertFiltersToDates({
-        ...filters,
-        days: 90 // Últimos 90 dias para projeção
-      });
-
-      const whereConditions = [
-        gte(transactions.transactionDate, startDate),
-        lte(transactions.transactionDate, endDate)
-      ];
-
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
-      }
-
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
-
-      const whereClause = and(...whereConditions, getFinancialExclusionClause());
-
-      // Calcular médias diárias
-      const result = await db!
-        .select({
-          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          distinctDays: count(sql`DISTINCT ${transactions.transactionDate}`).mapWith(Number),
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .where(whereClause || undefined);
-
-      const data = result[0];
-      const avgIncome = data?.distinctDays ? (data.totalIncome || 0) / data.distinctDays : 0;
-      const avgExpenses = data?.distinctDays ? (data.totalExpenses || 0) / data.distinctDays : 0;
-
-
-
-      // Buscar saldo atual
-      const currentBalance = await this.getCurrentBalance(filters);
-
-      // Gerar projeções
-      const projections = [];
-      let projectedBalance = currentBalance;
-
-      for (let i = 1; i <= projectionDays; i++) {
-        const projectionDate = new Date();
-        projectionDate.setDate(projectionDate.getDate() + i);
-
-        projectedBalance += (avgIncome - avgExpenses);
-
-        projections.push({
-          date: projectionDate.toISOString().split('T')[0],
-          projectedIncome: avgIncome,
-          projectedExpenses: avgExpenses,
-          projectedBalance,
+    const { userId, ...cleanFilters } = filters;
+    const execute = async (innerTx: any) => {
+      try {
+        // Buscar dados históricos para calcular médias
+        const { startDate, endDate } = this.convertFiltersToDates({
+          ...cleanFilters,
+          days: 90 // Últimos 90 dias para projeção
         });
+
+        const whereConditions = [
+          gte(transactions.transactionDate, startDate),
+          lte(transactions.transactionDate, endDate)
+        ];
+
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          whereConditions.push(eq(transactions.accountId, cleanFilters.accountId));
+        }
+
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
+
+        const whereClause = and(...whereConditions, getFinancialExclusionClause());
+
+        // Calcular médias diárias
+        const result = await innerTx
+          .select({
+            totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
+            totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+            distinctDays: count(sql`DISTINCT ${transactions.transactionDate}`).mapWith(Number),
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .where(whereClause || undefined);
+
+        const data = result[0];
+        const avgIncome = data?.distinctDays ? (data.totalIncome || 0) / data.distinctDays : 0;
+        const avgExpenses = data?.distinctDays ? (data.totalExpenses || 0) / data.distinctDays : 0;
+
+        // Buscar saldo atual
+        const currentBalance = await this.getCurrentBalance(cleanFilters, userId, innerTx);
+
+        // Gerar projeções
+        const projections = [];
+        let projectedBalance = currentBalance;
+
+        for (let i = 1; i <= projectionDays; i++) {
+          const projectionDate = new Date();
+          projectionDate.setDate(projectionDate.getDate() + i);
+
+          projectedBalance += (avgIncome - avgExpenses);
+
+          projections.push({
+            date: projectionDate.toISOString().split('T')[0],
+            projectedIncome: avgIncome,
+            projectedExpenses: avgExpenses,
+            projectedBalance,
+          });
+        }
+
+        return {
+          projections,
+          assumptions: [
+            `Baseado na média dos últimos 90 dias`,
+            `Receita média diária: R$ ${avgIncome.toFixed(2)}`,
+            `Despesa média diária: R$ ${avgExpenses.toFixed(2)}`,
+            'Não considera sazonalidade ou eventos excepcionais'
+          ]
+        };
+
+      } catch (error) {
+        console.error('Error projecting cash flow:', error);
+        throw new Error('Failed to project cash flow');
       }
+    };
 
-      return {
-        projections,
-        assumptions: [
-          `Baseado na média dos últimos 90 dias`,
-          `Receita média diária: R$ ${avgIncome.toFixed(2)}`,
-          `Despesa média diária: R$ ${avgExpenses.toFixed(2)}`,
-          'Não considera sazonalidade ou eventos excepcionais'
-        ]
-      };
-
-    } catch (error) {
-      console.error('Error projecting cash flow:', error);
-      throw new Error('Failed to project cash flow');
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Obter saldo inicial do período
    */
-  private static async getOpeningBalance(filters: CashFlowFilters, startDate: string): Promise<number> {
-    try {
-      const whereConditions = [
-        lt(transactions.transactionDate, startDate)
-      ];
+  private static async getOpeningBalance(filters: CashFlowFilters, startDate: string, userId?: string, tx: any = db): Promise<number> {
+    const execute = async (innerTx: any) => {
+      try {
+        const whereConditions = [
+          lt(transactions.transactionDate, startDate)
+        ];
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
+        if (filters.accountId && filters.accountId !== 'all') {
+          whereConditions.push(eq(transactions.accountId, filters.accountId));
+        }
+
+        if (filters.companyId && filters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, filters.companyId));
+        }
+
+        const whereClause = and(...whereConditions, getFinancialExclusionClause());
+
+        const latestBalance = await innerTx
+          .select({
+            balance: transactions.balanceAfter
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .where(whereClause || undefined)
+          .orderBy(desc(transactions.transactionDate))
+          .limit(1);
+
+        return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
+
+      } catch (error) {
+        console.error('Error getting opening balance:', error);
+        return 0;
       }
+    };
 
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
-
-      const whereClause = and(...whereConditions, getFinancialExclusionClause());
-
-      const latestBalance = await db!
-        .select({
-          balance: transactions.balanceAfter
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .where(whereClause || undefined)
-        .orderBy(desc(transactions.transactionDate))
-        .limit(1);
-
-      return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
-
-    } catch (error) {
-      console.error('Error getting opening balance:', error);
-      return 0;
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 
   /**
    * Obter saldo atual
    */
-  private static async getCurrentBalance(filters: CashFlowFilters = {}): Promise<number> {
-    try {
-      const whereConditions = [];
+  private static async getCurrentBalance(filters: CashFlowFilters = {}, userId?: string, tx: any = db): Promise<number> {
+    const execute = async (innerTx: any) => {
+      try {
+        const whereConditions = [];
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        whereConditions.push(eq(transactions.accountId, filters.accountId));
+        if (filters.accountId && filters.accountId !== 'all') {
+          whereConditions.push(eq(transactions.accountId, filters.accountId));
+        }
+
+        if (filters.companyId && filters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, filters.companyId));
+        }
+
+        const whereClause = whereConditions.length > 0
+          ? and(...whereConditions, getFinancialExclusionClause())
+          : getFinancialExclusionClause();
+
+        const latestBalance = await innerTx
+          .select({
+            balance: transactions.balanceAfter
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .where(whereClause || undefined)
+          .orderBy(desc(transactions.transactionDate))
+          .limit(1);
+
+        return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
+
+      } catch (error) {
+        console.error('Error getting current balance:', error);
+        return 0;
       }
+    };
 
-      if (filters.companyId && filters.companyId !== 'all') {
-        whereConditions.push(eq(accounts.companyId, filters.companyId));
-      }
-
-      const whereClause = whereConditions.length > 0
-        ? and(...whereConditions, getFinancialExclusionClause())
-        : getFinancialExclusionClause();
-
-      const latestBalance = await db!
-        .select({
-          balance: transactions.balanceAfter
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
-        .where(whereClause || undefined)
-        .orderBy(desc(transactions.transactionDate))
-        .limit(1);
-
-      return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
-
-    } catch (error) {
-      console.error('Error getting current balance:', error);
-      return 0;
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(tx);
   }
 }

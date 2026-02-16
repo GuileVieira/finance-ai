@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
       period,
       days,
       companyId,
-      accountId
+      accountId,
+      userId: (await requireAuth()).userId,
     });
 
     return NextResponse.json({
@@ -58,7 +59,8 @@ export async function POST(request: NextRequest) {
       startDate,
       endDate,
       companyId,
-      accountId
+      accountId,
+      userId: (await requireAuth()).userId,
     });
 
     return NextResponse.json({

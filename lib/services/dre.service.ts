@@ -21,6 +21,7 @@ export interface DREFilters {
   accountId?: string;
   startDate?: string;
   endDate?: string;
+  userId?: string;
 }
 
 // Tipos de dreGroup válidos
@@ -259,7 +260,10 @@ export default class DREService {
    * Buscar dados de DRE do banco
    */
   static async getDREStatement(filters: DREFilters = {}): Promise<DREStatement> {
-    try {
+    const { userId, ...cleanFilters } = filters;
+
+    const execute = async (tx: any) => {
+      try {
       // Converter filtros - usar datas do filtro se period='custom'
       let startDate: string;
       let endDate: string;
@@ -295,7 +299,7 @@ export default class DREService {
 
       // Buscar totais por categoria
       // Nova lógica: Combina transações sem splits + splits individuais
-      const categoryData = await db
+      const categoryData = await tx
         .select({
           categoryId: categories.id,
           categoryName: categories.name,
@@ -343,7 +347,7 @@ export default class DREService {
         .orderBy(sql`SUM(ABS(combined_transactions.amount_to_sum)) DESC`);
 
       // Processar categorias - excluir movimentações financeiras (empréstimos, transferências)
-      const categorizedData = categoryData.filter(cat => {
+      const categorizedData = categoryData.filter((cat: any) => {
         if (!cat.categoryId || !cat.categoryName) return false;
 
         // Determinar dreGroup (usando campo ou fallback)
@@ -368,7 +372,7 @@ export default class DREService {
       });
 
       const dreCategories: DRECategory[] = categorizedData
-        .map(cat => {
+        .map((cat: any) => {
           const incomeAmount = cat.incomeAmount || 0;
           const expenseAmount = cat.expenseAmount || 0;
 
@@ -439,12 +443,12 @@ export default class DREService {
           };
         });
 
-      const uncategorizedData = categoryData.filter(cat => !cat.categoryId);
+      const uncategorizedData = categoryData.filter((cat: any) => !cat.categoryId);
 
-      const uncategorizedRevenue = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.incomeAmount || 0), 0);
-      const uncategorizedExpenses = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.expenseAmount || 0), 0);
-      const uncategorizedRevenueTransactions = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.creditCount || 0), 0);
-      const uncategorizedExpenseTransactions = uncategorizedData.reduce((sumValue, cat) => sumValue + (cat.debitCount || 0), 0);
+      const uncategorizedRevenue = uncategorizedData.reduce((sumValue: number, cat: any) => sumValue + (cat.incomeAmount || 0), 0);
+      const uncategorizedExpenses = uncategorizedData.reduce((sumValue: number, cat: any) => sumValue + (cat.expenseAmount || 0), 0);
+      const uncategorizedRevenueTransactions = uncategorizedData.reduce((sumValue: number, cat: any) => sumValue + (cat.creditCount || 0), 0);
+      const uncategorizedExpenseTransactions = uncategorizedData.reduce((sumValue: number, cat: any) => sumValue + (cat.debitCount || 0), 0);
 
       if (uncategorizedRevenue > 0) {
         dreCategories.push({
@@ -555,13 +559,15 @@ export default class DREService {
       // Buscar transações de cada categoria em paralelo para o drilldown
       const categoryTransactionsPromises = dreCategories.map(async (cat) => {
         const categoryId = cat.id.startsWith('uncategorized') ? null : cat.id;
-        const txns = await this.getTransactionsByCategoryId(
-          categoryId,
-          startDate,
-          endDate,
-          filters.accountId,
-          filters.companyId
-        );
+          const txns = await this.getTransactionsByCategoryId(
+            categoryId,
+            startDate,
+            endDate,
+            cleanFilters.accountId,
+            cleanFilters.companyId,
+            userId,
+            tx
+          );
         return { categoryId: cat.id, transactions: txns };
       });
 
@@ -735,7 +741,14 @@ export default class DREService {
       console.error('Error generating DRE statement:', error);
       throw new Error('Failed to generate DRE statement');
     }
+  };
+
+  if (userId) {
+    const { withUser } = await import('@/lib/db/connection');
+    return withUser(userId, execute);
   }
+  return execute(db);
+}
 
   /**
    * Format period label for display
@@ -799,9 +812,12 @@ export default class DREService {
     startDate: string,
     endDate: string,
     accountId?: string,
-    companyId?: string
+    companyId?: string,
+    userId?: string,
+    tx: any = db
   ): Promise<DrilldownTransaction[]> {
-    const whereConditions = [];
+    const execute = async (innerTx: any) => {
+      const whereConditions = [];
 
     // Filtro por categoria (null = não categorizadas)
     if (categoryId === null || categoryId === 'uncategorized-revenue' || categoryId === 'uncategorized-expense') {
@@ -825,32 +841,39 @@ export default class DREService {
 
     const whereClause = and(...whereConditions);
 
-    const transactionList = await db
-      .select({
-        id: transactions.id,
-        date: transactions.transactionDate,
-        description: transactions.description,
-        categoryName: categories.name,
-        amount: transactions.amount,
-        type: transactions.type,
-        bankName: accounts.name,
-      })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.categoryId, categories.id))
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-      .where(whereClause)
-      .orderBy(sql`${transactions.transactionDate} DESC`)
-      .limit(50); // Limitar a 50 transações para performance
+      const transactionList = await innerTx
+        .select({
+          id: transactions.id,
+          date: transactions.transactionDate,
+          description: transactions.description,
+          categoryName: categories.name,
+          amount: transactions.amount,
+          type: transactions.type,
+          bankName: accounts.name,
+        })
+        .from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(whereClause)
+        .orderBy(sql`${transactions.transactionDate} DESC`)
+        .limit(50); // Limitar a 50 transações para performance
 
-    return transactionList.map(t => ({
-      id: t.id,
-      date: t.date || '',
-      description: t.description || 'Sem descrição',
-      category: t.categoryName || 'Sem categoria',
-      amount: Math.abs(Number(t.amount)),
-      type: t.type === 'credit' ? 'income' : 'expense',
-      bank: t.bankName || undefined,
-    }));
+      return transactionList.map((t: any) => ({
+        id: t.id,
+        date: t.date || '',
+        description: t.description || 'Sem descrição',
+        category: t.categoryName || 'Sem categoria',
+        amount: Math.abs(Number(t.amount)),
+        type: t.type === 'credit' ? 'income' : 'expense',
+        bank: t.bankName || undefined,
+      }));
+    };
+
+    if (userId && tx === db) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
+    }
+    return execute(tx);
   }
 
   /**
@@ -859,7 +882,7 @@ export default class DREService {
   static async comparePeriods(
     currentPeriod: string,
     previousPeriod: string,
-    filters: Omit<DREFilters, 'period'> = {}
+    filters: DREFilters = {}
   ): Promise<{
     current: DREStatement;
     previous: DREStatement;

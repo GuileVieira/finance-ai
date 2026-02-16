@@ -17,16 +17,18 @@ export async function GET(request: NextRequest) {
       companyId?: string;
       accountId?: string;
       type?: 'credit' | 'debit';
+      userId?: string;
     } = {
-      companyId // Always use companyId from session
+      companyId, // Always use companyId from session
+      userId: (await requireAuth()).userId,
     };
 
     if (accountId && accountId !== 'all') {
       filters.accountId = accountId;
     }
 
-    if (type && type !== 'all') {
-      filters.type = type;
+    if (type && (type as any) !== 'all') {
+      filters.type = type as 'credit' | 'debit';
     }
 
     const periods = await TransactionsService.getAvailablePeriods(filters);

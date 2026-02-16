@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
       companyId,
       accountId,
       startDate,
-      endDate
+      endDate,
+      userId: (await requireAuth()).userId,
     });
 
     // Buscar DRE do período anterior para comparação
@@ -36,7 +37,8 @@ export async function GET(request: NextRequest) {
         comparisonData = await DREService.getDREStatement({
           period: previousPeriod,
           companyId,
-          accountId
+          accountId,
+          userId: (await requireAuth()).userId,
         });
       }
     }
@@ -63,19 +65,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { companyId: sessionCompanyId } = await requireAuth();
-    await initializeDatabase();
-
+    const session = await requireAuth();
     const body = await request.json();
     const { period, accountId } = body;
-    const companyId = sessionCompanyId; // Usar companyId da sessão
+    const companyId = session.companyId; // Usar companyId da sessão
 
     console.log('📊 [DRE-API] Calculando DRE com filtros:', { period, companyId, accountId });
 
     const dreData = await DREService.getDREStatement({
       period: period || 'current',
       companyId,
-      accountId
+      accountId,
+      userId: session.userId,
     });
 
     return NextResponse.json({

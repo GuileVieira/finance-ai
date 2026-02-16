@@ -16,6 +16,7 @@ export interface TransactionFilters {
   verified?: boolean;
   uploadId?: string;
   categoryType?: string;
+  userId?: string;
 }
 
 export interface TransactionStats {
@@ -54,17 +55,20 @@ export class TransactionsService {
     page?: number;
     limit?: number;
   } = {}) {
-    try {
-      await initializeDatabase();
+    const { userId, ...cleanFilters } = filters;
 
-      const page = filters.page || 1;
-      const limit = filters.limit || 50;
-      const offset = (page - 1) * limit;
+    const execute = async (tx: any) => {
+      try {
+        await initializeDatabase();
 
-      console.log('📊 [TRANSACTIONS-SERVICE] Listando transações:', filters);
+        const page = cleanFilters.page || 1;
+        const limit = cleanFilters.limit || 50;
+        const offset = (page - 1) * limit;
 
-      // Construir query principal
-      let query: any = db.select({
+        console.log('📊 [TRANSACTIONS-SERVICE] Listando transações:', cleanFilters);
+
+        // Construir query principal
+        let query: any = tx.select({
         id: transactions.id,
         accountId: transactions.accountId,
         categoryId: transactions.categoryId,
@@ -162,7 +166,7 @@ export class TransactionsService {
       const transactionsList = await query;
 
       // Contar total para paginação
-      let countQuery: any = db.select({ count: sql<number>`count(*)` })
+      let countQuery: any = tx.select({ count: sql<number>`count(*)` })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
         .leftJoin(categories, eq(transactions.categoryId, categories.id));
@@ -197,18 +201,28 @@ export class TransactionsService {
       console.error('❌ Erro ao listar transações:', error);
       throw error;
     }
+  };
+
+  if (userId) {
+    const { withUser } = await import('@/lib/db/connection');
+    return withUser(userId, execute);
   }
+  return execute(db);
+}
 
   /**
    * Obter estatísticas das transações
    */
   async getTransactionStats(filters: TransactionFilters = {}): Promise<TransactionStats> {
-    try {
-      await initializeDatabase();
+    const { userId, ...cleanFilters } = filters;
 
-      console.log('📈 [TRANSACTIONS-SERVICE] Calculando estatísticas:', filters);
+    const execute = async (tx: any) => {
+      try {
+        await initializeDatabase();
 
-      let query: any = db.select({
+        console.log('📈 [TRANSACTIONS-SERVICE] Calculando estatísticas:', cleanFilters);
+
+        let query: any = tx.select({
         totalTransactions: sql<number>`count(*)`,
         totalAmount: sql<number>`sum(CAST(${transactions.amount} AS NUMERIC))`,
         incomeValue: sql<number>`sum(CASE WHEN CAST(${transactions.amount} AS NUMERIC) > 0 THEN CAST(${transactions.amount} AS NUMERIC) ELSE 0 END)`,
@@ -223,28 +237,28 @@ export class TransactionsService {
       // Aplicar filtros
       const conditions = [];
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        conditions.push(eq(transactions.accountId, filters.accountId));
+      if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+        conditions.push(eq(transactions.accountId, cleanFilters.accountId));
       }
 
-      if (filters.companyId && filters.companyId !== 'all') {
-        conditions.push(eq(accounts.companyId, filters.companyId));
+      if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+        conditions.push(eq(accounts.companyId, cleanFilters.companyId));
       }
 
-      if (filters.type && (filters.type as string) !== 'all') {
-        conditions.push(eq(transactions.type, filters.type));
+      if (cleanFilters.type && (cleanFilters.type as string) !== 'all') {
+        conditions.push(eq(transactions.type, cleanFilters.type));
       }
 
-      if (filters.categoryType && filters.categoryType !== 'all') {
-        conditions.push(eq(categories.type, filters.categoryType));
+      if (cleanFilters.categoryType && cleanFilters.categoryType !== 'all') {
+        conditions.push(eq(categories.type, cleanFilters.categoryType));
       }
 
-      if (filters.startDate && filters.endDate) {
-        conditions.push(between(transactions.transactionDate, filters.startDate, filters.endDate));
-      } else if (filters.startDate) {
-        conditions.push(gte(transactions.transactionDate, filters.startDate));
-      } else if (filters.endDate) {
-        conditions.push(lte(transactions.transactionDate, filters.endDate));
+      if (cleanFilters.startDate && cleanFilters.endDate) {
+        conditions.push(between(transactions.transactionDate, cleanFilters.startDate, cleanFilters.endDate));
+      } else if (cleanFilters.startDate) {
+        conditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+      } else if (cleanFilters.endDate) {
+        conditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
       }
 
       if (conditions.length > 0) {
@@ -261,7 +275,7 @@ export class TransactionsService {
       const [stats] = await query;
 
       // Obter distribuição por categoria
-      let categoryQuery: any = db.select({
+      let categoryQuery: any = tx.select({
         categoryName: categories.name,
         categoryType: categories.type,
         count: sql<number>`count(*)`,
@@ -293,7 +307,7 @@ export class TransactionsService {
       });
 
       // Obter tendência mensal (últimos 6 meses)
-      const monthlyTrend = await this.getMonthlyTrend(filters);
+      const monthlyTrend = await this.getMonthlyTrend(cleanFilters, tx);
 
       return {
         totalTransactions: stats?.totalTransactions || 0,
@@ -311,12 +325,19 @@ export class TransactionsService {
       console.error('❌ Erro ao calcular estatísticas:', error);
       throw error;
     }
+  };
+
+  if (userId) {
+    const { withUser } = await import('@/lib/db/connection');
+    return withUser(userId, execute);
   }
+  return execute(db);
+}
 
   /**
    * Obter tendência mensal
    */
-  private async getMonthlyTrend(filters: TransactionFilters = {}): Promise<TransactionStats['monthlyTrend']> {
+  private async getMonthlyTrend(filters: TransactionFilters = {}, tx: any = db): Promise<TransactionStats['monthlyTrend']> {
     try {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -339,7 +360,7 @@ export class TransactionsService {
       // Adicionar filtro de data (6 meses)
       conditions.push(gte(transactions.transactionDate, sixMonthsAgo.toISOString().split('T')[0]));
 
-      let query: any = db.select({
+      let query: any = tx.select({
         month: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
         credits: sql<number>`sum(CASE WHEN ${transactions.type} = 'credit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`,
         debits: sql<number>`sum(CASE WHEN ${transactions.type} = 'debit' THEN abs(CAST(${transactions.amount} AS NUMERIC)) ELSE 0 END)`
@@ -375,74 +396,84 @@ export class TransactionsService {
    * Listar períodos disponíveis com base nas transações cadastradas
    */
   async getAvailablePeriods(filters: TransactionFilters = {}) {
-    try {
-      await initializeDatabase();
+    const { userId, ...cleanFilters } = filters;
 
-      let query: any = db
-        .select({
-          period: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
-          startDate: sql<string>`min(${transactions.transactionDate})`,
-          endDate: sql<string>`max(${transactions.transactionDate})`
-        })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id));
+    const execute = async (tx: any) => {
+      try {
+        await initializeDatabase();
 
-      const conditions = [];
+        let query: any = tx
+          .select({
+            period: sql<string>`to_char(${transactions.transactionDate}, 'YYYY-MM')`,
+            startDate: sql<string>`min(${transactions.transactionDate})`,
+            endDate: sql<string>`max(${transactions.transactionDate})`
+          })
+          .from(transactions)
+          .leftJoin(accounts, eq(transactions.accountId, accounts.id));
 
-      if (filters.accountId && filters.accountId !== 'all') {
-        conditions.push(eq(transactions.accountId, filters.accountId));
+        const conditions = [];
+
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          conditions.push(eq(transactions.accountId, cleanFilters.accountId));
+        }
+
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          conditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
+
+        if (cleanFilters.type && (cleanFilters.type as string) !== 'all') {
+          conditions.push(eq(transactions.type, cleanFilters.type));
+        }
+
+        if (cleanFilters.startDate && cleanFilters.endDate) {
+          conditions.push(between(transactions.transactionDate, cleanFilters.startDate, cleanFilters.endDate));
+        } else if (cleanFilters.startDate) {
+          conditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+        } else if (cleanFilters.endDate) {
+          conditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+        }
+
+        if (conditions.length > 0) {
+          query = query.where(
+            conditions.length === 1
+              ? conditions[0]
+              : and(...conditions)
+          );
+        }
+
+        const results = await query
+          .groupBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`)
+          .orderBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM') DESC`);
+
+        const monthNames = [
+          'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        return results.map((result: any) => {
+          const [year, month] = result.period.split('-');
+          const monthIndex = Math.max(0, Math.min(11, parseInt(month, 10) - 1));
+          const label = `${monthNames[monthIndex]}/${year}`;
+
+          return {
+            id: result.period,
+            label,
+            startDate: result.startDate,
+            endDate: result.endDate,
+            type: 'month' as const,
+          };
+        });
+      } catch (error) {
+        console.error('❌ Erro ao obter períodos disponíveis:', error);
+        return [];
       }
+    };
 
-      if (filters.companyId && filters.companyId !== 'all') {
-        conditions.push(eq(accounts.companyId, filters.companyId));
-      }
-
-      if (filters.type && (filters.type as string) !== 'all') {
-        conditions.push(eq(transactions.type, filters.type));
-      }
-
-      if (filters.startDate && filters.endDate) {
-        conditions.push(between(transactions.transactionDate, filters.startDate, filters.endDate));
-      } else if (filters.startDate) {
-        conditions.push(gte(transactions.transactionDate, filters.startDate));
-      } else if (filters.endDate) {
-        conditions.push(lte(transactions.transactionDate, filters.endDate));
-      }
-
-      if (conditions.length > 0) {
-        query = query.where(
-          conditions.length === 1
-            ? conditions[0]
-            : and(...conditions)
-        );
-      }
-
-      const results = await query
-        .groupBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM')`)
-        .orderBy(sql`to_char(${transactions.transactionDate}, 'YYYY-MM') DESC`);
-
-      const monthNames = [
-        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-      ];
-
-      return results.map((result: any) => {
-        const [year, month] = result.period.split('-');
-        const monthIndex = Math.max(0, Math.min(11, parseInt(month, 10) - 1));
-        const label = `${monthNames[monthIndex]}/${year}`;
-
-        return {
-          id: result.period,
-          label,
-          startDate: result.startDate,
-          endDate: result.endDate,
-          type: 'month' as const,
-        };
-      });
-    } catch (error) {
-      console.error('❌ Erro ao obter períodos disponíveis:', error);
-      return [];
+    if (filters.userId) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(filters.userId, execute);
     }
+    return execute(db);
   }
 
   /**
@@ -462,71 +493,91 @@ export class TransactionsService {
   /**
    * Obter desmembramentos (splits) de uma transação
    */
-  async getTransactionSplits(transactionId: string) {
-    try {
-      await initializeDatabase();
-      console.log(`🔍 [TRANSACTIONS-SERVICE] Buscando splits para a transação: ${transactionId}`);
+  async getTransactionSplits(transactionId: string, userId?: string) {
+    const execute = async (tx: any) => {
+      try {
+        await initializeDatabase();
+        console.log(`🔍 [TRANSACTIONS-SERVICE] Buscando splits para a transação: ${transactionId}`);
 
-      const splits = await db.select({
-        id: transactionSplits.id,
-        transactionId: transactionSplits.transactionId,
-        categoryId: transactionSplits.categoryId,
-        amount: transactionSplits.amount,
-        description: transactionSplits.description,
-        categoryName: categories.name,
-        categoryType: categories.type,
-      })
-      .from(transactionSplits)
-      .leftJoin(categories, eq(transactionSplits.categoryId, categories.id))
-      .where(eq(transactionSplits.transactionId, transactionId));
+        const splits = await tx.select({
+          id: transactionSplits.id,
+          transactionId: transactionSplits.transactionId,
+          categoryId: transactionSplits.categoryId,
+          amount: transactionSplits.amount,
+          description: transactionSplits.description,
+          categoryName: categories.name,
+          categoryType: categories.type,
+        })
+        .from(transactionSplits)
+        .leftJoin(categories, eq(transactionSplits.categoryId, categories.id))
+        .where(eq(transactionSplits.transactionId, transactionId));
 
-      return splits;
-    } catch (error) {
-      console.error('❌ Erro ao buscar splits da transação:', error);
-      throw error;
+        return splits;
+      } catch (error) {
+        console.error('❌ Erro ao buscar splits da transação:', error);
+        throw error;
+      }
+    };
+
+    if (userId) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(db);
   }
 
   /**
    * Atualizar/Definir desmembramentos (splits) de uma transação
    */
-  async updateTransactionSplits(transactionId: string, splits: NewTransactionSplit[]) {
-    try {
-      await initializeDatabase();
-      console.log(`💾 [TRANSACTIONS-SERVICE] Atualizando splits para a transação: ${transactionId}`);
+  async updateTransactionSplits(transactionId: string, splits: NewTransactionSplit[], userId?: string) {
+    const execute = async (tx: any) => {
+      try {
+        await initializeDatabase();
+        console.log(`💾 [TRANSACTIONS-SERVICE] Atualizando splits para a transação: ${transactionId}`);
 
-      // Executar em transação para garantir atomicidade
-      await db.transaction(async (tx) => {
-        // 1. Remover splits existentes
-        await tx.delete(transactionSplits).where(eq(transactionSplits.transactionId, transactionId));
+        // Executar em transação (tx já é uma transação se vier de withUser)
+        // Se tx for db, precisamos abrir uma transação.
+        // Drizzle db.transaction dentro de db.transaction é suportado (savespoints).
+        
+        const updateLogic = async (innerTx: any) => {
+          // 1. Remover splits existentes
+          await innerTx.delete(transactionSplits).where(eq(transactionSplits.transactionId, transactionId));
 
-        // 2. Inserir novos splits (se houver)
-        if (splits.length > 0) {
-          await tx.insert(transactionSplits).values(splits.map(s => ({
-            ...s,
-            transactionId, // Garantir que o ID da transação esteja correto
-          })));
+          // 2. Inserir novos splits (se houver)
+          if (splits.length > 0) {
+            await innerTx.insert(transactionSplits).values(splits.map(s => ({
+              ...s,
+              transactionId, // Garantir que o ID da transação esteja correto
+            })));
 
-          // 3. Marcar a transação como categorizada manualmente se houver splits
-          // ou se for um split total, talvez queiramos limpar o categoryId original?
-          // Por enquanto, vamos manter o categoryId original como "referência" ou "vazio"
-          await tx.update(transactions)
-            .set({ 
-              manuallyCategorized: true,
-              updatedAt: new Date(),
-              // Se tiver split, o categoryId da transação principal pode ser nulo ou ser um indicador
-              // Decisão: vamos manter o categoryId original para não quebrar queries simples,
-              // mas serviços como DRE devem priorizar a tabela de splits.
-            })
-            .where(eq(transactions.id, transactionId));
+            // 3. Marcar a transação como categorizada manualmente se houver splits
+            await innerTx.update(transactions)
+              .set({ 
+                manuallyCategorized: true,
+                updatedAt: new Date(),
+              })
+              .where(eq(transactions.id, transactionId));
+          }
+        };
+
+        if (tx === db) {
+          await tx.transaction(updateLogic);
+        } else {
+          await updateLogic(tx);
         }
-      });
 
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Erro ao atualizar splits da transação:', error);
-      throw error;
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Erro ao atualizar splits da transação:', error);
+        throw error;
+      }
+    };
+
+    if (userId) {
+      const { withUser } = await import('@/lib/db/connection');
+      return withUser(userId, execute);
     }
+    return execute(db);
   }
 }
 

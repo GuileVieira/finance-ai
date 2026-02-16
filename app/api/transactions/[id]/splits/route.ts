@@ -7,10 +7,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { id: transactionId } = await params;
 
-    const splits = await TransactionsService.getTransactionSplits(transactionId);
+    const splits = await TransactionsService.getTransactionSplits(transactionId, session.userId);
 
     return NextResponse.json({
       success: true,
@@ -30,7 +30,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { id: transactionId } = await params;
     const { splits } = await request.json();
 
@@ -41,7 +41,7 @@ export async function POST(
       }, { status: 400 });
     }
 
-    await TransactionsService.updateTransactionSplits(transactionId, splits);
+    await TransactionsService.updateTransactionSplits(transactionId, splits, session.userId);
 
     return NextResponse.json({
       success: true,

@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       limit?: number;
     } = {
       companyId: session.companyId, // Sempre usar companyId da sessão
+      userId: session.userId, // Adicionar userId para o RLS
     };
 
     if (searchParams.get('accountId')) {
