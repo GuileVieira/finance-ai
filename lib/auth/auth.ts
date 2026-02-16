@@ -55,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           companyId: uc?.companyId ?? null,
+          isSuperAdmin: user.isSuperAdmin,
         };
       },
     }),
@@ -64,7 +65,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Primeira vez: user vem do authorize
       if (user) {
         token.id = user.id;
-        token.companyId = user.companyId;
+        token.companyId = (user as any).companyId;
+        token.isSuperAdmin = (user as any).isSuperAdmin;
       }
       return token;
     },
@@ -72,6 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Passa dados do JWT para a sessão
       session.user.id = token.id as string;
       session.user.companyId = token.companyId as string | null;
+      session.user.isSuperAdmin = token.isSuperAdmin as boolean;
       return session;
     },
   },
