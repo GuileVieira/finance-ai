@@ -4,7 +4,7 @@ import { DREStatement, DRECategory } from '@/lib/types';
 import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { getFinancialExclusionClause } from './financial-exclusion';
-import { DreGroupKey } from '@/lib/constants/dre-utils';
+import { DreGroupKey, EXCLUDED_DRE_GROUPS } from '@/lib/constants/dre-utils';
 
 interface DrilldownTransaction {
   id: string;
@@ -27,10 +27,7 @@ export interface DREFilters {
 
 // Tipos de dreGroup válidos - usando DreGroupKey centralizado de dre-utils.ts
 
-// Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
-// Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
-// Usuário solicitou ver Empréstimos e Transferências, então removemos as restrições
-const EXCLUDED_DRE_GROUPS: DreGroupKey[] = [/*'EMP', 'TRANSF'*/];
+// Grupos excluídos do DRE — definição centralizada em dre-utils.ts (EMP, TRANSF)
 
 /**
  * Determina o dreGroup de uma categoria.

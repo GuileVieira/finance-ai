@@ -103,3 +103,11 @@ export const DRE_GROUP_LABELS: Record<string, string> = Object.entries(DRE_GROUP
     acc[key] = val.label;
     return acc;
 }, {} as Record<string, string>);
+
+/**
+ * Grupos DRE que devem ser EXCLUÍDOS de cálculos de resultado (DRE).
+ * São movimentações patrimoniais/financeiras que não representam Receita nem Despesa.
+ * - EMP: Empréstimos (entrada/saída de capital de terceiros)
+ * - TRANSF: Transferências entre contas (movimentação interna de caixa)
+ */
+export const EXCLUDED_DRE_GROUPS: DreGroupKey[] = ['EMP', 'TRANSF'];

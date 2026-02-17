@@ -1,8 +1,8 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts, projections } from '@/lib/db/schema';
 import { DashboardFilters } from '@/lib/api/dashboard';
-import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
-import { DRE_GROUPS, DRE_GROUP_LABELS } from '@/lib/constants/dre-utils';
+import { eq, and, gte, lte, sum, sql, notInArray } from 'drizzle-orm';
+import { DRE_GROUPS, EXCLUDED_DRE_GROUPS } from '@/lib/constants/dre-utils';
 import { getFinancialExclusionClause } from './financial-exclusion';
 
 export interface ExecutiveDashboardData {
@@ -203,6 +203,7 @@ export default class ExecutiveDashboardService {
                 gte(transactions.transactionDate, startDate),
                 lte(transactions.transactionDate, endDate),
                 sql`${categories.dreGroup} IS NOT NULL`,
+                notInArray(categories.dreGroup, EXCLUDED_DRE_GROUPS),
                 getFinancialExclusionClause(),
                 companyId !== 'all' ? eq(accounts.companyId, companyId) : undefined
             ))
@@ -268,6 +269,7 @@ export default class ExecutiveDashboardService {
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
                 filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
                 sql`${categories.dreGroup} IS NOT NULL`,
+                notInArray(categories.dreGroup, EXCLUDED_DRE_GROUPS),
                 getFinancialExclusionClause()
             ))
             .groupBy(categories.dreGroup);
