@@ -66,7 +66,7 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
       <CardContent className="flex-1 flex flex-col">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.15} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#888" opacity={0.08} vertical={false} />
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip
@@ -78,26 +78,33 @@ export function TrendChart({ data, isLoading }: TrendChartProps) {
               type="monotone"
               dataKey="receitas"
               stroke="#10b981"
-              strokeWidth={2}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
               name="Receitas"
             />
             <Line
               type="monotone"
               dataKey="despesas"
               stroke="#ef4444"
-              strokeWidth={2}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
               name="Despesas"
             />
             <Line
               type="monotone"
               dataKey="saldo"
-              stroke="#374151"
-              strokeWidth={2}
+              stroke="#6b7280"
+              strokeWidth={2.5}
+              strokeDasharray="6 3"
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
               name="Saldo"
             />
           </LineChart>
         </ResponsiveContainer>
-        <div className="mt-4 p-3 bg-muted rounded-lg">
+        <div className="mt-4 p-3 bg-muted/40 rounded-xl border border-border/30">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">📈 Análise:</span> Visualize a evolução das finanças ao longo do tempo.
           </p>

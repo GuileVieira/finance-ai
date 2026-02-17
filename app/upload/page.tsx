@@ -139,22 +139,22 @@ export default function UploadPage() {
             <div
               {...getRootProps()}
               data-tutorial="upload-dropzone"
-              className={`border-2 border-dashed rounded-lg p-10 text-center transition-all duration-200 ${
+              className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ease-out ${
                 isDragActive
-                  ? 'border-primary bg-primary/10 scale-[1.01] shadow-lg'
+                  ? 'border-primary bg-primary/5 scale-[1.005] shadow-xl shadow-primary/10'
                   : isUploading
-                  ? 'border-muted bg-muted/30 cursor-not-allowed'
-                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/5'
+                  ? 'border-muted bg-muted/20 cursor-not-allowed'
+                  : 'border-border/40 hover:border-primary/30 hover:bg-accent/5 hover:shadow-md'
               }`}
             >
               <input {...getInputProps()} />
               <div className="space-y-6">
-                <div className={`p-4 rounded-full bg-primary/10 w-fit mx-auto transition-transform duration-200 ${isDragActive ? 'scale-110' : ''}`}>
-                  <Upload className={`h-12 w-12 mx-auto ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className={`p-5 rounded-2xl bg-primary/5 w-fit mx-auto transition-all duration-300 ${isDragActive ? 'scale-110 bg-primary/10' : ''}`}>
+                  <Upload className={`h-10 w-10 mx-auto ${isDragActive ? 'text-primary' : 'text-muted-foreground/70'}`} strokeWidth={1.5} />
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="text-xl font-semibold tracking-tight">
+                  <div className="text-xl font-semibold tracking-tight text-foreground">
                     {isDragActive ? (
                       'Solte para iniciar o upload'
                     ) : isUploading ? (
@@ -163,18 +163,17 @@ export default function UploadPage() {
                       'Arraste seus extratos bancários'
                     )}
                   </div>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground/70 text-sm">
                     O sistema irá identificar automaticamente o banco e a conta.
                   </p>
                 </div>
 
                 {!isUploading && !isDragActive && (
-                  <div className="pt-2">
+                  <div className="pt-3">
                     <Button 
                       type="button" 
                       onClick={open}
-                      variant="outline"
-                      className="relative z-10"
+                      className="relative z-10 rounded-xl px-6"
                     >
                       Selecionar Arquivos
                     </Button>
@@ -270,26 +269,26 @@ export default function UploadPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <h4 className="font-medium text-green-600">Recursos Implementados</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>✓ Upload com progresso em tempo real</li>
-                  <li>✓ Processamento em paralelo de múltiplos arquivos</li>
-                  <li>✓ Armazenamento no Supabase Storage</li>
-                  <li>✓ Categorização automática com IA</li>
-                  <li>✓ Detecção de banco e conta</li>
-                  <li>✓ Histórico de uploads</li>
-                  <li>✓ Resumo detalhado por arquivo</li>
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground/70 uppercase tracking-wider">Recursos Implementados</h4>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Upload com progresso em tempo real</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Processamento em paralelo</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Armazenamento no Supabase Storage</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Categorização automática com IA</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Detecção de banco e conta</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Histórico de uploads</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500" strokeWidth={1.5} /> Resumo detalhado por arquivo</li>
                 </ul>
               </div>
-              <div className="space-y-2">
-                <h4 className="font-medium text-blue-600">Próximos Passos</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>1. Faça o upload dos seus extratos bancários (formato OFX)</li>
-                  <li>2. Acompanhe o progresso em tempo real</li>
-                  <li>3. Veja o resumo de cada arquivo processado</li>
-                  <li>4. Acesse o dashboard para análises detalhadas</li>
-                  <li>5. Consulte o histórico de uploads a qualquer momento</li>
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground/70 uppercase tracking-wider">Próximos Passos</h4>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2"><span className="text-primary font-medium min-w-[16px]">1.</span> Faça o upload dos extratos (formato OFX)</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-medium min-w-[16px]">2.</span> Acompanhe o progresso em tempo real</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-medium min-w-[16px]">3.</span> Veja o resumo de cada arquivo</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-medium min-w-[16px]">4.</span> Acesse o dashboard para análises</li>
+                  <li className="flex items-start gap-2"><span className="text-primary font-medium min-w-[16px]">5.</span> Consulte o histórico de uploads</li>
                 </ul>
               </div>
             </div>

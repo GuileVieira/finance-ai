@@ -92,7 +92,7 @@ export function RecentTransactions({ transactions, isLoading, isEmpty, companyId
               return (
                 <div
                   key={transaction.id}
-                  className={`flex items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors -mx-2 ${
+                  className={`flex items-center text-sm cursor-pointer hover:bg-muted/40 p-2 rounded-xl transition-all duration-200 -mx-2 ${
                     isAmbiguous ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''
                   }`}
                   onClick={() => openTransaction(transaction as unknown as import('@/lib/types').Transaction, companyId)}
@@ -107,7 +107,7 @@ export function RecentTransactions({ transactions, isLoading, isEmpty, companyId
                     {isAmbiguous && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" strokeWidth={1.5} />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Transação Ambígua: {metadata.ambiguity?.reason || 'Verifique os detalhes'}</p>
@@ -117,7 +117,7 @@ export function RecentTransactions({ transactions, isLoading, isEmpty, companyId
                     {(transaction as any).splitCount > 0 && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Split className="h-4 w-4 text-blue-500 shrink-0" />
+                          <Split className="h-4 w-4 text-blue-500 shrink-0" strokeWidth={1.5} />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Transação Desmembrada ({ (transaction as any).splitCount } itens)</p>

@@ -110,16 +110,16 @@ export function CategoryCard({
 
   return (
     <Card
-      className={`group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 ${!category.active ? 'opacity-60' : ''} ${onView ? 'cursor-pointer' : ''}`}
+      className={`group transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 ${!category.active ? 'opacity-60' : ''} ${onView ? 'cursor-pointer' : ''}`}
       onClick={handleCardClick}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         {/* Header com cor e ícone */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
             <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: category.colorHex }}
+              className="w-3.5 h-3.5 rounded-full flex-shrink-0 ring-2 ring-offset-1 ring-offset-background"
+              style={{ backgroundColor: category.colorHex, boxShadow: `0 0 8px ${category.colorHex}40`, '--tw-ring-color': `${category.colorHex}30` } as React.CSSProperties}
             />
             <div className="flex items-center gap-1">
               {category.icon && (
@@ -131,18 +131,18 @@ export function CategoryCard({
             {/* Badge de status */}
             <Badge
               variant={category.active ? "default" : "secondary"}
-              className="text-xs"
+              className="text-[10px] px-2 py-0.5 font-medium"
             >
               {category.active ? 'Ativo' : 'Inativo'}
             </Badge>
             {/* Badge de transações */}
             <Badge
               variant="outline"
-              className="text-xs"
+              className="text-[10px] px-2 py-0.5 font-medium"
               style={{
-                backgroundColor: `${category.colorHex}20`,
+                backgroundColor: `${category.colorHex}10`,
                 color: category.colorHex,
-                borderColor: category.colorHex
+                borderColor: `${category.colorHex}30`
               }}
             >
               {category.transactionCount} transações
@@ -187,7 +187,7 @@ export function CategoryCard({
             </div>
           ) : (
             <h3
-              className="font-semibold text-sm line-clamp-2 cursor-text hover:text-primary transition-colors capitalize"
+              className="font-semibold text-sm line-clamp-2 cursor-text hover:text-primary transition-colors duration-200 capitalize"
               onClick={handleNameDoubleClick}
               title="Clique para editar"
             >
@@ -206,33 +206,33 @@ export function CategoryCard({
         )}
 
         {/* Valor */}
-        <div className="text-lg font-bold mb-3 cursor-help" style={{ color: category.colorHex }} title={formatCurrency(category.totalAmount)}>
+        <div className="text-xl font-bold mb-2 cursor-help tracking-tight" style={{ color: category.colorHex }} title={formatCurrency(category.totalAmount)}>
           {formatCurrencyCompact(category.totalAmount)}
         </div>
 
         {/* Percentual */}
-        <div className="text-xs text-muted-foreground mb-4">
+        <div className="text-xs text-muted-foreground/70 mb-3">
           {category.percentage.toFixed(1)}% do total
         </div>
 
         {/* Média por transação */}
         {category.transactionCount > 0 && (
-          <div className="text-xs text-muted-foreground mb-4">
+          <div className="text-xs text-muted-foreground/70 mb-3">
             Média: {formatCurrency(category.averageAmount)}
           </div>
         )}
 
         {/* Botões de ação */}
-        <div className="flex flex-wrap gap-1 opacity-100 transition-opacity duration-200">
+        <div className="flex flex-wrap gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 pt-1 border-t border-border/30">
           {showViewButton && onView && (
             <Button
               variant="outline"
               size="sm"
               onClick={onView}
-              className="h-7 px-2 text-xs flex-shrink-0"
+              className="h-7 px-2.5 text-xs flex-shrink-0 rounded-lg"
               disabled={loading}
             >
-              <Eye className="h-3 w-3 mr-1" />
+              <Eye className="h-3 w-3 mr-1" strokeWidth={1.5} />
               Ver
             </Button>
           )}
@@ -241,10 +241,10 @@ export function CategoryCard({
               variant="outline"
               size="sm"
               onClick={() => onEdit?.(category)}
-              className="h-7 px-2 text-xs flex-shrink-0"
+              className="h-7 px-2.5 text-xs flex-shrink-0 rounded-lg"
               disabled={loading}
             >
-              <Edit className="h-3 w-3 mr-1" />
+              <Edit className="h-3 w-3 mr-1" strokeWidth={1.5} />
               Editar
             </Button>
           )}
@@ -252,24 +252,24 @@ export function CategoryCard({
             variant="outline"
             size="sm"
             onClick={onRules}
-            className="h-7 px-2 text-xs flex-shrink-0"
+            className="h-7 px-2.5 text-xs flex-shrink-0 rounded-lg"
             disabled={loading}
           >
-            <Settings className="h-3 w-3 mr-1" />
+            <Settings className="h-3 w-3 mr-1" strokeWidth={1.5} />
             Regras
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleToggle}
-            className="h-7 px-2 text-xs flex-shrink-0"
+            className="h-7 px-2.5 text-xs flex-shrink-0 rounded-lg"
             disabled={loading}
             title={category.active ? 'Desativar categoria' : 'Ativar categoria'}
           >
             {category.active ? (
-              <PowerOff className="h-3 w-3 mr-1" />
+              <PowerOff className="h-3 w-3 mr-1" strokeWidth={1.5} />
             ) : (
-              <Power className="h-3 w-3 mr-1" />
+              <Power className="h-3 w-3 mr-1" strokeWidth={1.5} />
             )}
             {category.active ? 'Inativar' : 'Ativar'}
           </Button>
@@ -278,11 +278,11 @@ export function CategoryCard({
               variant="outline"
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive flex-shrink-0"
+              className="h-7 px-2.5 text-xs text-destructive/70 hover:text-destructive flex-shrink-0 rounded-lg"
               disabled={loading}
               title="Excluir categoria"
             >
-              <Trash2 className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3 w-3 mr-1" strokeWidth={1.5} />
               Excluir
             </Button>
           )}

@@ -300,8 +300,8 @@ export default function SettingsCompaniesPage() {
           </Link>
 
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">Empresas</h1>
-            <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
+            <p className="text-sm text-muted-foreground/70">
               Gerencie suas empresas e diferentes CNPJs em um só lugar
             </p>
           </div>
@@ -334,7 +334,7 @@ export default function SettingsCompaniesPage() {
                   <p className="text-2xl font-bold">{activeCompanies}</p>
                   <p className="text-sm text-muted-foreground">Empresas Ativas</p>
                 </div>
-                <Building2 className="h-8 w-8 text-blue-500" />
+                <Building2 className="h-8 w-8 text-blue-500/70 p-1.5 bg-blue-500/10 rounded-xl" strokeWidth={1.5} />
               </div>
             </CardContent>
           </Card>
@@ -346,7 +346,7 @@ export default function SettingsCompaniesPage() {
                   <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                   <p className="text-sm text-muted-foreground">Faturamento Total</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-500" />
+                <DollarSign className="h-8 w-8 text-green-500/70 p-1.5 bg-green-500/10 rounded-xl" strokeWidth={1.5} />
               </div>
             </CardContent>
           </Card>
@@ -358,7 +358,7 @@ export default function SettingsCompaniesPage() {
                   <p className="text-2xl font-bold">{totalStates}</p>
                   <p className="text-sm text-muted-foreground">Estados</p>
                 </div>
-                <MapPin className="h-8 w-8 text-purple-500" />
+                <MapPin className="h-8 w-8 text-purple-500/70 p-1.5 bg-purple-500/10 rounded-xl" strokeWidth={1.5} />
               </div>
             </CardContent>
           </Card>
@@ -370,7 +370,7 @@ export default function SettingsCompaniesPage() {
                   <p className="text-2xl font-bold">{totalIndustries}</p>
                   <p className="text-sm text-muted-foreground">Segmentos</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-orange-500" />
+                <TrendingUp className="h-8 w-8 text-orange-500/70 p-1.5 bg-orange-500/10 rounded-xl" strokeWidth={1.5} />
               </div>
             </CardContent>
           </Card>
@@ -564,20 +564,21 @@ export default function SettingsCompaniesPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link href={`/settings/companies/${company.id}`}>
-                            <Button variant="outline" size="sm" aria-label={`Visualizar detalhes da empresa ${company.name}`}>
-                              <Eye className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" aria-label={`Visualizar detalhes da empresa ${company.name}`}>
+                              <Eye className="h-4 w-4" strokeWidth={1.5} />
                             </Button>
                           </Link>
 
                           <Dialog open={editingCompany?.id === company.id} onOpenChange={(open) => !open && setEditingCompany(null)}>
                             <DialogTrigger asChild>
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 rounded-lg"
                                 onClick={() => setEditingCompany(company)}
                                 aria-label={`Editar empresa ${company.name}`}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-4 w-4" strokeWidth={1.5} />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -595,8 +596,9 @@ export default function SettingsCompaniesPage() {
                           </Dialog>
 
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
+                            className="h-8 px-3 text-xs rounded-lg"
                             onClick={() => handleToggleActive(company.id)}
                           >
                             {company.active ? 'Desativar' : 'Ativar'}
@@ -605,11 +607,12 @@ export default function SettingsCompaniesPage() {
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
-                                variant="destructive"
+                                variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 rounded-lg text-destructive/60 hover:text-destructive hover:bg-destructive/10"
                                 aria-label={`Excluir empresa ${company.name}`}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>

@@ -3,6 +3,15 @@
 @custom-variant dark (&:is(.dark *));
 :root {
   --radius: 0.65rem;
+
+  /* Apple-like layered shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.04), 0 16px 40px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.06), 0 24px 56px rgba(0, 0, 0, 0.1);
+  --shadow-2xl:
+    0 16px 32px rgba(0, 0, 0, 0.08), 0 32px 72px rgba(0, 0, 0, 0.12);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -46,6 +55,15 @@
 
 .dark {
   --background: oklch(0.15 0.005 270);
+
+  /* Dark mode shadows — lighter glow-ish */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.25), 0 16px 40px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.3), 0 24px 56px rgba(0, 0, 0, 0.3);
+  --shadow-2xl:
+    0 16px 32px rgba(0, 0, 0, 0.35), 0 32px 72px rgba(0, 0, 0, 0.35);
   --foreground: oklch(0.92 0.01 270);
   --card: oklch(0.21 0.008 270);
   --card-foreground: oklch(0.88 0.008 270);
@@ -84,7 +102,6 @@
   --info: oklch(0.488 0.243 264.376);
   --info-foreground: oklch(0.92 0.01 270);
 }
-
 
 @theme inline {
   --color-background: var(--background);
@@ -150,6 +167,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer base {
@@ -159,33 +178,89 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Apple typography hierarchy */
+  h1,
+  .h1 {
+    @apply text-3xl sm:text-4xl font-bold;
+    letter-spacing: -0.025em;
+  }
+  h2,
+  .h2 {
+    @apply text-2xl font-semibold;
+    letter-spacing: -0.02em;
+  }
+  h3,
+  .h3 {
+    @apply text-xl font-semibold;
+    letter-spacing: -0.015em;
+  }
+
+  /* Micro-animation base for all interactive elements */
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    @apply transition-all duration-200 ease-out;
+  }
 }
 
-/* Tooltip styles para Recharts */
+/* Glassmorphism utility */
+.glass {
+  background: oklch(1 0 0 / 60%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid oklch(1 0 0 / 15%);
+}
+.dark .glass {
+  background: oklch(0.2 0.008 270 / 50%);
+  border: 1px solid oklch(1 0 0 / 8%);
+}
+
+/* Shimmer animation for skeletons */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Tooltip styles para Recharts — Glassmorphic */
 .recharts-tooltip-wrapper {
   z-index: 9999 !important;
 }
 
 .recharts-default-tooltip {
-  background-color: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 6px !important;
-  padding: 10px 12px !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  box-shadow: var(--shadow-lg) !important;
   z-index: 9999 !important;
   color: #1f2937 !important;
 }
 
 /* Dark mode tooltip */
 .dark .recharts-default-tooltip {
-  background-color: #1f2937 !important;
-  border: 1px solid #374151 !important;
+  background: rgba(30, 30, 45, 0.8) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   color: #f9fafb !important;
 }
 
 /* Tutorial/Onboarding Animations */
 @keyframes tutorial-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 4px oklch(var(--primary) / 0.3);
   }
   50% {
@@ -224,4 +299,3 @@ body {
 .tutorial-overlay-enter {
   animation: tutorial-fade-in 0.3s ease-out;
 }
-

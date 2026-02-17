@@ -64,7 +64,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/3 via-background to-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Logo e Branding */}
         <div className="text-center mb-8">
@@ -146,7 +146,7 @@ export default function LoginPage() {
             <CardFooter className="flex flex-col space-y-4">
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="w-full bg-gradient-to-r from-primary to-primary/85 text-primary-foreground shadow-lg shadow-primary/15 hover:shadow-xl hover:shadow-primary/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
                 disabled={loading}
               >
                 {loading ? (

@@ -17,7 +17,7 @@ export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCa
 
   return (
     <Card
-      className={onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}
+      className={onClick ? "cursor-pointer group transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20" : "transition-all duration-300 ease-out hover:shadow-md"}
       onClick={onClick}
     >
       <CardContent className="p-4 sm:p-6">
@@ -32,9 +32,9 @@ export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCa
                 className="flex items-center gap-1 text-xs shrink-0"
               >
                 {isPositive ? (
-                  <TrendingUp className="h-3 w-3" />
+                  <TrendingUp className="h-3 w-3" strokeWidth={1.5} />
                 ) : (
-                  <TrendingDown className="h-3 w-3" />
+                  <TrendingDown className="h-3 w-3" strokeWidth={1.5} />
                 )}
                 <span className="hidden sm:inline">{isPositive ? '+' : ''}{metric.change.toFixed(2)}%</span>
                 <span className="sm:hidden">{isPositive ? '+' : ''}{metric.change.toFixed(0)}%</span>

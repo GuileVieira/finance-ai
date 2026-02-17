@@ -172,7 +172,7 @@ export default function ReportsPage() {
           <Card className="col-span-full">
             <CardContent className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <div className="rounded-full bg-muted p-6 mb-6">
-                <FileUp className="h-12 w-12 text-muted-foreground" />
+                <FileUp className="h-12 w-12 text-muted-foreground/60" strokeWidth={1.5} />
               </div>
 
               <h3 className="text-xl font-semibold mb-2">Nenhum relatório disponível</h3>
@@ -181,10 +181,10 @@ export default function ReportsPage() {
               </p>
 
               <Link href="/upload">
-                <Button size="lg" className="gap-2">
-                  <Upload className="h-5 w-5" />
+                <Button size="lg" className="gap-2 rounded-xl">
+                  <Upload className="h-5 w-5" strokeWidth={1.5} />
                   Importar Extratos OFX
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
                 </Button>
               </Link>
             </CardContent>

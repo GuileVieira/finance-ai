@@ -19,14 +19,14 @@ export function CategoryTabs({ activeTab, onTabChange, categoryTypes }: Category
   ];
 
   return (
-    <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+    <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
-            "hover:bg-background/80 hover:shadow-sm",
+            "relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out",
+            "hover:bg-background/60",
             activeTab === tab.id
               ? "bg-background shadow-sm text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -34,15 +34,14 @@ export function CategoryTabs({ activeTab, onTabChange, categoryTypes }: Category
         >
           <div className="flex items-center gap-2">
             <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: tab.color }}
+              className="w-2 h-2 rounded-full transition-transform duration-300"
+              style={{
+                backgroundColor: tab.color,
+                transform: activeTab === tab.id ? 'scale(1.25)' : 'scale(1)',
+                boxShadow: activeTab === tab.id ? `0 0 6px ${tab.color}50` : 'none'
+              }}
             />
             <span>{tab.name}</span>
-            {tab.id !== 'all' && (
-              <span className="text-xs opacity-60">
-                ({tab.id === 'revenue' ? '1' : tab.id === 'variable_cost' ? '3' : tab.id === 'fixed_cost' ? '5' : '3'})
-              </span>
-            )}
           </div>
         </button>
       ))}

@@ -57,7 +57,7 @@ export function FilterBar({
     const { accountOptions, isLoading: isLoadingAccounts } = useAccountsForSelect(companyId);
 
     return (
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 bg-card p-4 rounded-lg border shadow-sm">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 bg-muted/30 backdrop-blur-sm p-4 rounded-2xl border border-border/40">
             <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
                 {/* Filtro de Período */}
                 <DateFilterSelect

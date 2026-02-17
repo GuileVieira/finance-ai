@@ -171,11 +171,13 @@ export default function ProjectionsPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Calculator className="h-6 w-6" />
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Calculator className="h-5 w-5 text-primary" strokeWidth={1.5} />
+          </div>
           Projeções / Orçamento
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground/70 mt-1">
           Defina o orçamento mensal para comparar com o realizado no dashboard.
         </p>
       </div>
@@ -184,8 +186,8 @@ export default function ProjectionsPage() {
       <Card className="mb-6">
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
-            <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-              <ChevronLeft className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="rounded-xl" onClick={goToPreviousMonth}>
+              <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
             </Button>
 
             <div className="flex items-center gap-4">
@@ -219,8 +221,8 @@ export default function ProjectionsPage() {
               </Select>
             </div>
 
-            <Button variant="outline" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="rounded-xl" onClick={goToNextMonth}>
+              <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </div>
         </CardContent>
@@ -302,9 +304,9 @@ export default function ProjectionsPage() {
                 <Button
                   onClick={handleSave}
                   disabled={saveMutation.isPending || !isDirty}
-                  className="gap-2"
+                  className="gap-2 rounded-xl"
                 >
-                  <Save className="h-4 w-4" />
+                  <Save className="h-4 w-4" strokeWidth={1.5} />
                   {saveMutation.isPending ? 'Salvando...' : 'Salvar Projeções'}
                 </Button>
               </div>
