@@ -26,19 +26,32 @@ const log = createLogger('tx-categorization');
 
 // Configuração do sistema de auto-learning
 const AUTO_LEARNING_CONFIG = {
+  // 🛑 DESABILITADO TEMPORARIAMENTE
+  // Motivo: Pipeline estava envenenado com regras ruins.
+  // Reativar quando a IA estiver performando 100% com o novo prompt.
+  enabled: false, // <-- MASTER SWITCH: false = auto-learning completamente desligado
   // Usar clustering em vez de criar regras diretamente
-  // NOTA: Desabilitado por padrão para criar regras imediatamente
-  // Habilite quando tiver volume maior de transações (100+)
   useClusteringFirst: false,
-  // PR3: Mínimo de transações no cluster para criar regra automaticamente
-  // Subido de 2→5 para evitar regras baseadas em poucos exemplos (sistema financeiro)
+  // Mínimo de transações no cluster para criar regra automaticamente
   clusterSizeForAutoRule: 5,
-  // PR3: Confidence mínima da IA para adicionar ao cluster
-  // Subido de 70→85 para garantir qualidade dos clusters
-  minConfidenceForClustering: 85,
+  // Confidence mínima da IA para adicionar ao cluster
+  // ELEVADO de 85→98 para garantir que apenas certezas absolutas virem regras
+  minConfidenceForClustering: 98,
   // Processar clusters pendentes periodicamente
   processClustersBatchSize: 10
 };
+
+/**
+ * Termos genéricos que devem PULAR cache, regras e histórico.
+ * Essas descrições são ambíguas demais — o destino muda a cada transação.
+ * Forçam ida direta para a IA (Camada 4).
+ */
+const GENERIC_TERMS_FOR_AI_BYPASS = [
+  'SISPAG', 'SISPAG FORNECEDORES', 'PAGAMENTO', 'PAGAMENTO FORNECEDORES',
+  'PIX ENVIADO', 'PIX RECEBIDO', 'TED ENVIADA', 'DOC ENVIADO',
+  'ENVIO TED', 'TRANSF', 'TRANSFERENCIA', 'TED MESMA TITULARIDADE',
+  'DOC', 'PIX', 'TED'
+];
 
 // Re-exportar TransactionContext para outros módulos
 export type { TransactionContext };
@@ -149,8 +162,14 @@ export class TransactionCategorizationService {
     const attemptedSources: string[] = [];
     let result: CategorizationResult | null = null;
 
-    // CAMADA 1: Cache
-    if (!skipCache) {
+    // 0.5 BYPASS: Termos genéricos pulam cache/regras/histórico e vão direto para IA
+    const isGenericTerm = this.isGenericDescription(context.description);
+    if (isGenericTerm) {
+      log.info({ description: context.description }, '[BYPASS] Termo generico detectado - pulando cache/regras/historico, indo direto para IA');
+    }
+
+    // CAMADA 1: Cache (SKIP se termo genérico)
+    if (!skipCache && !isGenericTerm) {
       attemptedSources.push('cache');
       let cacheResult = await this.tryCache(context, companyId);
 
@@ -169,8 +188,8 @@ export class TransactionCategorizationService {
       }
     }
 
-    // CAMADA 2: Regras
-    if (!skipRules) {
+    // CAMADA 2: Regras (SKIP se termo genérico)
+    if (!skipRules && !isGenericTerm) {
       attemptedSources.push('rules');
       let rulesResult = await this.tryRules(context, companyId, movementType);
 
@@ -202,8 +221,8 @@ export class TransactionCategorizationService {
       }
     }
 
-    // CAMADA 3: Histórico
-    if (!skipHistory) {
+    // CAMADA 3: Histórico (SKIP se termo genérico)
+    if (!skipHistory && !isGenericTerm) {
       attemptedSources.push('history');
       let historyResult = await this.tryHistory(context, companyId, historyDaysLimit);
 
@@ -253,7 +272,9 @@ export class TransactionCategorizationService {
           );
 
           // PASSO EXTRA: Auto-regra se confiança for altíssima
-          if (!skipAutoLearning && aiResult.confidence >= 90) {
+          // 🛑 AUTO-LEARNING DESABILITADO TEMPORARIAMENTE
+          // Motivo: Pipeline estava envenenado. Reativar quando IA estiver performando 100%.
+          if (AUTO_LEARNING_CONFIG.enabled && !skipAutoLearning && aiResult.confidence >= 98) {
             this.tryAutoLearning(
               context.description,
               aiResult.categoryName,
@@ -994,6 +1015,24 @@ export class TransactionCategorizationService {
   /**
    * Verifica se a transação é ambígua (ex: SISPAG genérico)
    */
+  /**
+   * Verifica se a descrição é um termo genérico que deve pular cache/regras/histórico.
+   * Termos genéricos são ambíguos demais — a mesma descrição pode ter dezenas de destinos.
+   * Resultado: forçar ida direta para a IA.
+   */
+  private static isGenericDescription(description: string): boolean {
+    const normalized = description
+      .toUpperCase()
+      .replace(/\d{6,}/g, '')       // Remove sequências longas de dígitos (IDs)
+      .replace(/[^A-Z0-9\s]/g, ' ') // Remove caracteres especiais
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return GENERIC_TERMS_FOR_AI_BYPASS.some(
+      term => normalized === term || (normalized.includes(term) && normalized.length < term.length + 8)
+    );
+  }
+
   private static checkAmbiguity(description: string): boolean {
     const upper = description.toUpperCase();
     
