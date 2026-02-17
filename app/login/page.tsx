@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Logo } from '@/components/shared/logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -67,10 +68,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/3 via-background to-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Logo e Branding */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">
-            FinanceAI
-          </h1>
+        <div className="flex flex-col items-center mb-8">
+          <Logo className="mb-2" />
           <p className="text-muted-foreground text-sm">
             Gestão Financeira Inteligente
           </p>
