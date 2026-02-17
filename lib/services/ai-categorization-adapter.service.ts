@@ -354,13 +354,15 @@ REGRAS:
     }
 
     // 3. FIDC / Antecipação / Recebíveis
-    // Se conter FIDC e for entrada, é Desconto de Títulos ou Empréstimo, NUNCA Transferência
+    // Se conter FIDC e for entrada, é Desconto de Títulos ou Empréstimo, NUNCA Receita Operacional
     if (description.includes('FIDC') || description.includes('REC TIT') || bankingTerm?.term === 'FIDC' || bankingTerm?.term === 'REC TIT') {
       if (isCredit) {
-         // Prioridade: DESCONTO DE TÍTULOS -> EMPRÉSTIMOS -> RECEITA
+         // Prioridade: DESCONTO DE TÍTULOS -> EMPRÉSTIMOS -> ANTECIPAÇÃO
+         // Se não encontrou categoria específica, NÃO force Receita.
+         // Retorne null para deixar a IA analisar ou cair no fallback manual.
          const targetCategory = availableCategories.find(c => c.includes('DESCONTO DE TITULOS')) 
              || availableCategories.find(c => c.includes('EMPRESTIMO'))
-             || availableCategories.find(c => c.includes('RECEITA'));
+             || availableCategories.find(c => c.includes('ANTECIPACAO'));
          
          if (targetCategory) {
            return {
@@ -368,6 +370,10 @@ REGRAS:
              reasoning: 'Regra: Transação envolvendo FIDC/Antecipação classificada como Desconto de Títulos/Empréstimo.'
            };
          }
+
+         // Sem categoria específica de passivo/empréstimo → não forçar, deixar IA decidir
+         log.warn({ description }, '[RULE-BASED] FIDC sem categoria de empréstimo/antecipação disponível. Delegando para IA.');
+         return null;
       }
     }
 
