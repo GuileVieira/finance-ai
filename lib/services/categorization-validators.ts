@@ -72,7 +72,7 @@ export class CategorizationValidators {
 
     // 3. Empréstimos/Financeiro não pode ser Receita Operacional
     if (movementType === 'financeiro' || movementType === 'investimento') {
-      if (category.dreGroup === 'RoB' || category.dreGroup === 'RL') {
+      if (category.dreGroup === 'RoB') {
         return {
           isValid: false,
           reason: `Movimentação Financeira/Investimento não pode ser Receita Operacional Bruta.`
@@ -102,8 +102,8 @@ export class CategorizationValidators {
 
   private static isOperatingresultGroup(group?: string | null): boolean {
     if (!group) return false;
-    // Grupos que afetam o resultado operacional
-    return ['RoB', 'CMV', 'CSP', 'DO', 'DA', 'DL'].includes(group);
+    // Grupos que afetam o resultado operacional (RoB até EBIT)
+    return ['RoB', 'TDCF', 'MP', 'CV', 'CF'].includes(group);
   }
 
   /**
@@ -115,20 +115,20 @@ export class CategorizationValidators {
       case 'financeiro':
       case 'investimento':
         // Financeiro não deve ser misturado com Operacional (EBITDA)
-        return ['RoB', 'RL', 'CMV', 'CSP', 'DO', 'DA', 'DL', 'Deducao'];
+        return ['RoB', 'TDCF', 'MP', 'CV', 'CF'];
       
       case 'operacional_receita':
-        // Receita Operacional não pode ser Despesa Financeira ou Operacional
-        return ['DF', 'DO', 'DA', 'DL', 'CMV', 'CSP'];
+        // Receita Operacional não pode ser Custo ou Despesa Operacional
+        return ['MP', 'CV', 'CF', 'DNOP'];
 
       case 'custo_direto':
       case 'despesa_operacional':
         // Despesa Operacional não pode ser Receita ou Financeiro
-        return ['RoB', 'RL', 'RF', 'DF']; // DF opcional, as vezes misturam
+        return ['RoB', 'RNOP'];
 
       case 'transferencia_interna':
         // Transferência não afeta resultado (nem Op nem Fin)
-        return ['RoB', 'RL', 'CMV', 'CSP', 'DO', 'DA', 'DL', 'DF', 'RF'];
+        return ['RoB', 'TDCF', 'MP', 'CV', 'CF', 'RNOP', 'DNOP'];
 
       default:
         return [];
