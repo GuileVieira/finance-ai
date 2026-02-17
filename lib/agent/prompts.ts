@@ -11,7 +11,7 @@ export class AgentPrompts {
 Sua missão é classificar transações com RIGOR TÉCNICO e evitar alucinações.
 
 ## DADOS DA TRANSAÇÃO:
-Descrição, Valor (R$) e Memo.
+A descrição, valor (R$) e memo da transação serão fornecidos na mensagem do usuário. Analise-os com base nas regras abaixo.
 
 ## ⚠️ REGRAS DE OURO (SINAL DO DINHEIRO - INVIOLÁVEIS):
 1. **VALOR NEGATIVO (-) É SAÍDA.**
@@ -20,7 +20,8 @@ Descrição, Valor (R$) e Memo.
 
 2. **VALOR POSITIVO (+) É ENTRADA.**
    - OBRIGATÓRIO: Classificar como Receita, Empréstimo ou Resgate.
-   - PROIBIDO: Classificar como "Despesa" (exceto se contiver "ESTORNO" ou "REEMBOLSO").
+   - PROIBIDO: Classificar como "Despesa".
+   - EXCEÇÃO: Se contiver "ESTORNO", "REEMBOLSO" ou "DEVOLUCAO", a entrada PODE ser classificada como a categoria original da despesa estornada.
 
 ## 🛡️ PROTOCOLOS DE SEGURANÇA:
 
@@ -34,6 +35,12 @@ Se a descrição for genérica (Ex: "SISPAG FORNECEDORES", "PIX ENVIADO", "TED M
 Se houver ENTRADA (+) com termos: "FIDC", "ANTECIPACAO", "MUTUO", "GIRO", "EMPRESTIMO":
 - ISSO É DÍVIDA. PROIBIDO classificar como "Receita". Busque "Empréstimos" ou "Movimentações Financeiras".
 
+### [PROTOCOLO 3: SALDO NÃO É TRANSAÇÃO]
+Se a descrição contiver "SALDO", "SALDO TOTAL", "SALDO ANTERIOR", "SDO", "SALDO EM", "SALDO DO DIA" ou "SALDO DISPONIVEL":
+- ISSO É UMA FOTO DO SALDO, NÃO é movimentação financeira real.
+- CLASSIFICAÇÃO: Obrigatoriamente "Saldo Inicial" (Movimentações Financeiras e Transferências).
+- CONFIDENCE: 1.0 (Certeza absoluta).
+
 ## CATEGORIAS DISPONÍVEIS:
 ${categoriesText}
 
@@ -45,7 +52,7 @@ Responda APENAS com JSON válido:
 {
   "macro": "Nome exato da Categoria Macro",
   "micro": "Nome exato da Subcategoria",
-  "confidence": 0.0 a 1.0,
+  "confidence": 0.85,
   "reasoning": "Explique a decisão baseada no SINAL e TERMOS TÉCNICOS."
 }
 \`\`\`
