@@ -43,7 +43,8 @@ async function cleanAndMigrate() {
       'financeai_companies',
       'financeai_users',
       'financeai_ai_model_pricing',
-      'financeai_insight_thresholds'
+      'financeai_insight_thresholds',
+      'drizzle_migrations'
     ];
 
     for (const table of tables) {
@@ -53,12 +54,40 @@ async function cleanAndMigrate() {
 
     console.log('✅ Tabelas limpas');
 
-    // Recriar tabelas com migrate
-    console.log('🏗️ Recriando tabelas com migrate...');
-    const { migrate } = await import('drizzle-orm/node-postgres/migrator');
-    await migrate(db, { migrationsFolder: './lib/db/migrations' });
-    console.log('✅ Tabelas recriadas com sucesso!');
+    // Recriar tabelas lendo o arquivo SQL diretamente
+    console.log('🏗️ Recriando tabelas lendo o arquivo SQL diretamente...');
+    const path = await import('path');
+    const fs = await import('fs');
+    const migrationsDir = path.resolve(process.cwd(), 'lib/db/migrations');
+    
+    // Pegar o arquivo SQL mais recente (0000_...)
+    const sqlFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+    if (sqlFiles.length === 0) {
+      throw new Error('Nenhum arquivo de migração .sql encontrado em lib/db/migrations');
+    }
 
+    const latestSqlFile = path.join(migrationsDir, sqlFiles[sqlFiles.length - 1]);
+    console.log(`📜 Executando migração: ${path.basename(latestSqlFile)}`);
+    
+    const sqlContent = fs.readFileSync(latestSqlFile, 'utf8');
+    const statements = sqlContent
+      .split('--> statement-breakpoint')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    for (const statement of statements) {
+      try {
+        await db.execute(sql.raw(statement));
+      } catch (err) {
+        // Ignorar erro se a tabela/constraint já existe (preventivo)
+        if (!err.message.includes('already exists')) {
+          console.error(`❌ Erro no statement: ${statement.substring(0, 100)}...`);
+          throw err;
+        }
+      }
+    }
+    
+    console.log('✅ Tabelas recriadas com sucesso!');
     console.log('\n🎉 Banco de dados recriado com sucesso!');
 
   } catch (error) {
