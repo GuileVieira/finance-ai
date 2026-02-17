@@ -47,7 +47,12 @@ export class MovementTypeService {
       return 'financeiro'; // Tratado como movimentação financeira
     }
 
-    // 4. Classificação Base por Sinal (Heurística Inicial)
+    // 4. Identificar Deduções/Estornos (Independente de sinal para evitar Faturamento inflado)
+    if (this.isDeduction(fullText)) {
+      return 'deducao';
+    }
+
+    // 5. Classificação Base por Sinal (Heurística Inicial)
     if (amount > 0) {
       // Entradas são, por padrão, Receitas Operacionais exceto se identificadas como algo específico
       if (this.isNonOperationalRevenue(fullText)) {
@@ -56,12 +61,7 @@ export class MovementTypeService {
       return 'operacional_receita';
     } else {
       // Saídas
-      if (this.isDeduction(fullText)) {
-        return 'deducao';
-      }
-      
       // Heurística para Custo Direto (CMV/Serviços) vs Despesa Operacional
-      // Geralmente custo direto tem termos de fornecedores ou matéria prima
       if (this.isDirectCost(fullText)) {
         return 'custo_direto';
       }
@@ -83,7 +83,12 @@ export class MovementTypeService {
       'DOC MESMA TITULARIDADE',
       'PIX MESMA TITULARIDADE',
       'APLICACAO FINANCEIRA', // Muitas vezes tratado como transferência do caixa para investimento
-      'RESGATE AUTOMATICO'
+      'RESGATE AUTOMATICO',
+      'TRANSF.',
+      'TFR',
+      'TFE',
+      'TRANSF RESERVA',
+      'RESGATE'
     ];
     return terms.some(term => text.includes(term));
   }
@@ -99,7 +104,16 @@ export class MovementTypeService {
       'MORA',
       'COMISSAO',
       'CUSTODIA',
-      'MANUTENCAO DE CONTA'
+      'MANUTENCAO DE CONTA',
+      'TAR.',
+      'TAR ',
+      'TARIFA ',
+      'LANC.TARIFA',
+      'DEB.TAR',
+      'DEBITO TARIFA',
+      'MULTA',
+      'MULTA/JUROS',
+      'ENCARGOS'
     ];
     return terms.some(term => text.includes(term));
   }
@@ -125,7 +139,11 @@ export class MovementTypeService {
     const terms = [
       'ESTORNO DE VENDA',
       'DEVOLUCAO DE CLIENTE',
-      'CANCELAMENTO DE Venda'
+      'CANCELAMENTO DE Venda',
+      'ESTORNO',
+      'EST ',
+      'EST.',
+      'REVERSAO'
     ];
     return terms.some(term => text.includes(term.toUpperCase()));
   }
@@ -150,7 +168,14 @@ export class MovementTypeService {
       'FORNECEDOR',
       'COMPRA MATERIA PRIMA',
       'FRETE SOBRE COMPRA',
-      'EMBALAGENS'
+      'EMBALAGENS',
+      'FORN ',
+      'FORN.',
+      'PAGTO FORN',
+      'PRODUTOS',
+      'MERCADORIA',
+      'SUPPLIER',
+      'SISPAG FORNECEDORES'
     ];
     return terms.some(term => text.includes(term));
   }
@@ -165,7 +190,12 @@ export class MovementTypeService {
       'CAPITAL DE GIRO',
       'PRONAMPE',
       'MUTUO',
-      'FOMENTO'
+      'FOMENTO',
+      'GIRO ',
+      'EMPREST.',
+      'FINANC.',
+      'CDC ',
+      'BNDES'
     ];
     return terms.some(term => text.includes(term));
   }
