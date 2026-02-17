@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { transactions, categories, accounts, companies } from '@/lib/db/schema';
+import { transactions, categories, accounts, companies, transactionSplits } from '@/lib/db/schema';
 import {
   DashboardFilters,
   DashboardData,
@@ -88,12 +88,45 @@ export default class DashboardService {
   }
 
   /**
-   * Verificar se o banco de dados está disponível
+   * Verifica se o banco de dados está disponível
    */
   private static checkDatabaseConnection(): void {
     if (!db) {
       throw new Error('Banco de dados não está disponível. Verifique a configuração do DATABASE_URL.');
     }
+  }
+
+  /**
+   * Helper para obter a query de transações combinadas (normais + splits)
+   */
+  private static getCombinedTransactionsSubquery() {
+    return sql`(
+      -- Transações que NÃO possuem desmembramentos
+      SELECT 
+        t.id as transaction_id,
+        t.category_id as category_id,
+        t.amount as amount_to_sum,
+        t.type as type_to_sum,
+        t.transaction_date,
+        t.account_id,
+        t.description
+      FROM ${transactions} t
+      WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
+      
+      UNION ALL
+      
+      -- Desmembramentos individuais
+      SELECT 
+        ts.transaction_id,
+        ts.category_id,
+        ts.amount as amount_to_sum,
+        t.type as type_to_sum,
+        t.transaction_date,
+        t.account_id,
+        COALESCE(ts.description, t.description) as description
+      FROM ${transactionSplits} ts
+      JOIN ${transactions} t ON ts.transaction_id = t.id
+    ) as combined_transactions`;
   }
 
   /**
@@ -130,16 +163,30 @@ export default class DashboardService {
 
         if (cleanFilters.startDate) {
           console.log('📅 Adicionando filtro startDate >=', cleanFilters.startDate);
-          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
         }
 
         if (cleanFilters.endDate) {
           console.log('📅 Adicionando filtro endDate <=', cleanFilters.endDate);
-          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
         }
 
         // Usar função auxiliar para filtros de conta/banco
-        this.addAccountFilters(whereConditions, cleanFilters);
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          if (this.isUUID(cleanFilters.accountId)) {
+            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+          } else {
+            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
+          }
+        }
+
+        if (cleanFilters.bankName && cleanFilters.bankName !== 'all') {
+          whereConditions.push(eq(accounts.bankName, cleanFilters.bankName));
+        }
+
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
 
         const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
         console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
@@ -147,20 +194,20 @@ export default class DashboardService {
         // Métricas principais
         const metricsResult = await innerTx
           .select({
-            totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-            totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-            transactionCount: count(transactions.id).mapWith(Number),
-            incomeCount: count(sql`CASE WHEN ${transactions.type} = 'credit' THEN 1 END`).mapWith(Number),
-            expenseCount: count(sql`CASE WHEN ${transactions.type} = 'debit' THEN 1 END`).mapWith(Number),
-            averageTicket: avg(sql`ABS(${transactions.amount})`).mapWith(Number),
+            totalIncome: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+            totalExpenses: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
+            transactionCount: count(sql`transaction_id`).mapWith(Number),
+            incomeCount: count(sql`CASE WHEN type_to_sum = 'credit' THEN 1 END`).mapWith(Number),
+            expenseCount: count(sql`CASE WHEN type_to_sum = 'debit' THEN 1 END`).mapWith(Number),
+            averageTicket: avg(sql`ABS(amount_to_sum)`).mapWith(Number),
           })
-          .from(transactions)
-          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .from(this.getCombinedTransactionsSubquery())
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
           .where(
             and(
               whereClause,
-              getFinancialExclusionClause()
+              getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             )
           );
 
@@ -216,39 +263,48 @@ export default class DashboardService {
         const whereConditions = [];
 
         if (cleanFilters.startDate) {
-          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
         }
 
         if (cleanFilters.endDate) {
-          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
         }
 
-        // Usar função auxiliar para filtros de conta/banco
-        this.addAccountFilters(whereConditions, cleanFilters);
+        // Filtros de conta/empresa
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          if (this.isUUID(cleanFilters.accountId)) {
+            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+          } else {
+            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
+          }
+        }
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
 
         const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
         // Buscar totais por categoria
         const categoryTotals = await innerTx
           .select({
-            categoryId: transactions.categoryId,
+            categoryId: sql`combined_transactions.category_id`,
             categoryName: categories.name,
             categoryType: categories.type,
             colorHex: categories.colorHex,
             icon: categories.icon,
-            totalAmount: sum(sql`ABS(${transactions.amount})`).mapWith(Number),
-            transactionCount: count(transactions.id).mapWith(Number),
+            totalAmount: sum(sql`ABS(amount_to_sum)`).mapWith(Number),
+            transactionCount: count(sql`transaction_id`).mapWith(Number),
           })
-          .from(transactions)
-          .leftJoin(categories, eq(transactions.categoryId, categories.id))
-          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .from(this.getCombinedTransactionsSubquery())
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
           .where(
             and(
               whereClause,
-              getFinancialExclusionClause()
+              getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             )
           )
-          .groupBy(transactions.categoryId, categories.name, categories.type, categories.colorHex, categories.icon);
+          .groupBy(sql`combined_transactions.category_id`, categories.name, categories.type, categories.colorHex, categories.icon);
         // Removendo ORDER BY para evitar erro de GROUP BY
         // .orderBy(desc(sql`ABS(${transactions.amount})`));
 
@@ -294,37 +350,46 @@ export default class DashboardService {
         const whereConditions = [];
 
         if (cleanFilters.startDate) {
-          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
         }
 
         if (cleanFilters.endDate) {
-          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
         }
 
-        // Usar função auxiliar para filtros de conta/banco
-        this.addAccountFilters(whereConditions, cleanFilters);
+        // Filtros de conta/empresa
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          if (this.isUUID(cleanFilters.accountId)) {
+            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+          } else {
+            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
+          }
+        }
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
 
         const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
         // Agrupar por dia
         const dailyData = await innerTx
           .select({
-            date: transactions.transactionDate,
-            income: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-            expenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-            transactions: count(transactions.id).mapWith(Number),
+            date: sql`combined_transactions.transaction_date`,
+            income: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+            expenses: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
+            transactions: count(sql`transaction_id`).mapWith(Number),
           })
-          .from(transactions)
-          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-          .leftJoin(categories, eq(transactions.categoryId, categories.id))
+          .from(this.getCombinedTransactionsSubquery())
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
           .where(
             and(
               whereClause,
-              getFinancialExclusionClause()
+              getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             )
           )
-          .groupBy(transactions.transactionDate)
-          .orderBy(transactions.transactionDate);
+          .groupBy(sql`combined_transactions.transaction_date`)
+          .orderBy(sql`combined_transactions.transaction_date`);
 
         // Calcular saldo cumulativo
         let runningBalance = 0;
@@ -365,37 +430,46 @@ export default class DashboardService {
         ];
 
         if (cleanFilters.startDate) {
-          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
         }
 
         if (cleanFilters.endDate) {
-          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
         }
 
-        // Usar função auxiliar para filtros de conta/banco
-        this.addAccountFilters(whereConditions, cleanFilters);
+        // Filtros de conta/empresa
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          if (this.isUUID(cleanFilters.accountId)) {
+            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+          } else {
+            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
+          }
+        }
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
 
         const whereClause = and(...whereConditions);
 
         const topExpenses = await innerTx
           .select({
-            id: transactions.id,
-            description: transactions.description,
-            amount: transactions.amount,
+            id: sql`transaction_id`,
+            description: sql`combined_transactions.description`,
+            amount: sql`amount_to_sum`,
             category: categories.name,
-            date: transactions.transactionDate,
+            date: sql`combined_transactions.transaction_date`,
             accountName: accounts.bankName,
           })
-          .from(transactions)
-          .leftJoin(categories, eq(transactions.categoryId, categories.id))
-          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .from(this.getCombinedTransactionsSubquery())
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
           .where(
             and(
               whereClause,
-              getFinancialExclusionClause()
+              getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             )
           )
-          .orderBy(desc(sql`ABS(${transactions.amount})`))
+          .orderBy(desc(sql`ABS(amount_to_sum)`))
           .limit(limit);
 
         return topExpenses.map((expense: any) => ({
@@ -431,56 +505,52 @@ export default class DashboardService {
         const whereConditions = [];
 
         if (cleanFilters.startDate) {
-          whereConditions.push(gte(transactions.transactionDate, cleanFilters.startDate));
+          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
         }
 
         if (cleanFilters.endDate) {
-          whereConditions.push(lte(transactions.transactionDate, cleanFilters.endDate));
+          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
         }
 
-        // Usar função auxiliar para filtros de conta/banco
-        this.addAccountFilters(whereConditions, cleanFilters);
+        // Filtros de conta/empresa
+        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
+          if (this.isUUID(cleanFilters.accountId)) {
+            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
+          } else {
+            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
+          }
+        }
+        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
+        }
 
         const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
         const recentTransactions = await innerTx
           .select({
-            id: transactions.id,
-            accountId: transactions.accountId,
-            categoryId: transactions.categoryId,
-            uploadId: transactions.uploadId,
-            description: transactions.description,
-            amount: transactions.amount,
-            type: transactions.type,
-            transactionDate: transactions.transactionDate,
-            balanceAfter: transactions.balanceAfter,
-            rawDescription: transactions.rawDescription,
-            metadata: transactions.metadata,
-            manuallyCategorized: transactions.manuallyCategorized,
-            verified: transactions.verified,
-            confidence: transactions.confidence,
-            reasoning: transactions.reasoning,
-            createdAt: transactions.createdAt,
-            updatedAt: transactions.updatedAt,
+            id: sql`transaction_id`,
+            accountId: sql`combined_transactions.account_id`,
+            categoryId: sql`combined_transactions.category_id`,
+            description: sql`combined_transactions.description`,
+            amount: sql`amount_to_sum`,
+            type: sql`type_to_sum`,
+            transactionDate: sql`combined_transactions.transaction_date`,
             // Adicionar campos da categoria
             categoryName: categories.name,
             categoryType: categories.type,
             categoryColor: categories.colorHex,
             categoryIcon: categories.icon
           })
-          .from(transactions)
-          .leftJoin(categories, eq(transactions.categoryId, categories.id))
-          .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+          .from(this.getCombinedTransactionsSubquery())
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+          .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
           .where(
             and(
               whereClause,
-              // Mantemos a exclusão aqui para consistência com os totais, mas lista de transações
-              // geralmente pode mostrar tudo. Porém o usuário pediu para "não generalizar demais"
-              // mas na Dashboard principal faz sentido focar no resultado financeiro real.
-              getFinancialExclusionClause()
+              getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             )
           )
-          .orderBy(desc(transactions.transactionDate))
+          .orderBy(desc(sql`combined_transactions.transaction_date`))
           .limit(limit);
 
         // Adicionar campos necessários para satisfazer o tipo Transaction
@@ -596,38 +666,49 @@ export default class DashboardService {
       // Mês atual - SQL direto sem chamar getMetrics novamente
       const currentMetricsResult = await innerTx
         .select({
-          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactionCount: count(transactions.id).mapWith(Number),
+          totalIncome: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+          totalExpenses: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
+          transactionCount: count(sql`transaction_id`).mapWith(Number),
         })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .from(this.getCombinedTransactionsSubquery())
+        .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+        .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
         .where(
           and(
-            gte(transactions.transactionDate, filters.startDate!),
-            lte(transactions.transactionDate, filters.endDate!),
-            getFinancialExclusionClause(),
-            ...accountConditions
+            sql`combined_transactions.transaction_date >= ${filters.startDate!}`,
+            sql`combined_transactions.transaction_date <= ${filters.endDate!}`,
+            getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` }),
+            ...accountConditions.map(c => {
+               // accountConditions might refer to transactions.accountId, need to fix
+               if (c && (c as any).left && (c as any).left.name === 'account_id') {
+                 return sql`combined_transactions.account_id = ${(c as any).right}`;
+               }
+               return c;
+            })
           )
         );
 
       // Mês anterior - SQL direto
       const previousMetricsResult = await innerTx
         .select({
-          totalIncome: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-          totalExpenses: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
-          transactionCount: count(transactions.id).mapWith(Number),
+          totalIncome: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+          totalExpenses: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
+          transactionCount: count(sql`transaction_id`).mapWith(Number),
         })
-        .from(transactions)
-        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .from(this.getCombinedTransactionsSubquery())
+        .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+        .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
         .where(
           and(
-            gte(transactions.transactionDate, previousStartDate),
-            lte(transactions.transactionDate, previousEndDate),
-            getFinancialExclusionClause(),
-            ...accountConditions
+            sql`combined_transactions.transaction_date >= ${previousStartDate}`,
+            sql`combined_transactions.transaction_date <= ${previousEndDate}`,
+            getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` }),
+            ...accountConditions.map(c => {
+               if (c && (c as any).left && (c as any).left.name === 'account_id') {
+                 return sql`combined_transactions.account_id = ${(c as any).right}`;
+               }
+               return c;
+            })
           )
         );
 

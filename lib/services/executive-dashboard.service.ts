@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { transactions, categories, accounts, projections } from '@/lib/db/schema';
+import { transactions, categories, accounts, projections, transactionSplits } from '@/lib/db/schema';
 import { DashboardFilters } from '@/lib/api/dashboard';
 import { eq, and, gte, lte, sum, sql, notInArray } from 'drizzle-orm';
 import { DRE_GROUPS, EXCLUDED_DRE_GROUPS } from '@/lib/constants/dre-utils';
@@ -30,6 +30,39 @@ export interface ExecutiveDashboardData {
 
 export default class ExecutiveDashboardService {
     /**
+     * Helper para obter a query de transações combinadas (normais + splits)
+     */
+    private static getCombinedTransactionsSubquery() {
+        return sql`(
+          -- Transações que NÃO possuem desmembramentos
+          SELECT 
+            t.id as transaction_id,
+            t.category_id as category_id,
+            t.amount as amount_to_sum,
+            t.type as type_to_sum,
+            t.transaction_date,
+            t.account_id,
+            t.description
+          FROM ${transactions} t
+          WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
+          
+          UNION ALL
+          
+          -- Desmembramentos individuais
+          SELECT 
+            ts.transaction_id,
+            ts.category_id,
+            ts.amount as amount_to_sum,
+            t.type as type_to_sum,
+            t.transaction_date,
+            t.account_id,
+            COALESCE(ts.description, t.description) as description
+          FROM ${transactionSplits} ts
+          JOIN ${transactions} t ON ts.transaction_id = t.id
+        ) as combined_transactions`;
+    }
+
+    /**
      * Obtém os dados para o Dashboard Executivo
      */
     static async getDashboardData(filters: DashboardFilters): Promise<ExecutiveDashboardData> {
@@ -41,16 +74,16 @@ export default class ExecutiveDashboardService {
         // somamos tudo antes de startDate.
         const initialBalanceResult = await db
             .select({
-                balance: sum(transactions.amount).mapWith(Number),
+                balance: sum(sql`amount_to_sum`).mapWith(Number),
             })
-            .from(transactions)
-            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
+            .from(this.getCombinedTransactionsSubquery())
+            .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+            .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
             .where(and(
-                lte(transactions.transactionDate, sql`${startDate}::date - interval '1 day'`),
+                sql`combined_transactions.transaction_date <= ${startDate}::date - interval '1 day'`,
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
-                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-                getFinancialExclusionClause()
+                filters.accountId && filters.accountId !== 'all' ? sql`combined_transactions.account_id = ${filters.accountId}` : undefined,
+                getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             ));
 
         const initialBalance = initialBalanceResult[0]?.balance || 0;
@@ -58,18 +91,18 @@ export default class ExecutiveDashboardService {
         // 2. Calcular Entradas e Saídas no período
         const periodMetrics = await db
             .select({
-                inflow: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE 0 END`).mapWith(Number),
-                outflow: sum(sql`CASE WHEN ${transactions.type} = 'debit' THEN ABS(${transactions.amount}) ELSE 0 END`).mapWith(Number),
+                inflow: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE 0 END`).mapWith(Number),
+                outflow: sum(sql`CASE WHEN type_to_sum = 'debit' THEN ABS(amount_to_sum) ELSE 0 END`).mapWith(Number),
             })
-            .from(transactions)
-            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
+            .from(this.getCombinedTransactionsSubquery())
+            .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+            .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
             .where(and(
-                gte(transactions.transactionDate, startDate),
-                lte(transactions.transactionDate, endDate),
+                sql`combined_transactions.transaction_date >= ${startDate}`,
+                sql`combined_transactions.transaction_date <= ${endDate}`,
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
-                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-                getFinancialExclusionClause()
+                filters.accountId && filters.accountId !== 'all' ? sql`combined_transactions.account_id = ${filters.accountId}` : undefined,
+                getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             ));
 
         const totalInflow = periodMetrics[0]?.inflow || 0;
@@ -190,29 +223,29 @@ export default class ExecutiveDashboardService {
         // Query para dados reais por mês e dreGroup
         const actualData = await db
             .select({
-                yearMonth: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
-                monthName: sql<string>`TO_CHAR(${transactions.transactionDate}, 'Mon')`,
+                yearMonth: sql<string>`TO_CHAR(combined_transactions.transaction_date, 'YYYY-MM')`,
+                monthName: sql<string>`TO_CHAR(combined_transactions.transaction_date, 'Mon')`,
                 dreGroup: categories.dreGroup,
                 // Mantém o sinal: credit = positivo, debit = negativo
-                amount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE -ABS(${transactions.amount}) END`).mapWith(Number),
+                amount: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE -ABS(amount_to_sum) END`).mapWith(Number),
             })
-            .from(transactions)
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
-            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .from(this.getCombinedTransactionsSubquery())
+            .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+            .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
             .where(and(
-                gte(transactions.transactionDate, startDate),
-                lte(transactions.transactionDate, endDate),
+                sql`combined_transactions.transaction_date >= ${startDate}`,
+                sql`combined_transactions.transaction_date <= ${endDate}`,
                 sql`${categories.dreGroup} IS NOT NULL`,
                 notInArray(categories.dreGroup, EXCLUDED_DRE_GROUPS),
-                getFinancialExclusionClause(),
+                getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` }),
                 companyId !== 'all' ? eq(accounts.companyId, companyId) : undefined
             ))
             .groupBy(
-                sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
-                sql`TO_CHAR(${transactions.transactionDate}, 'Mon')`,
+                sql`TO_CHAR(combined_transactions.transaction_date, 'YYYY-MM')`,
+                sql`TO_CHAR(combined_transactions.transaction_date, 'Mon')`,
                 categories.dreGroup
             )
-            .orderBy(sql`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`);
+            .orderBy(sql`TO_CHAR(combined_transactions.transaction_date, 'YYYY-MM')`);
 
         // Query para dados projetados (da tabela projections)
         const projectedData = await db
@@ -258,19 +291,19 @@ export default class ExecutiveDashboardService {
             .select({
                 dreGroup: categories.dreGroup,
                 // amount já vem somado com sinal correto (credit +, debit -)
-                amount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE -ABS(${transactions.amount}) END`).mapWith(Number),
+                amount: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE -ABS(amount_to_sum) END`).mapWith(Number),
             })
-            .from(transactions)
-            .leftJoin(categories, eq(transactions.categoryId, categories.id))
-            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .from(this.getCombinedTransactionsSubquery())
+            .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+            .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
             .where(and(
-                gte(transactions.transactionDate, startDate),
-                lte(transactions.transactionDate, endDate),
+                sql`combined_transactions.transaction_date >= ${startDate}`,
+                sql`combined_transactions.transaction_date <= ${endDate}`,
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
-                filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+                filters.accountId && filters.accountId !== 'all' ? sql`combined_transactions.account_id = ${filters.accountId}` : undefined,
                 sql`${categories.dreGroup} IS NOT NULL`,
                 notInArray(categories.dreGroup, EXCLUDED_DRE_GROUPS),
-                getFinancialExclusionClause()
+                getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
             ))
             .groupBy(categories.dreGroup);
 
