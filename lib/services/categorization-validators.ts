@@ -31,36 +31,59 @@ export class CategorizationValidators {
   ): ValidationResult {
     const amount = context.amount || 0;
     const movementType = result.movementType as MovementType;
+    const isEstorno = this.isEstorno(context.description);
+    const isCredit = amount >= 0;
 
     // 1. Validação de Sinal vs Tipo de Categoria
     // Receitas devem ter valor positivo (entrada), Despesas valor negativo (saída)
     // Exceção: Estornos/Deduções podem ter sinal invertido da natureza base
     
     // Bloquear Despesa com valor Positivo (Entrada classificada como despesa)
-    // A menos que seja um estorno de despesa (muito raro detectar auto, melhor revisar)
     if (amount > 0 && this.isExpenseType(category.type)) {
-      // Se for identificado explicitamente como dedução ou estorno, OK.
-      // Caso contrário, é erro grave (ex: entrada de dinheiro classificada como Custo Fixo)
-      if (movementType !== 'deducao' && movementType !== 'transferencia_interna') {
+      // Estornos e deduções são exceções válidas
+      if (movementType !== 'deducao' && movementType !== 'transferencia_interna' && !isEstorno) {
         return {
           isValid: false,
-          reason: `Entrada de valor (R$ ${amount}) não pode ser classificada como Despesa/Custo (${category.type}).`
+          reason: `Erro Contábil: Categoria de Despesa (${category.type}) atribuída a uma entrada de dinheiro (Crédito R$ ${amount}).`
         };
       }
     }
 
     // Bloquear Receita com valor Negativo (Saída classificada como receita)
-    // Ex: Pagamento sendo classificado como Venda
     if (amount < 0 && this.isRevenueType(category.type)) {
-      if (movementType !== 'deducao') {
+      if (movementType !== 'deducao' && !isEstorno) {
         return {
           isValid: false,
-          reason: `Saída de valor (R$ ${amount}) não pode ser classificada como Receita (${category.type}). Se for devolução, use uma categoria de Dedução.`
+          reason: `Erro Contábil: Categoria de Receita (${category.type}) atribuída a uma saída de dinheiro (Débito R$ ${amount}).`
         };
       }
     }
 
-    // 2. Transfêrencia Interna não pode afetar DRE Operacional
+    // 1b. [PR3] Validação de Sinal vs dreGroup (complementa a validação por type)
+    // Captura violações que passam pelo type mas são visíveis no dreGroup
+    if (category.dreGroup) {
+      // Receita Bruta (RoB) DEVE ser Crédito
+      if (category.dreGroup === 'RoB' && !isCredit && !isEstorno) {
+        return {
+          isValid: false,
+          reason: `Erro Contábil: Categoria de Receita (dreGroup=${category.dreGroup}) atribuída a uma saída de dinheiro (Débito).`
+        };
+      }
+
+      // Custos e Despesas (CV, CF, DNOP) DEVEM ser Débito
+      const isExpenseDreGroup = ['CV', 'CF', 'DNOP'].includes(category.dreGroup);
+      if (isExpenseDreGroup && isCredit && !isEstorno) {
+        // Exceção: movementType dedução ou transferência
+        if (movementType !== 'deducao' && movementType !== 'transferencia_interna') {
+          return {
+            isValid: false,
+            reason: `Erro Contábil: Categoria de Despesa (dreGroup=${category.dreGroup}) atribuída a uma entrada de dinheiro (Crédito).`
+          };
+        }
+      }
+    }
+
+    // 2. Transferência Interna não pode afetar DRE Operacional
     if (movementType === 'transferencia_interna') {
       if (this.isOperatingresultGroup(category.dreGroup)) {
         return {
@@ -98,6 +121,16 @@ export class CategorizationValidators {
 
   private static isRevenueType(type: string): boolean {
     return ['revenue', 'income'].includes(type);
+  }
+
+  /**
+   * [PR3] Verifica se a descrição indica um estorno ou devolução.
+   * Estornos têm sinal invertido da natureza base da categoria,
+   * portanto são exceções válidas às regras de sinal×tipo.
+   */
+  private static isEstorno(description: string): boolean {
+    const upper = description.toUpperCase();
+    return upper.includes('ESTORNO') || upper.includes('DEVOLUCAO') || upper.includes('RESTITUICAO');
   }
 
   private static isOperatingresultGroup(group?: string | null): boolean {

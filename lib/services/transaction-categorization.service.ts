@@ -421,10 +421,10 @@ export class TransactionCategorizationService {
         );
 
         if (!validation.isValid) {
-            // Se inválido, rebaixar para needsReview e adicionar motivo
+            // Se inválido, rebaixar para needsReview e ZERAR confiança
             return {
                 ...result,
-                confidence: 60, // [PR5] Downgrade forçado
+                confidence: 0, // [PR3] Zero — violação contábil grave
                 needsReview: true,
                 reason: {
                   code: 'ACCOUNTING_CONSISTENCY_VIOLATION',
