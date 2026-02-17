@@ -310,7 +310,7 @@ Responda com os principais padrões aprendidos em JSON:
 
   /**
    * Prompt para categorização com contexto enriquecido
-   * Usado quando temos informações adicionais sobre termos bancários
+   * BLINDADO: Inclui regras de sinal para evitar que o contexto anule a lógica contábil.
    */
   static buildEnrichedCategorizationPrompt(
     description: string,
@@ -321,47 +321,43 @@ Responda com os principais padrões aprendidos em JSON:
     categories: Category[]
   ): string {
     const categoriesText = this.buildCategoriesText(categories);
+    const isExpense = amount < 0;
 
-    return `Você é um especialista em contabilidade brasileira com 20 anos de experiência.
+    return `Você é um Auditor Contábil Sênior.
+Analise esta transação enriquecida com dados externos.
 
-## TRANSAÇÃO PARA CLASSIFICAR:
-
-• DESCRIÇÃO: "${description}"
-• VALOR: R$ ${amount.toFixed(2)}
+## TRANSAÇÃO:
+• DESCRIÇÃO ORIGINAL: "${description}"
+• VALOR: R$ ${amount.toFixed(2)} (${isExpense ? 'SAÍDA/PAGAMENTO' : 'ENTRADA/RECEBIMENTO'})
 • MEMO: "${memo || 'N/A'}"
 
-## CONTEXTO ADICIONAL (descoberto automaticamente):
-
+## CONTEXTO ADICIONAL (Enriquecido via CNPJ/Search):
 ${enrichedContext}
 
-${categoryHint ? `## DICA DE CATEGORIA:\n${categoryHint}\n` : ''}
+${categoryHint ? `## DICA DO SISTEMA:\n${categoryHint}\n` : ''}
+
+## REGRAS DE OURO (SINAL SOBERANO):
+1. **VALOR NEGATIVO (-)**: É SAÍDA. Deve ser Custo, Despesa ou Passivo. JAMAIS "Receita".
+2. **VALOR POSITIVO (+)**: É ENTRADA. Deve ser Receita ou Empréstimo. JAMAIS "Despesa" (exceto estornos).
+3. **DÍVIDA vs RECEITA**: Se o contexto indicar "FIDC", "Factoring" ou "Empréstimo" e for uma ENTRADA (+), classifique como PASSIVO (Empréstimos), não como Receita.
 
 ## CATEGORIAS DISPONÍVEIS:
-
 ${categoriesText}
 
-## REGRAS:
-
-1. Use o CONTEXTO ADICIONAL para entender melhor a transação
-2. Se houver DICA DE CATEGORIA, considere-a fortemente
-3. Classifique em MACRO e MICRO categoria
-4. Seja específico no reasoning
-
 ## FORMATO DE RESPOSTA:
-
 Responda APENAS com JSON válido:
 \`\`\`json
 {
   "macro": "nome exato da categoria macro",
   "micro": "nome exato da subcategoria micro",
   "confidence": 0.95,
-  "reasoning": "explicação detalhada da classificação"
+  "reasoning": "Contexto indica empresa X (Setor Y). Sinal confirma Despesa/Receita."
 }
 \`\`\``;
   }
-
   /**
    * Prompt simples para categorização rápida (usado pelo adapter)
+   * BLINDADO: Agora inclui regras básicas de sinal para evitar erros grosseiros.
    */
   static buildSimpleCategorizationPrompt(
     description: string,
@@ -372,37 +368,29 @@ Responda APENAS com JSON válido:
     availableCategories: string[]
   ): string {
     const formattedCategoriesList = `• ${availableCategories.join('\n• ')}`;
+    const isExpense = amount < 0;
 
-    let prompt = `Você é um especialista em finanças empresariais brasileiras. Sua tarefa é categorizar transações financeiras.
+    let prompt = `Você é um especialista em finanças. Categorize esta transação.
 
-CONTEXTO DA TRANSAÇÃO:
+DADOS:
 • DESCRIÇÃO: "${description}"
-• VALOR: R$ ${amount.toFixed(2)}
+• VALOR: R$ ${amount.toFixed(2)} (${isExpense ? 'SAÍDA/PAGAMENTO' : 'ENTRADA/RECEBIMENTO'})
 • MEMO: "${memo || 'N/A'}"`;
 
     if (enrichedContext) {
-      prompt += `
-
-CONTEXTO ADICIONAL (descoberto automaticamente):
-${enrichedContext}`;
+      prompt += `\n\nCONTEXTO EXTRA: ${enrichedContext}`;
     }
 
     if (categoryHint) {
-      prompt += `
-
-DICA: ${categoryHint}`;
+      prompt += `\n\nDICA: ${categoryHint}`;
     }
 
-    prompt += `
+    prompt += `\n\nCATEGORIAS DISPONÍVEIS:\n${formattedCategoriesList}
 
-CATEGORIAS DISPONÍVEIS:
-${formattedCategoriesList}
-
-REGRAS:
-1. Retorne APENAS o nome exato da categoria escolhida
-2. NÃO inclua explicações, justificativas ou análises
-3. Use uma das categorias listadas acima
-4. Se houver DICA ou CONTEXTO ADICIONAL, use essa informação para escolher a categoria mais adequada`;
+REGRAS DE OURO:
+1. VALOR NEGATIVO (R$ -) = Custo, Despesa ou Passivo. JAMAIS "Receita".
+2. VALOR POSITIVO (R$ +) = Receita ou Empréstimo. JAMAIS "Despesa" (exceto estorno).
+3. Retorne APENAS o nome exato da categoria da lista acima.`;
 
     return prompt;
   }
