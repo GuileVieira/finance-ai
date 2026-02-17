@@ -8,7 +8,7 @@
  */
 
 import { db } from '@/lib/db/drizzle';
-import { categoryRules, transactions, categories } from '@/lib/db/schema';
+import { categoryRules, transactions, categories, accounts } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import categoryCacheService from './category-cache.service';
 import { RuleScoringService } from './rule-scoring.service';
@@ -554,8 +554,10 @@ export class TransactionCategorizationService {
       })
       .from(transactions)
       .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .innerJoin(accounts, eq(transactions.accountId, accounts.id))
       .where(
         and(
+          eq(accounts.companyId, companyId),
           sql`${transactions.transactionDate} >= ${cutoffDate.toISOString().split('T')[0]}`
         )
       )
