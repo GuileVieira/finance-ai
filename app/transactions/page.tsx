@@ -15,7 +15,7 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useTransactionGroups, findCommonWords } from '@/hooks/use-transaction-groups';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAllCategories } from '@/hooks/use-all-categories';
-import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, X, Upload, FileUp, ArrowRight } from 'lucide-react';
+import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, X, Upload, FileUp, ArrowRight, ChevronRight, ChevronDown, CornerDownRight } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,17 @@ export default function TransactionsPage() {
   const itemsPerPage = 50;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(new Set());
+
+  const toggleTransactionExpansion = (transactionId: string) => {
+    const newSet = new Set(expandedTransactions);
+    if (newSet.has(transactionId)) {
+      newSet.delete(transactionId);
+    } else {
+      newSet.add(transactionId);
+    }
+    setExpandedTransactions(newSet);
+  };
 
   const { toast } = useToast();
 
@@ -894,7 +905,7 @@ export default function TransactionsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
+                    <TableHead className="w-16">
                       <Checkbox
                         checked={transactions.length > 0 && transactions.every(t => isTransactionSelected(t.id))}
                         onCheckedChange={(checked) => {
@@ -917,112 +928,164 @@ export default function TransactionsPage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedTransactions.map((transaction) => (
-                    <TableRow
-                      key={transaction.id}
-                      className={`hover:bg-muted/50 cursor-pointer ${isTransactionSelected(transaction.id) ? 'bg-info/10' : ''} ${editingTransaction === transaction.id ? 'ring-2 ring-primary' : ''}`}
-                      onClick={() => {
-                        if (!isGroupMode && inlineEditingTransaction !== transaction.id) {
-                          setEditingTransaction(editingTransaction === transaction.id ? null : transaction.id);
-                          setSingleTransactionCategory(transaction.categoryId || '');
-                        }
-                      }}
-                    >
-                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={isTransactionSelected(transaction.id)}
-                          onCheckedChange={() => toggleTransactionSelection(transaction.id)}
-                          aria-label={`Selecionar transação ${transaction.description}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatDate(transaction.transactionDate)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p className="font-medium text-foreground">{transaction.name || '-'}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-48 lg:max-w-64">
-                          {/* Descrição principal */}
-                          <p className="font-medium text-foreground truncate" title={transaction.description}>
-                            {transaction.description}
-                          </p>
-
-                          {/* Memo abaixo da descrição com fonte menor */}
-                          {transaction.memo ? (
-                            <p className="text-sm text-muted-foreground truncate mt-1" title={transaction.memo}>
-                              * {transaction.memo}
-                            </p>
-                          ) : (
-                            <div className="h-4 mt-1">
-                              {/* Espaço reservado sutil quando não há memo */}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {inlineEditingTransaction === transaction.id ? (
-                          <div className="flex items-center gap-2">
-                            <Combobox
-                              options={categoryOptions}
-                              value={inlineEditingCategory}
-                              onValueChange={setInlineEditingCategory}
-                              placeholder="Selecione..."
-                              searchPlaceholder="Buscar categoria..."
-                              emptyMessage="Nenhuma categoria"
-                              className="min-w-0"
+                    <React.Fragment key={transaction.id}>
+                      <TableRow
+                        className={`hover:bg-muted/50 cursor-pointer ${isTransactionSelected(transaction.id) ? 'bg-info/10' : ''} ${editingTransaction === transaction.id ? 'ring-2 ring-primary' : ''}`}
+                        onClick={() => {
+                          if (!isGroupMode && inlineEditingTransaction !== transaction.id) {
+                            setEditingTransaction(editingTransaction === transaction.id ? null : transaction.id);
+                            setSingleTransactionCategory(transaction.categoryId || '');
+                          }
+                        }}
+                      >
+                        <TableCell className="w-16" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <Checkbox
+                              checked={isTransactionSelected(transaction.id)}
+                              onCheckedChange={() => toggleTransactionSelection(transaction.id)}
+                              aria-label={`Selecionar transação ${transaction.description}`}
                             />
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            {(transaction.splitCount || 0) > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 p-0 hover:bg-muted ml-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleTransactionExpansion(transaction.id);
+                                }}
+                              >
+                                {expandedTransactions.has(transaction.id) ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatDate(transaction.transactionDate)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p className="font-medium text-foreground">{transaction.name || '-'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-48 lg:max-w-64">
+                            {/* Descrição principal */}
+                            <p className="font-medium text-foreground truncate" title={transaction.description}>
+                              {transaction.description}
+                            </p>
+
+                            {/* Memo abaixo da descrição com fonte menor */}
+                            {transaction.memo ? (
+                              <p className="text-sm text-muted-foreground truncate mt-1" title={transaction.memo}>
+                                * {transaction.memo}
+                              </p>
+                            ) : (
+                              <div className="h-4 mt-1">
+                                {/* Espaço reservado sutil quando não há memo */}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          {inlineEditingTransaction === transaction.id ? (
+                            <div className="flex items-center gap-2">
+                              <Combobox
+                                options={categoryOptions}
+                                value={inlineEditingCategory}
+                                onValueChange={setInlineEditingCategory}
+                                placeholder="Selecione..."
+                                searchPlaceholder="Buscar categoria..."
+                                emptyMessage="Nenhuma categoria"
+                                className="min-w-0"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (inlineEditingCategory) {
+                                    handleInlineUpdateCategory(transaction.id, inlineEditingCategory);
+                                  }
+                                }}
+                                disabled={!inlineEditingCategory}
+                                className="h-6 px-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                              >
+                                ✓
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setInlineEditingTransaction(null);
+                                  setInlineEditingCategory('');
+                                }}
+                                className="h-6 px-2 text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground"
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs cursor-pointer hover:bg-secondary/80 capitalize"
                               onClick={() => {
-                                if (inlineEditingCategory) {
-                                  handleInlineUpdateCategory(transaction.id, inlineEditingCategory);
+                                if (!isGroupMode) {
+                                  setInlineEditingTransaction(transaction.id);
+                                  setInlineEditingCategory(transaction.categoryId || '');
                                 }
                               }}
-                              disabled={!inlineEditingCategory}
-                              className="h-6 px-2 bg-primary text-primary-foreground hover:bg-primary/90"
                             >
-                              ✓
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setInlineEditingTransaction(null);
-                                setInlineEditingCategory('');
-                              }}
-                              className="h-6 px-2 text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground"
-                            >
-                              ✕
-                            </Button>
-                          </div>
-                        ) : (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs cursor-pointer hover:bg-secondary/80 capitalize"
-                            onClick={() => {
-                              if (!isGroupMode) {
-                                setInlineEditingTransaction(transaction.id);
-                                setInlineEditingCategory(transaction.categoryId || '');
-                              }
-                            }}
-                          >
-                            {transaction.categoryName || 'Sem categoria'}
+                              {transaction.categoryName || 'Sem categoria'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.bankName || 'Não identificado'}
                           </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {transaction.bankName || 'Não identificado'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`text-right font-bold ${transaction.amount > 0 ? 'text-emerald-500' : 'text-destructive'
-                        }`}>
-                        {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell className={`text-right font-bold ${transaction.amount > 0 ? 'text-emerald-500' : 'text-destructive'
+                          }`}>
+                          {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                        </TableCell>
+                      </TableRow>
+                      {expandedTransactions.has(transaction.id) && transaction.splits && transaction.splits.length > 0 && (
+                        transaction.splits.map((split) => (
+                          <TableRow key={split.id} className="bg-muted/30 hover:bg-muted/50 border-0">
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2 pl-6">
+                                <CornerDownRight className="h-4 w-4 text-muted-foreground/70" />
+                                <span className="text-sm text-muted-foreground">{split.description || 'Desmembramento'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                  variant="outline" 
+                                  className="text-xs font-normal"
+                                  style={{ 
+                                      borderColor: (split.categoryColor || '#94a3b8') + '40',
+                                      color: split.categoryColor || '#94a3b8',
+                                      backgroundColor: (split.categoryColor || '#94a3b8') + '10'
+                                  }}
+                              >
+                                  {split.categoryName}
+                              </Badge>
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-right text-muted-foreground font-medium text-xs">
+                              {transaction.amount > 0 ? '+' : '-'}{formatCurrency(Number(split.amount))}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>

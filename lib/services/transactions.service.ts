@@ -100,7 +100,22 @@ export class TransactionsService {
         uploadFilename: uploads.filename,
         uploadOriginalName: uploads.originalName,
         // Adicionar informação de split
-        splitCount: sql<number>`(SELECT count(*) FROM ${transactionSplits} WHERE ${transactionSplits.transactionId} = ${transactions.id})`
+        splitCount: sql<number>`(SELECT count(*) FROM ${transactionSplits} WHERE ${transactionSplits.transactionId} = ${transactions.id})`,
+        splits: sql<any>`(
+          SELECT json_agg(
+            json_build_object(
+              'id', ${transactionSplits.id},
+              'amount', ${transactionSplits.amount},
+              'categoryId', ${transactionSplits.categoryId},
+              'categoryName', ${categories.name},
+              'categoryColor', ${categories.colorHex},
+              'description', ${transactionSplits.description}
+            )
+          )
+          FROM ${transactionSplits}
+          LEFT JOIN ${categories} ON ${transactionSplits.categoryId} = ${categories.id}
+          WHERE ${transactionSplits.transactionId} = ${transactions.id}
+        )`
       })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -120,7 +135,14 @@ export class TransactionsService {
       }
 
       if (filters.categoryId && filters.categoryId !== 'all') {
-        conditions.push(eq(transactions.categoryId, filters.categoryId));
+        conditions.push(sql`(
+          ${transactions.categoryId} = ${filters.categoryId}
+          OR EXISTS (
+            SELECT 1 FROM ${transactionSplits}
+            WHERE ${transactionSplits.transactionId} = ${transactions.id}
+            AND ${transactionSplits.categoryId} = ${filters.categoryId}
+          )
+        )`);
       }
 
       if (filters.type && (filters.type as string) !== 'all') {
@@ -145,7 +167,15 @@ export class TransactionsService {
 
       if (filters.search) {
         conditions.push(
-          sql`(LOWER(${transactions.description}) LIKE ${`%${filters.search.toLowerCase()}%`} OR LOWER(${transactions.rawDescription}) LIKE ${`%${filters.search.toLowerCase()}%`})`
+          sql`(
+            LOWER(${transactions.description}) LIKE ${`%${filters.search.toLowerCase()}%`} 
+            OR LOWER(${transactions.rawDescription}) LIKE ${`%${filters.search.toLowerCase()}%`}
+            OR EXISTS (
+              SELECT 1 FROM ${transactionSplits}
+              WHERE ${transactionSplits.transactionId} = ${transactions.id}
+              AND LOWER(${transactionSplits.description}) LIKE ${`%${filters.search.toLowerCase()}%`}
+            )
+          )`
         );
       }
 

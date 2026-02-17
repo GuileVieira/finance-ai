@@ -81,6 +81,16 @@ export interface Transaction {
   accountId?: string;
   verified?: boolean;
   splitCount?: number;
+  splits?: TransactionSplit[];
+}
+
+export interface TransactionSplit {
+  id: string;
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  categoryColor?: string;
+  description?: string;
 }
 
 export interface UserData {
