@@ -58,6 +58,16 @@ export function CategoryCard({
     }).format(amount);
   };
 
+  // Darken pastel hex colors for better text contrast on white backgrounds
+  const darkenColor = (hex: string | null | undefined, amount = 0.25): string => {
+    if (!hex) return 'currentColor';
+    const clean = hex.replace('#', '');
+    const r = Math.max(0, Math.round(parseInt(clean.substring(0, 2), 16) * (1 - amount)));
+    const g = Math.max(0, Math.round(parseInt(clean.substring(2, 4), 16) * (1 - amount)));
+    const b = Math.max(0, Math.round(parseInt(clean.substring(4, 6), 16) * (1 - amount)));
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+
   const handleSave = () => {
     if (editedName.trim() && editedName !== category.name) {
       onUpdate?.({ ...category, name: editedName.trim() });
@@ -206,7 +216,7 @@ export function CategoryCard({
         )}
 
         {/* Valor */}
-        <div className="text-xl font-bold mb-2 cursor-help tracking-tight" style={{ color: category.colorHex }} title={formatCurrency(category.totalAmount)}>
+        <div className="text-xl font-bold mb-2 cursor-help tracking-tight" style={{ color: darkenColor(category.colorHex) }} title={formatCurrency(category.totalAmount)}>
           {formatCurrencyCompact(category.totalAmount)}
         </div>
 

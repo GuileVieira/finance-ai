@@ -51,7 +51,7 @@ export const categories = pgTable('financeai_categories', {
   type: varchar('type', { length: 30 }).notNull(), // revenue, variable_cost, fixed_cost, non_operational
   parentType: varchar('parent_type', { length: 30 }),
   parentCategoryId: uuid('parent_category_id').references((): AnyPgColumn => categories.id),
-  colorHex: varchar('color_hex', { length: 7 }).default('#A5B4FC'),
+  colorHex: varchar('color_hex', { length: 7 }).default('#3B82F6'),
   categoryGroup: varchar('category_group', { length: 50 }), // PESSOAL, VEÍCULOS, TRIBUTOS, OCUPAÇÃO, etc.
   dreGroup: varchar('dre_group', { length: 50 }), // RoB, TDCF, CF, CV, RNOP, DNOP, EMP, TRANSF
   icon: varchar('icon', { length: 10 }).default('📊'), // Emoji para ícones das categorias
