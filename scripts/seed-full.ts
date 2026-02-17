@@ -24,6 +24,8 @@ async function seed() {
   console.log('🧹 Clearing all tables...');
   
   const tables = [
+    'financeai_ai_usage_logs',
+    'financeai_insight_thresholds',
     'financeai_projections',
     'financeai_rule_feedback',
     'financeai_transaction_splits',
