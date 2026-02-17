@@ -70,7 +70,7 @@ export default class DashboardService {
 
     if (filters.accountId && filters.accountId !== 'all') {
       if (this.isUUID(filters.accountId)) {
-        conditions.push(eq(transactions.accountId, filters.accountId));
+        conditions.push(sql`combined_transactions.account_id = ${filters.accountId}` as any);
       } else {
         conditions.push(eq(accounts.bankName, filters.accountId));
       }
@@ -425,8 +425,8 @@ export default class DashboardService {
     const execute = async (innerTx: any) => {
       try {
         this.checkDatabaseConnection();
-        const whereConditions = [
-          eq(transactions.type, 'debit') // Apenas despesas
+        const whereConditions: any[] = [
+          sql`combined_transactions.type_to_sum = 'debit'` // Apenas despesas
         ];
 
         if (cleanFilters.startDate) {
