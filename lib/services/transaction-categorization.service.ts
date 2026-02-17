@@ -45,7 +45,9 @@ export type ReasonCode =
   | 'RULE_APPLIED'        // Regra de negócio (Pattern Match)
   | 'MOVEMENT_RESTRICTION'// Restrição de tipo de movimento (Hard Validator)
   | 'MANUAL_FALLBACK'     // Falha na categorização automática
-  | 'AMBIGUOUS_MATCH';    // Ambíguo (ex: SISPAG genérico)
+  | 'AMBIGUOUS_MATCH'     // Ambíguo (ex: SISPAG genérico)
+  | 'LOW_CONFIDENCE'      // [PR1] Confiança abaixo do threshold
+  | 'ACCOUNTING_CONSISTENCY_VIOLATION'; // [PR5] Violação de regras contábeis (Sinal/Tipo)
 
 export interface CategorizationReason {
   code: ReasonCode;
@@ -311,7 +313,7 @@ export class TransactionCategorizationService {
 
     // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
     // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
-    const finalOutcome: CategorizationResult = result || {
+    let finalOutcome: CategorizationResult = result || {
       categoryId: '',
       categoryName: 'Não classificado',
       confidence: 0,
@@ -324,6 +326,26 @@ export class TransactionCategorizationService {
       },
       reasoning: `Nenhuma fonte atingiu threshold de ${confidenceThreshold}%`
     };
+
+    // PR1: Hardening Critical - Garantir threshold absoluto
+    // Independente da fonte (AI, Regra, etc), se a confiança final for menor que o threshold,
+    // forçar needsReview=true e marcar motivo como LOW_CONFIDENCE
+    if (finalOutcome.confidence < confidenceThreshold) {
+        finalOutcome = {
+            ...finalOutcome,
+            needsReview: true,
+            reason: {
+                code: 'LOW_CONFIDENCE',
+                message: `Confiança insuficiente (${finalOutcome.confidence}% < ${confidenceThreshold}%)`,
+                metadata: { 
+                   originalReason: finalOutcome.reason,
+                   threshold: confidenceThreshold,
+                   actualConfidence: finalOutcome.confidence
+                }
+            },
+            reasoning: `⚠️ Confiança insuficiente (${finalOutcome.confidence}%). Threshold: ${confidenceThreshold}%`
+        };
+    }
 
     return {
       ...finalOutcome,
