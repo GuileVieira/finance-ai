@@ -88,6 +88,40 @@ export default class DashboardService {
   }
 
   /**
+   * Retorna todas as condições de filtro formatadas para o subquery combined_transactions
+   */
+  private static getCombinedWhereConditions(filters: DashboardFilters): any[] {
+    const conditions: any[] = [];
+
+    if (filters.startDate) {
+      conditions.push(sql`combined_transactions.transaction_date >= ${filters.startDate}`);
+    }
+
+    if (filters.endDate) {
+      conditions.push(sql`combined_transactions.transaction_date <= ${filters.endDate}`);
+    }
+
+    // Filtros de conta/banco/empresa
+    if (filters.accountId && filters.accountId !== 'all') {
+      if (this.isUUID(filters.accountId)) {
+        conditions.push(sql`combined_transactions.account_id = ${filters.accountId}`);
+      } else {
+        conditions.push(eq(accounts.bankName, filters.accountId));
+      }
+    }
+
+    if (filters.bankName && filters.bankName !== 'all') {
+      conditions.push(eq(accounts.bankName, filters.bankName));
+    }
+
+    if (filters.companyId && filters.companyId !== 'all') {
+      conditions.push(eq(accounts.companyId, filters.companyId));
+    }
+
+    return conditions;
+  }
+
+  /**
    * Verifica se o banco de dados está disponível
    */
   private static checkDatabaseConnection(): void {
@@ -158,38 +192,9 @@ export default class DashboardService {
         this.checkDatabaseConnection();
 
         // Construir where clause
-        const whereConditions = [];
-        console.log('📋 Constru condições where...');
-
-        if (cleanFilters.startDate) {
-          console.log('📅 Adicionando filtro startDate >=', cleanFilters.startDate);
-          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
-        }
-
-        if (cleanFilters.endDate) {
-          console.log('📅 Adicionando filtro endDate <=', cleanFilters.endDate);
-          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
-        }
-
-        // Usar função auxiliar para filtros de conta/banco
-        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
-          if (this.isUUID(cleanFilters.accountId)) {
-            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
-          } else {
-            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
-          }
-        }
-
-        if (cleanFilters.bankName && cleanFilters.bankName !== 'all') {
-          whereConditions.push(eq(accounts.bankName, cleanFilters.bankName));
-        }
-
-        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
-        }
-
-        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-        console.log('🔍 WhereClause final:', whereClause ? `${whereConditions.length} condições` : 'sem filtros');
+        const combinedConditions = this.getCombinedWhereConditions(cleanFilters);
+        const whereClause = and(...combinedConditions);
+        console.log('🔍 WhereClause final:', whereClause ? `${combinedConditions.length} condições` : 'sem filtros');
 
         // Métricas principais
         const metricsResult = await innerTx
@@ -260,29 +265,7 @@ export default class DashboardService {
     const execute = async (innerTx: any) => {
       try {
         this.checkDatabaseConnection();
-        const whereConditions = [];
-
-        if (cleanFilters.startDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
-        }
-
-        if (cleanFilters.endDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
-        }
-
-        // Filtros de conta/empresa
-        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
-          if (this.isUUID(cleanFilters.accountId)) {
-            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
-          } else {
-            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
-          }
-        }
-        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
-        }
-
-        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = and(...this.getCombinedWhereConditions(cleanFilters));
 
         // Buscar totais por categoria
         const categoryTotals = await innerTx
@@ -347,29 +330,7 @@ export default class DashboardService {
     const execute = async (innerTx: any) => {
       try {
         this.checkDatabaseConnection();
-        const whereConditions = [];
-
-        if (cleanFilters.startDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
-        }
-
-        if (cleanFilters.endDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
-        }
-
-        // Filtros de conta/empresa
-        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
-          if (this.isUUID(cleanFilters.accountId)) {
-            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
-          } else {
-            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
-          }
-        }
-        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
-        }
-
-        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = and(...this.getCombinedWhereConditions(cleanFilters));
 
         // Agrupar por dia
         const dailyData = await innerTx
@@ -425,31 +386,10 @@ export default class DashboardService {
     const execute = async (innerTx: any) => {
       try {
         this.checkDatabaseConnection();
-        const whereConditions: any[] = [
-          sql`combined_transactions.type_to_sum = 'debit'` // Apenas despesas
-        ];
-
-        if (cleanFilters.startDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
-        }
-
-        if (cleanFilters.endDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
-        }
-
-        // Filtros de conta/empresa
-        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
-          if (this.isUUID(cleanFilters.accountId)) {
-            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
-          } else {
-            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
-          }
-        }
-        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
-        }
-
-        const whereClause = and(...whereConditions);
+        const whereClause = and(
+          sql`combined_transactions.type_to_sum = 'debit'`,
+          ...this.getCombinedWhereConditions(cleanFilters)
+        );
 
         const topExpenses = await innerTx
           .select({
@@ -502,29 +442,7 @@ export default class DashboardService {
     const execute = async (innerTx: any) => {
       try {
         this.checkDatabaseConnection();
-        const whereConditions = [];
-
-        if (cleanFilters.startDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date >= ${cleanFilters.startDate}`);
-        }
-
-        if (cleanFilters.endDate) {
-          whereConditions.push(sql`combined_transactions.transaction_date <= ${cleanFilters.endDate}`);
-        }
-
-        // Filtros de conta/empresa
-        if (cleanFilters.accountId && cleanFilters.accountId !== 'all') {
-          if (this.isUUID(cleanFilters.accountId)) {
-            whereConditions.push(sql`combined_transactions.account_id = ${cleanFilters.accountId}`);
-          } else {
-            whereConditions.push(eq(accounts.bankName, cleanFilters.accountId));
-          }
-        }
-        if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
-        }
-
-        const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const whereClause = and(...this.getCombinedWhereConditions(cleanFilters));
 
         const recentTransactions = await innerTx
           .select({
@@ -555,7 +473,6 @@ export default class DashboardService {
 
         // Adicionar campos necessários para satisfazer o tipo Transaction
         return recentTransactions.map((transaction: any) => {
-          const anyTx = transaction as any;
           return {
             id: transaction.id,
             name: transaction.description || 'Sem descrição',
@@ -566,17 +483,21 @@ export default class DashboardService {
             transactionDate: transaction.transactionDate,
             accountId: transaction.accountId,
             categoryId: transaction.categoryId,
-            uploadId: transaction.uploadId || null,
-            rawDescription: anyTx.rawDescription || transaction.description,
-            categorizationSource: anyTx.categorizationSource || 'ai',
-            ruleId: anyTx.ruleId || null,
-            createdAt: anyTx.createdAt ? new Date(anyTx.createdAt) : new Date(),
-            updatedAt: anyTx.updatedAt ? new Date(anyTx.updatedAt) : new Date(),
-            categoryName: transaction.categoryName
-              ? this.capitalizeText(transaction.categoryName)
-              : 'Sem Categoria'
-          };
-        }) as unknown as Transaction[];
+            uploadId: null,
+            rawDescription: transaction.description,
+            categorizationSource: 'ai',
+            ruleId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            category: transaction.categoryName ? {
+              id: transaction.categoryId,
+              name: transaction.categoryName,
+              type: transaction.categoryType,
+              colorHex: transaction.categoryColor,
+              icon: transaction.categoryIcon
+            } : null
+          } as any; // Cast as any to avoid strict Transaction type issues with the nested category object
+        });
 
       } catch (error) {
         console.error('Error getting recent transactions:', error);
