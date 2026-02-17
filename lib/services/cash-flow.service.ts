@@ -86,7 +86,7 @@ export default class CashFlowService {
         }
 
         if (cleanFilters.companyId && cleanFilters.companyId !== 'all') {
-          whereConditions.push(sql`(combined_transactions.company_id = ${cleanFilters.companyId} OR accounts.company_id = ${cleanFilters.companyId})`);
+          whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
         }
 
         const whereClause = and(...whereConditions, getFinancialExclusionClause());
@@ -102,11 +102,11 @@ export default class CashFlowService {
             -- Transações que NÃO possuem desmembramentos
             SELECT 
               t.id as transaction_id,
+              t.category_id,
               t.amount as amount_to_sum,
               t.type as type_to_sum,
               t.transaction_date,
-              t.account_id,
-              t.company_id
+              t.account_id
             FROM ${transactions} t
             WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
             
@@ -115,15 +115,16 @@ export default class CashFlowService {
             -- Desmembramentos individuais
             SELECT 
               ts.transaction_id,
+              ts.category_id,
               ts.amount as amount_to_sum,
               t.type as type_to_sum,
               t.transaction_date,
-              t.account_id,
-              t.company_id
+              t.account_id
             FROM ${transactionSplits} ts
             JOIN ${transactions} t ON ts.transaction_id = t.id
           ) as combined_transactions`)
           .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+          .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
           .where(whereClause || undefined)
           .orderBy(sql`combined_transactions.transaction_date`);
 

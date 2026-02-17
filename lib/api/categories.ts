@@ -12,6 +12,7 @@ export interface Category {
   icon: string | null;
   examples?: string[] | null;
   isSystem: boolean | null;
+  isIgnored: boolean | null;
   active: boolean | null;
   createdAt: string | Date | null;
   updatedAt: string | Date | null;
@@ -79,6 +80,7 @@ export interface CreateCategoryData {
   examples?: string[];
   companyId?: string;
   active?: boolean;
+  isIgnored?: boolean;
   categoryGroup?: string; // PESSOAL, VEÍCULOS, TRIBUTOS, etc.
   dreGroup?: string; // RoB, TDCF, CF, CV, RNOP, DNOP, EMP, TRANSF
 }
@@ -87,6 +89,7 @@ export interface UpdateCategoryData extends Partial<Omit<CreateCategoryData, 'dr
   id: string;
   categoryGroup?: string | null;
   dreGroup?: string | null;
+  isIgnored?: boolean;
 }
 
 export interface CategorySummary {

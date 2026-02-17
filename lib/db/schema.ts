@@ -57,13 +57,15 @@ export const categories = pgTable('financeai_categories', {
   icon: varchar('icon', { length: 10 }).default('📊'), // Emoji para ícones das categorias
   examples: json('examples'), // Array de exemplos de transações
   isSystem: boolean('is_system').default(false),
+  isIgnored: boolean('is_ignored').default(false),
   active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
   companyIdIdx: index('idx_categories_company_id').on(table.companyId),
   typeIdx: index('idx_categories_type').on(table.type),
-  activeIdx: index('idx_categories_active').on(table.active)
+  activeIdx: index('idx_categories_active').on(table.active),
+  isIgnoredIdx: index('idx_categories_is_ignored').on(table.isIgnored)
 }));
 
 // Uploads de arquivos

@@ -295,7 +295,12 @@ export default class DREService {
         whereConditions.push(eq(accounts.companyId, filters.companyId));
       }
 
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions, getFinancialExclusionClause()) : getFinancialExclusionClause();
+      const whereClause = and(
+        ...whereConditions,
+        getFinancialExclusionClause({ 
+          descriptionColumn: sql`combined_transactions.transaction_description` 
+        })
+      );
 
       // Buscar totais por categoria
       // Nova lógica: Combina transações sem splits + splits individuais
@@ -319,6 +324,7 @@ export default class DREService {
           -- Transações que NÃO possuem desmembramentos
           SELECT 
             t.id as transaction_id,
+            t.description as transaction_description,
             t.category_id as category_id,
             t.amount as amount_to_sum,
             t.type as type_to_sum,
@@ -332,6 +338,7 @@ export default class DREService {
           -- Desmembramentos individuais
           SELECT 
             ts.transaction_id,
+            t.description as transaction_description,
             ts.category_id,
             ts.amount as amount_to_sum,
             t.type as type_to_sum, -- Mantém o tipo original da transação

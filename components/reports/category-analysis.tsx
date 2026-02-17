@@ -168,6 +168,7 @@ export default function CategoryAnalysis({
               ))}
             </Pie>
             <Tooltip
+              content={<CustomTooltip />}
               formatter={(value: number, name: string, props: any) => [
                 `${formatCurrency(value)} (${props.payload.percentage.toFixed(1)}%)`,
                 props.payload.name

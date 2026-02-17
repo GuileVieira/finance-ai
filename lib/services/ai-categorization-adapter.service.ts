@@ -288,6 +288,17 @@ REGRAS:
     const amount = context.amount ?? 0;
     const isCredit = amount >= 0;
 
+    // 0. Pré-filtro de SALDO (Safety net redundante no adaptador)
+    if (description.includes('SALDO TOTAL') || description.includes('SALDO DISPONIVEL') || description.includes('SALDO DO DIA')) {
+      const saldoCategory = availableCategories.find(c => c === 'Saldo Inicial');
+      if (saldoCategory) {
+        return {
+          category: saldoCategory,
+          reasoning: 'Regra: Identificado como snapshot de saldo bancário.'
+        };
+      }
+    }
+
     // 1. Tratamento de Impostos Federais (DARF, DA REC FED)
     // Se for entrada (+) de DARF, é certamente um Estorno ou Restituição
     if (bankingTerm?.term === 'DA REC FED' || bankingTerm?.term === 'DARF') {
@@ -317,9 +328,9 @@ REGRAS:
         }
     }
 
-    // 3. FIDC / Antecipação
+    // 3. FIDC / Antecipação / Recebíveis
     // Se conter FIDC e for entrada, é Desconto de Títulos ou Empréstimo, NUNCA Transferência
-    if (description.includes('FIDC') || bankingTerm?.term === 'FIDC' || bankingTerm?.term === 'REC TIT') {
+    if (description.includes('FIDC') || description.includes('REC TIT') || bankingTerm?.term === 'FIDC' || bankingTerm?.term === 'REC TIT') {
       if (isCredit) {
          // Prioridade: DESCONTO DE TÍTULOS -> EMPRÉSTIMOS -> RECEITA
          const targetCategory = availableCategories.find(c => c.includes('DESCONTO DE TITULOS')) 

@@ -194,7 +194,7 @@ export class BatchProcessingService {
               memo: transaction.memo,
               amount: transaction.amount.toString(),
               type: transaction.amount >= 0 ? 'credit' : 'debit',
-              transactionDate: new Date(transaction.date),
+              transactionDate: new Date(transaction.date).toISOString(),
               rawDescription: transaction.description,
               metadata: {
                 fitid: transaction.fitid,
@@ -291,6 +291,43 @@ export class BatchProcessingService {
   }
 
   /**
+   * Pré-filtra transações técnicas (Saldos, Snapshots) para evitar custo de IA
+   */
+  private async preFilterTechnicalTransactions(description: string): Promise<{ categoryId: string; categoryName: string; confidence: number; reasoning: string; source: string } | null> {
+    const upperDesc = description.toUpperCase();
+    
+    // Padrões que indicam snapshots de saldo técnico (OFX)
+    const technicalPatterns = [
+      'SALDO TOTAL',
+      'SALDO DISPONIVEL',
+      'SALDO DO DIA',
+      'SALDO EM',
+      'S A L D O',
+      'RESUMO DE SALDO'
+    ];
+
+    if (technicalPatterns.some(pattern => upperDesc.includes(pattern))) {
+      // Buscar a categoria "Saldo Inicial" (que já temos is_ignored=true nela)
+      const [saldoCategory] = await db.select()
+        .from(categories)
+        .where(eq(categories.name, 'Saldo Inicial'))
+        .limit(1);
+
+      if (saldoCategory) {
+        return {
+          categoryId: saldoCategory.id,
+          categoryName: saldoCategory.name,
+          confidence: 100,
+          reasoning: 'Otimização: Transação técnica de saldo detectada via descrição (Bypass IA)',
+          source: 'pre-filter'
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Classificar uma transação individual usando o novo sistema unificado
    */
   private async classifyTransaction(
@@ -305,7 +342,14 @@ export class BatchProcessingService {
     ruleId?: string;
   }> {
     try {
-      // Usar TransactionCategorizationService unificado
+      // 1. OTIMIZAÇÃO: Pré-filtro determinístico (Custo Zero)
+      const preFilterResult = await this.preFilterTechnicalTransactions(transaction.description);
+      if (preFilterResult) {
+        console.log(`⚡ [PRE-FILTER] "${transaction.description}" → ${preFilterResult.categoryName} (Bypass IA)`);
+        return preFilterResult;
+      }
+
+      // 2. Usar TransactionCategorizationService unificado
       const result = await TransactionCategorizationService.categorize(
         {
           description: transaction.description,
@@ -384,8 +428,8 @@ export class BatchProcessingService {
 
     if (!upload) return null;
 
-    const percentage = upload.totalTransactions > 0
-      ? Math.round((upload.processedTransactions / upload.totalTransactions) * 100)
+    const percentage = (upload.totalTransactions ?? 0) > 0
+      ? Math.round(((upload.processedTransactions ?? 0) / (upload.totalTransactions ?? 0)) * 100)
       : 0;
 
     return {

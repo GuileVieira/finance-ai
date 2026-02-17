@@ -194,6 +194,7 @@ export default class CategoriesService {
         icon: cat.icon,
         examples: cat.examples as string[] | undefined,
         isSystem: cat.isSystem,
+        isIgnored: cat.isIgnored,
         active: cat.active,
         createdAt: cat.createdAt,
         updatedAt: cat.updatedAt,
@@ -238,6 +239,7 @@ export default class CategoriesService {
         icon: category[0].icon,
         examples: category[0].examples as string[] | undefined,
         isSystem: category[0].isSystem,
+        isIgnored: category[0].isIgnored,
         active: category[0].active,
         createdAt: category[0].createdAt,
         updatedAt: category[0].updatedAt,
@@ -285,6 +287,7 @@ export default class CategoriesService {
           icon: categoryData.icon,
           examples: categoryData.examples,
           isSystem: false,
+          isIgnored: categoryData.isIgnored || false,
           active: true,
         })
         .returning();
@@ -303,6 +306,7 @@ export default class CategoriesService {
         icon: newCategory.icon,
         examples: newCategory.examples as string[] | undefined,
         isSystem: newCategory.isSystem,
+        isIgnored: newCategory.isIgnored,
         active: newCategory.active,
         createdAt: newCategory.createdAt,
         updatedAt: newCategory.updatedAt,
@@ -327,7 +331,7 @@ export default class CategoriesService {
         .update(categories)
         .set({
           ...updateData,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
+          updatedAt: new Date(),
         })
         .where(eq(categories.id, id))
         .returning();
@@ -348,6 +352,7 @@ export default class CategoriesService {
         icon: updatedCategory.icon,
         examples: updatedCategory.examples as string[] | undefined,
         isSystem: updatedCategory.isSystem,
+        isIgnored: updatedCategory.isIgnored,
         active: updatedCategory.active,
         createdAt: updatedCategory.createdAt,
         updatedAt: updatedCategory.updatedAt,
@@ -448,6 +453,7 @@ export default class CategoriesService {
           icon: categories.icon,
           examples: categories.examples,
           isSystem: categories.isSystem,
+          isIgnored: categories.isIgnored,
           active: categories.active,
           createdAt: categories.createdAt,
           updatedAt: categories.updatedAt,
@@ -485,6 +491,7 @@ export default class CategoriesService {
         icon: cat.icon,
         examples: cat.examples as string[] | undefined,
         isSystem: cat.isSystem,
+        isIgnored: cat.isIgnored || false,
         active: cat.active,
         createdAt: cat.createdAt,
         updatedAt: cat.updatedAt,
@@ -537,6 +544,7 @@ export default class CategoriesService {
           icon: cat.icon,
           examples: cat.examples as string[] | undefined,
           isSystem: cat.isSystem,
+          isIgnored: cat.isIgnored || false,
           active: cat.active,
           createdAt: cat.createdAt,
           updatedAt: cat.updatedAt,
