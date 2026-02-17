@@ -13,6 +13,9 @@ import { eq, and, sql } from 'drizzle-orm';
 import categoryCacheService from './category-cache.service';
 import { RuleScoringService } from './rule-scoring.service';
 import type { TransactionContext } from './rule-scoring.service';
+import { MovementTypeService } from './movement-type.service';
+import type { MovementType } from './movement-type.service';
+import { CategorizationValidators } from './categorization-validators';
 import { RuleGenerationService } from './rule-generation.service';
 import { RuleLifecycleService } from './rule-lifecycle.service';
 import { TransactionClusteringService } from './transaction-clustering.service';
@@ -115,6 +118,9 @@ export class TransactionCategorizationService {
       confidenceThreshold = 70,
       historyDaysLimit = 90
     } = options;
+    
+    // PASSO 0: Identificar Tipo de Movimento (DRE Reliability)
+    const movementType = MovementTypeService.classify(context);
 
     const attemptedSources: string[] = [];
     let result: CategorizationResult | null = null;
@@ -122,124 +128,183 @@ export class TransactionCategorizationService {
     // CAMADA 1: Cache
     if (!skipCache) {
       attemptedSources.push('cache');
-      result = await this.tryCache(context, companyId);
+      const cacheResult = await this.tryCache(context, companyId);
 
-      if (result && result.confidence >= confidenceThreshold) {
-        result.metadata = { ...result.metadata, attemptedSources };
-        return result;
+      if (cacheResult && cacheResult.confidence >= confidenceThreshold) {
+        return {
+          ...cacheResult,
+          movementType,
+          metadata: { ...cacheResult.metadata, attemptedSources }
+        };
       }
+      result = cacheResult;
     }
 
     // CAMADA 2: Regras
     if (!skipRules) {
       attemptedSources.push('rules');
-      result = await this.tryRules(context, companyId);
+      const rulesResult = await this.tryRules(context, companyId);
 
-      if (result && result.confidence >= confidenceThreshold) {
-        result.metadata = { ...result.metadata, attemptedSources };
-
+      if (rulesResult && rulesResult.confidence >= confidenceThreshold) {
         // Adicionar ao cache para acelerar futuras buscas
         categoryCacheService.addToCache(
           context.description,
-          result.categoryId,
-          result.categoryName,
+          rulesResult.categoryId,
+          rulesResult.categoryName,
           companyId,
-          result.confidence / 100
+          rulesResult.confidence / 100
         );
 
-        return result;
+        return {
+          ...rulesResult,
+          movementType,
+          metadata: { ...rulesResult.metadata, attemptedSources }
+        };
+      }
+      
+      // Se a regra é melhor que nada, guarda como sugestão
+      if (rulesResult && (!result || rulesResult.confidence > result.confidence)) {
+        result = rulesResult;
       }
     }
 
     // CAMADA 3: Histórico
     if (!skipHistory) {
       attemptedSources.push('history');
-      result = await this.tryHistory(context, companyId, historyDaysLimit);
+      const historyResult = await this.tryHistory(context, companyId, historyDaysLimit);
 
-      if (result && result.confidence >= confidenceThreshold) {
-        result.metadata = { ...result.metadata, attemptedSources };
-
-        // Adicionar ao cache
+      if (historyResult && historyResult.confidence >= confidenceThreshold) {
         categoryCacheService.addToCache(
           context.description,
-          result.categoryId,
-          result.categoryName,
+          historyResult.categoryId,
+          historyResult.categoryName,
           companyId,
-          result.confidence / 100
+          historyResult.confidence / 100
         );
 
-        return result;
+        return {
+          ...historyResult,
+          movementType,
+          metadata: { ...historyResult.metadata, attemptedSources }
+        };
+      }
+
+      if (historyResult && (!result || historyResult.confidence > result.confidence)) {
+        result = historyResult;
       }
     }
 
     // CAMADA 4: IA
     if (!skipAI) {
       attemptedSources.push('ai');
-      result = await this.tryAI(context, companyId);
+      const aiResult = await this.tryAI(context, companyId);
 
-      if (result) {
-        result.metadata = { ...result.metadata, attemptedSources };
-
-        // Adicionar ao cache se confiança for alta
-        if (result.confidence >= 80) {
+      if (aiResult) {
+        // Se a IA aprendeu algo confiável, podemos usar
+        if (aiResult.confidence >= confidenceThreshold) {
+          // Adicionar ao cache
           categoryCacheService.addToCache(
             context.description,
-            result.categoryId,
-            result.categoryName,
+            aiResult.categoryId,
+            aiResult.categoryName,
             companyId,
-            result.confidence / 100
+            aiResult.confidence / 100
           );
-        }
 
-        // CAMADA 5: Auto-aprendizado - Criar regra automática se confiança >= 75%
-        if (!skipAutoLearning && result.confidence >= 75) {
-          const isAmbiguous = this.checkAmbiguity(context.description);
-          
-          if (!isAmbiguous) {
-             this.tryAutoLearning(
+          // PASSO EXTRA: Auto-regra se confiança for altíssima
+          if (!skipAutoLearning && aiResult.confidence >= 90) {
+            this.tryAutoLearning(
               context.description,
-              result.categoryName,
+              aiResult.categoryName,
               companyId,
-              result.confidence,
-              result.reasoning
-            ).catch(err => {
-              // Não bloquear o fluxo se auto-learning falhar
-              console.warn('Auto-learning failed (non-blocking):', err);
-            });
-          } else {
-             console.log('[AUTO-LEARNING] Skipped ambiguous transaction:', context.description);
+              aiResult.confidence,
+              aiResult.reasoning
+            ).catch(err => console.warn('Auto-learning failed:', err));
           }
+
+          return {
+            ...aiResult,
+            movementType,
+            metadata: { ...aiResult.metadata, attemptedSources }
+          };
         }
 
-        // Check for ambiguity to flag in UI
-        const ambiguityCheck = this.checkAmbiguity(context.description);
-        if (ambiguityCheck) {
-           result.metadata = {
-             ...result.metadata,
-             ambiguity: {
-                isAmbiguous: true,
-                reason: 'Descrição genérica (Pagamento em Lote SISPAG). Verifique o comprovante detalhado.'
-             }
-           };
-           // Reduz confiança visualmente para alertar usuário (mas mantém categoria)
-           result.confidence = Math.min(result.confidence, 60);
+        if (!result || aiResult.confidence > result.confidence) {
+          result = aiResult;
         }
-
-        return result;
       }
     }
 
-    // Se chegou aqui, não conseguiu categorizar com confiança suficiente
-    // Em vez de lançar erro, retornamos um resultado que pede revisão
-    return {
+    // Verificação de Ambiguidade no resultado final (se existir)
+    if (result) {
+      const isAmbiguous = this.checkAmbiguity(context.description);
+      if (isAmbiguous) {
+        result.metadata = {
+          ...result.metadata,
+          ambiguity: {
+            isAmbiguous: true,
+            reason: 'Descrição genérica. Verifique se há detalhes adicionais no comprovante.'
+          }
+        };
+        result.confidence = Math.min(result.confidence, 60);
+      }
+      
+      // PASSO FINAL: Validadores Duros (Hard Validators)
+      // Bloquear resultados que violam regras contábeis básicas (DRE Reliability)
+      if (result.confidence >= confidenceThreshold && result.categoryId) {
+        try {
+          // Buscar metadados da categoria para validação
+          const categoryMetadata = await db
+            .select({
+              type: categories.type,
+              dreGroup: categories.dreGroup,
+              isIgnored: categories.isIgnored
+            })
+            .from(categories)
+            .where(eq(categories.id, result.categoryId))
+            .limit(1);
+
+          if (categoryMetadata && categoryMetadata.length > 0) {
+            const validation = CategorizationValidators.validate(
+              context,
+              { ...result, movementType },
+              categoryMetadata[0]
+            );
+
+            if (!validation.isValid) {
+              // Se inválido, rebaixar para needsReview e adicionar motivo
+              result = {
+                ...result,
+                confidence: 60, // Forçar abaixo do threshold
+                needsReview: true,
+                reasoning: `⚠️ ${validation.reason} [Original: ${result.reasoning || 'Auto'}]`
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error in hard validation:', error);
+          // Falha na validação não deve quebrar o fluxo, mas logar erro
+        }
+      }
+    }
+
+    // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
+    const finalOutcome: CategorizationResult = result || {
       categoryId: '',
       categoryName: 'Não classificado',
       confidence: 0,
       needsReview: true,
       source: 'manual',
-      reasoning: `Não foi possível categorizar com confiança >= ${confidenceThreshold}%. Tried: ${attemptedSources.join(', ')}`,
-      suggestions: attemptedSources.includes('ai') ? [] : [], // Poderíamos coletar os "quase matches" aqui
-      metadata: { attemptedSources }
+      reasoning: `Nenhuma fonte atingiu threshold de ${confidenceThreshold}%`
+    };
+
+    return {
+      ...finalOutcome,
+      movementType,
+      metadata: { 
+        ...finalOutcome.metadata, 
+        attemptedSources 
+      }
     };
   }
 
