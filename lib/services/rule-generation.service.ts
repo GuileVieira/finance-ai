@@ -820,23 +820,10 @@ export class RuleGenerationService {
    * Calcula confidence para a regra baseado na confidence da IA
    */
   private static calculateRuleConfidence(aiConfidence: number): number {
-    // Mapear confidence da IA (0-100) para range definido (0.75-0.85)
-    const normalized = aiConfidence / 100; // 0-1
-
-    // Se IA tem alta confiança (>90%), dar confidence maior
-    if (normalized >= 0.90) {
-      return AI_RULE_CONFIDENCE.max; // 0.85
-    }
-
-    // Se IA tem confiança média-alta (75-90%), escalar proporcionalmente
-    if (normalized >= 0.75) {
-      const range = AI_RULE_CONFIDENCE.max - AI_RULE_CONFIDENCE.min; // 0.10
-      const factor = (normalized - 0.75) / 0.15; // 0-1
-      return AI_RULE_CONFIDENCE.min + (range * factor);
-    }
-
-    // Se confiança < 75%, usar mínimo
-    return AI_RULE_CONFIDENCE.min; // 0.75
+    // PR3: Remover clamp artificial. Retornar confidence real.
+    // Antes: Mapeava 0-100 para 0.75-0.85
+    // Agora: Mapeia 0-100 para 0.0-1.0 direto
+    return aiConfidence / 100;
   }
 
   /**
@@ -850,11 +837,13 @@ export class RuleGenerationService {
     shouldCreate: boolean;
     reason: string;
   } {
-    // Regra 1: IA deve ter confiança >= 75%
-    if (aiConfidence < 75) {
+    // Regra 1: Permitir regras mais fracas (PR3)
+    // Antes: >= 75%
+    // Agora: >= 20% (para capturar weak signals como candidate)
+    if (aiConfidence < 20) {
       return {
         shouldCreate: false,
-        reason: `Confiança da IA muito baixa: ${aiConfidence}%`
+        reason: `Confiança da IA muito baixa: ${aiConfidence}% (Mínimo 20%)`
       };
     }
 
