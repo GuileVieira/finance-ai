@@ -760,11 +760,15 @@ export class TransactionCategorizationService {
         return;
       }
 
-      // Buscar categoryId
       const [category] = await db
         .select({ id: categories.id })
         .from(categories)
-        .where(eq(categories.name, categoryName))
+        .where(
+          and(
+            eq(categories.name, categoryName),
+            eq(categories.companyId, companyId)
+          )
+        )
         .limit(1);
 
       if (!category) {
