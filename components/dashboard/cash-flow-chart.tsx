@@ -76,7 +76,7 @@ export function CashFlowChart({ data, isLoading, period }: CashFlowChartProps) {
       dayLabel = new Date(item.date).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
     } else {
       // Para mês específico, mostrar como dia/mês
-      dayLabel = new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      dayLabel = new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     return {

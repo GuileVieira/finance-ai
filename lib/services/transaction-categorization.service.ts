@@ -289,20 +289,26 @@ export class TransactionCategorizationService {
     }
 
     // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
-    // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
-    let finalOutcome: CategorizationResult = result || {
-      categoryId: '',
-      categoryName: 'Não classificado',
-      confidence: 0,
-      needsReview: true,
-      source: 'manual',
-      reason: {
-        code: 'MANUAL_FALLBACK',
-        message: `Não foi possível categorizar com confiança >= ${confidenceThreshold}%`,
-        metadata: { attemptedSources }
-      },
-      reasoning: `Nenhuma fonte atingiu threshold de ${confidenceThreshold}%`
-    };
+    let finalOutcome: CategorizationResult;
+    if (result) {
+      finalOutcome = result;
+    } else {
+      // Buscar categoria "Não Classificado" no banco para ter um categoryId válido
+      const fallbackCategoryId = await this.getFallbackCategoryId(companyId);
+      finalOutcome = {
+        categoryId: fallbackCategoryId ?? '',
+        categoryName: 'Não Classificado',
+        confidence: 0,
+        needsReview: true,
+        source: 'manual',
+        reason: {
+          code: 'MANUAL_FALLBACK',
+          message: `Não foi possível categorizar com confiança >= ${confidenceThreshold}%`,
+          metadata: { attemptedSources }
+        },
+        reasoning: `Nenhuma fonte atingiu threshold de ${confidenceThreshold}%`
+      };
+    }
 
     // PR1: Hardening Critical - Garantir threshold absoluto
     // Independente da fonte (AI, Regra, etc), se a confiança final for menor que o threshold,
@@ -619,6 +625,39 @@ export class TransactionCategorizationService {
         similarTransactionId: bestMatch.transaction.id
       }
     };
+  }
+
+  /**
+   * Busca o ID da categoria "Não Classificado" no banco, com cache em memória.
+   * Retorna null se a categoria não existir.
+   */
+  private static fallbackCategoryCache: Map<string, string | null> = new Map();
+
+  private static async getFallbackCategoryId(companyId: string): Promise<string | null> {
+    if (this.fallbackCategoryCache.has(companyId)) {
+      return this.fallbackCategoryCache.get(companyId) ?? null;
+    }
+
+    const [fallback] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.name, 'Não Classificado'),
+          eq(categories.companyId, companyId),
+          eq(categories.active, true)
+        )
+      )
+      .limit(1);
+
+    const fallbackId = fallback?.id ?? null;
+    this.fallbackCategoryCache.set(companyId, fallbackId);
+
+    if (!fallbackId) {
+      console.warn(`⚠️ Categoria "Não Classificado" não encontrada para company ${companyId}. Transações ficarão sem categoria.`);
+    }
+
+    return fallbackId;
   }
 
   /**

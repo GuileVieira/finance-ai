@@ -161,7 +161,7 @@ export class AsyncUploadProcessorService {
         .update(uploads)
         .set({
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Erro desconhecido'
+          processingLog: { error: error instanceof Error ? error.message : 'Erro desconhecido' }
         })
         .where(eq(uploads.id, uploadId));
     }

@@ -11,6 +11,12 @@ import { Upload, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UploadProgressItem } from '@/components/upload/upload-progress-item';
 import { UploadHistory } from '@/components/upload/upload-history';
+import { BalanceInputDialog } from '@/components/upload/balance-input-dialog';
+
+interface BalancePrompt {
+  accountId: string;
+  accountName: string;
+}
 
 interface ActiveUpload {
   uploadId: string;
@@ -23,6 +29,7 @@ export default function UploadPage() {
   const [errorCount, setErrorCount] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [balancePrompt, setBalancePrompt] = useState<BalancePrompt | null>(null);
   const { toast } = useToast();
 
   const processFile = async (file: File): Promise<void> => {
@@ -52,6 +59,15 @@ export default function UploadPage() {
         uploadId: result.data.upload.id,
         fileName: file.name
       }]);
+
+      // Verificar se precisa solicitar saldo inicial
+      const balanceInfo = result.data.balanceInfo;
+      if (balanceInfo && balanceInfo.isNewAccount && !balanceInfo.autoSet) {
+        setBalancePrompt({
+          accountId: balanceInfo.accountId,
+          accountName: balanceInfo.accountName,
+        });
+      }
 
     } catch (error) {
       console.error(`Erro ao processar arquivo ${file.name}:`, error);
@@ -123,6 +139,23 @@ export default function UploadPage() {
       title: 'Erro no processamento',
       description: error || 'Ocorreu um erro ao processar o arquivo. Tente novamente.',
       variant: 'destructive'
+    });
+  };
+
+  const handleSaveBalance = async (accountId: string, balance: string) => {
+    const response = await fetch(`/api/accounts/${accountId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ openingBalance: balance }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao salvar saldo');
+    }
+
+    toast({
+      title: 'Saldo salvo',
+      description: `Saldo inicial de R$ ${parseFloat(balance).toFixed(2)} definido com sucesso.`,
     });
   };
 
@@ -299,6 +332,18 @@ export default function UploadPage() {
             </div>
           </CardContent>
         </Card>
+        {/* Dialog para saldo inicial */}
+        {balancePrompt && (
+          <BalanceInputDialog
+            open={!!balancePrompt}
+            onOpenChange={(open) => {
+              if (!open) setBalancePrompt(null);
+            }}
+            accountId={balancePrompt.accountId}
+            accountName={balancePrompt.accountName}
+            onSave={handleSaveBalance}
+          />
+        )}
       </div>
     </LayoutWrapper>
   );

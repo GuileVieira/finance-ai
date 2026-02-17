@@ -142,9 +142,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Calcular openingBalance a partir do LEDGERBAL
+    const hasLedgerBalance = !!parseResult.balance && parseResult.balance.amount !== 0;
+    let calculatedOpeningBalance = '0';
+    if (hasLedgerBalance && parseResult.balance) {
+      const transactionSum = parseResult.transactions.reduce(
+        (sum, tx) => sum + tx.amount, 0
+      );
+      calculatedOpeningBalance = (parseResult.balance.amount - transactionSum).toFixed(2);
+      console.log(`💰 Saldo calculado: LEDGERBAL(${parseResult.balance.amount}) - transações(${transactionSum.toFixed(2)}) = ${calculatedOpeningBalance}`);
+    }
+
     console.log('✅ Parser OFX concluído:', {
       numTransactions: parseResult.transactions?.length || 0,
       bankInfo: parseResult.bankInfo,
+      ledgerBalance: parseResult.balance?.amount ?? null,
+      calculatedOpeningBalance,
       safeMode
     });
 
@@ -283,7 +296,7 @@ export async function POST(request: NextRequest) {
           agencyNumber: parseResult.bankInfo?.branchId || '0000',
           accountNumber: parseResult.bankInfo?.accountId || '00000-0',
           accountType: parseResult.bankInfo?.accountType || 'checking',
-          openingBalance: '0',
+          openingBalance: calculatedOpeningBalance,
           active: true,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -314,7 +327,7 @@ export async function POST(request: NextRequest) {
         agencyNumber: '0000',
         accountNumber: '00000-0',
         accountType: 'checking',
-        openingBalance: '0',
+        openingBalance: calculatedOpeningBalance,
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -360,9 +373,22 @@ export async function POST(request: NextRequest) {
           bankName: parseResult.bankInfo?.bankName,
           companyId: defaultCompany.id  // ⬅️ ADICIONADO: necessário para categorização
         }
-      ).catch(error => {
+      ).catch(async (error) => {
         console.error('❌ Erro no processamento assíncrono:', error);
+        try {
+          await db
+            .update(uploads)
+            .set({
+              status: 'failed',
+              processingLog: { error: error instanceof Error ? error.message : 'Erro no processamento assíncrono' }
+            })
+            .where(eq(uploads.id, newUpload.id));
+        } catch (dbError) {
+          console.error('❌ Falha ao marcar upload como failed:', dbError);
+        }
       });
+
+      const isNewAccount = accountMatchType === 'criada automaticamente do OFX' || accountMatchType === 'criada automaticamente (genérica)';
 
       // Retornar imediatamente com informações básicas
       return NextResponse.json({
@@ -378,6 +404,13 @@ export async function POST(request: NextRequest) {
             id: defaultAccount.id,
             name: defaultAccount.name,
             bankName: defaultAccount.bankName
+          },
+          balanceInfo: {
+            autoSet: hasLedgerBalance,
+            amount: parseFloat(calculatedOpeningBalance),
+            accountId: defaultAccount.id,
+            accountName: defaultAccount.name,
+            isNewAccount
           },
           message: 'Upload registrado com sucesso. Processamento iniciado em background.',
           progressEndpoint: `/api/uploads/${newUpload.id}/progress`
@@ -467,6 +500,8 @@ export async function POST(request: NextRequest) {
       .filter(t => parseFloat(t.amount || '0') < 0)
       .reduce((sum, t) => sum + parseFloat(t.amount || '0'), 0));
 
+    const isNewAccount = accountMatchType === 'criada automaticamente do OFX' || accountMatchType === 'criada automaticamente (genérica)';
+
     const analysisResult = {
       fileInfo: {
         name: file.name,
@@ -474,6 +509,13 @@ export async function POST(request: NextRequest) {
         uploadDate: new Date().toISOString()
       },
       bankInfo: parseResult.bankInfo,
+      balanceInfo: {
+        autoSet: hasLedgerBalance,
+        amount: parseFloat(calculatedOpeningBalance),
+        accountId: defaultAccount.id,
+        accountName: defaultAccount.name,
+        isNewAccount
+      },
       company: {
         id: defaultCompany.id,
         name: defaultCompany.name

@@ -33,6 +33,7 @@ export interface ProcessingProgress {
   status: 'processing' | 'completed' | 'failed' | 'paused';
   percentage: number;
   estimatedTimeRemaining?: number;
+  errorMessage?: string;
 }
 
 export class BatchProcessingService {
@@ -370,12 +371,17 @@ export class BatchProcessingService {
         `(${result.confidence}% via ${result.source})`
       );
 
+      // Garantir que categoryId nunca seja uma string vazia — usar null se inválido
+      const validCategoryId = result.categoryId && result.categoryId.trim() !== ''
+        ? result.categoryId
+        : null;
+
       return {
-        categoryId: result.categoryId,
+        categoryId: validCategoryId,
         categoryName: result.categoryName,
         confidence: result.confidence,
         reasoning: result.reasoning || '',
-        reason: result.reason, // Passar o objeto estruturado
+        reason: result.reason,
         source: result.source,
         ruleId: result.ruleId
       };
@@ -434,15 +440,21 @@ export class BatchProcessingService {
       ? Math.round(((upload.processedTransactions ?? 0) / (upload.totalTransactions ?? 0)) * 100)
       : 0;
 
+    // Extrair mensagem de erro do processingLog se o status for failed
+    const errorMessage = upload.status === 'failed' && upload.processingLog
+      ? (upload.processingLog as Record<string, string>).error ?? 'Erro desconhecido no processamento'
+      : undefined;
+
     return {
       uploadId,
       currentBatch: upload.currentBatch || 0,
       totalBatches: upload.totalBatches || 0,
       processedTransactions: upload.processedTransactions || 0,
       totalTransactions: upload.totalTransactions || 0,
-      status: upload.status as any,
+      status: upload.status as ProcessingProgress['status'],
       percentage,
-      estimatedTimeRemaining: await this.calculateEstimatedTime(upload)
+      estimatedTimeRemaining: await this.calculateEstimatedTime(upload),
+      errorMessage
     };
   }
 

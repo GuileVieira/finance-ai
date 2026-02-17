@@ -22,11 +22,18 @@ export interface OFXBankInfo {
   branchId?: string;
 }
 
+// Interface para saldo do extrato (LEDGERBAL)
+export interface OFXBalance {
+  amount: number;
+  asOfDate?: string;
+}
+
 // Interface para resultado do parser
 export interface OFXParseResult {
   success: boolean;
   transactions: OFXTransaction[];
   bankInfo?: OFXBankInfo;
+  balance?: OFXBalance;
   startDate?: string;
   endDate?: string;
   error?: string;
@@ -56,6 +63,14 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
     const bankInfo = extractBankInfo(content);
     console.log('🏦 Informações do banco extraídas:', bankInfo);
 
+    // Extrair saldo (LEDGERBAL)
+    const balance = extractLedgerBalance(content);
+    if (balance) {
+      console.log(`💰 LEDGERBAL extraído: ${balance.amount} (${balance.asOfDate || 'sem data'})`);
+    } else {
+      console.log('⚠️ LEDGERBAL não encontrado no arquivo OFX');
+    }
+
     // Extrair transações
     const transactions = extractTransactions(content);
     console.log(`💳 Transações extraídas: ${transactions.length}`);
@@ -81,6 +96,7 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
       success: true,
       transactions,
       bankInfo,
+      balance: balance || undefined,
       startDate,
       endDate
     };
@@ -158,6 +174,39 @@ function extractBankInfo(content: string): OFXBankInfo {
   });
 
   return bankInfo;
+}
+
+// Extrair saldo LEDGERBAL do conteúdo OFX
+function extractLedgerBalance(content: string): OFXBalance | null {
+  // Buscar bloco LEDGERBAL (saldo final do extrato)
+  const ledgerBalRegex = /<LEDGERBAL>([\s\S]*?)(?:<\/LEDGERBAL>|<(?:AVAILBAL|BANKMSGSRSV1|\/STMTRS))/gi;
+  const ledgerMatch = ledgerBalRegex.exec(content);
+
+  if (!ledgerMatch) {
+    return null;
+  }
+
+  const block = ledgerMatch[1];
+
+  // Extrair valor
+  const amountRegex = /<BALAMT>([^<]+)/gi;
+  const amountMatch = amountRegex.exec(block);
+
+  if (!amountMatch || !amountMatch[1]) {
+    return null;
+  }
+
+  const amount = parseFloat(amountMatch[1].trim().replace(',', '.'));
+  if (isNaN(amount)) {
+    return null;
+  }
+
+  // Extrair data (opcional)
+  const dateRegex = /<DTASOF>([^<]+)/gi;
+  const dateMatch = dateRegex.exec(block);
+  const asOfDate = dateMatch?.[1] ? parseOFXDate(dateMatch[1].trim()) : undefined;
+
+  return { amount, asOfDate };
 }
 
 // Extrair transações do conteúdo OFX
