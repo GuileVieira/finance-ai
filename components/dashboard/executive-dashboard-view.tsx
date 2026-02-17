@@ -141,7 +141,7 @@ export function ExecutiveDashboardView({ filters }: ExecutiveDashboardViewProps)
                                 </TableHeader>
                                 <TableBody>
                                     {data.dreTable.map((row) => (
-                                        <TableRow key={row.group}>
+                                        <TableRow key={row.group} className={cn(row.isDerived && "font-bold bg-muted/50")}>
                                             <TableCell className="text-xs font-medium">{row.label}</TableCell>
                                             <TableCell className="text-right text-xs">{formatCurrency(row.actual)}</TableCell>
                                             <TableCell className="text-right text-xs text-muted-foreground">
@@ -149,13 +149,6 @@ export function ExecutiveDashboardView({ filters }: ExecutiveDashboardViewProps)
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    <TableRow className="bg-muted/50 font-bold">
-                                        <TableCell>Resultado Líquido</TableCell>
-                                        <TableCell className="text-right">
-                                            {formatCurrency(data.summary.finalBalance - data.summary.initialBalance)}
-                                        </TableCell>
-                                        <TableCell className="text-right">-</TableCell>
-                                    </TableRow>
                                 </TableBody>
                             </Table>
                         </CardContent>

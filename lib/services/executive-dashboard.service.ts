@@ -24,6 +24,7 @@ export interface ExecutiveDashboardData {
         actual: number;
         projected: number;
         variance: number;
+        isDerived?: boolean;
     }>;
 }
 
@@ -271,13 +272,51 @@ export default class ExecutiveDashboardService {
             ))
             .groupBy(categories.dreGroup);
 
-        return actualsByGroup.map(item => ({
-            group: item.dreGroup || 'OUTROS',
-            label: DRE_GROUP_LABELS[item.dreGroup || ''] || 'Outros',
-            // CRITICAL FIX: Removed Math.abs() to preserve sign (Revenue +, Cost -)
-            actual: item.amount,
-            projected: 0, // TODO: Buscar da tabela projections se necessário no breakdown
-            variance: 0,
-        }));
+        // Build a map of actuals by group code
+        const totals = new Map<string, number>();
+        for (const item of actualsByGroup) {
+            const group = item.dreGroup || 'OUTROS';
+            totals.set(group, (totals.get(group) || 0) + item.amount);
+        }
+
+        // Calculate derived lines
+        const get = (key: string) => totals.get(key) || 0;
+
+        const ro = get('RoB') + get('TDCF');
+        totals.set('RO', ro);
+
+        const mc = ro + get('MP') + get('CV');
+        totals.set('MC', mc);
+
+        const ebit = mc + get('CF');
+        totals.set('EBIT', ebit);
+
+        const lle = ebit + get('RNOP') + get('DNOP');
+        totals.set('LLE', lle);
+
+        const derivedKeys = new Set(['RO', 'MC', 'EBIT', 'LLE']);
+
+        // Build final array, filtered to groups that exist in DRE_GROUPS, sorted by order
+        const result: ExecutiveDashboardData['dreTable'] = [];
+        for (const [group, amount] of totals.entries()) {
+            const def = DRE_GROUPS[group];
+            if (!def) continue;
+            result.push({
+                group,
+                label: def.label,
+                actual: amount,
+                projected: 0,
+                variance: 0,
+                isDerived: derivedKeys.has(group),
+            });
+        }
+
+        result.sort((a, b) => {
+            const orderA = DRE_GROUPS[a.group]?.order ?? 999;
+            const orderB = DRE_GROUPS[b.group]?.order ?? 999;
+            return orderA - orderB;
+        });
+
+        return result;
     }
 }

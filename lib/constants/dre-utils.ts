@@ -23,8 +23,14 @@ export const DRE_GROUPS: Record<string, DreGroupDef> = {
         sign: -1,
         order: 20
     },
-    // RO (Receita Operacional Líquida) is usually calculated: RoB + TDCF
-    
+    RO: {
+        code: 'RO',
+        label: 'Receita Operacional Líquida',
+        description: 'Receita bruta menos deduções (RoB + TDCF)',
+        sign: 1,
+        order: 25
+    },
+
     MP: { // Often mapped to CMV/CSP
         code: 'MP',
         label: 'Custos de Produtos/Serviços',
@@ -32,7 +38,13 @@ export const DRE_GROUPS: Record<string, DreGroupDef> = {
         sign: -1,
         order: 30
     },
-    // MC (Margem de Contribuição) is usually calculated: RO + MP
+    MC: {
+        code: 'MC',
+        label: 'Margem de Contribuição',
+        description: 'Receita líquida menos custos diretos e variáveis (RO + MP + CV)',
+        sign: 1,
+        order: 38
+    },
 
     CV: {
         code: 'CV',
@@ -49,7 +61,13 @@ export const DRE_GROUPS: Record<string, DreGroupDef> = {
         sign: -1,
         order: 40
     },
-    // EBIT is usually calculated: MC + CF
+    EBIT: {
+        code: 'EBIT',
+        label: 'Resultado Operacional (EBIT)',
+        description: 'Margem de contribuição menos despesas fixas (MC + CF)',
+        sign: 1,
+        order: 45
+    },
 
     RNOP: {
         code: 'RNOP',
