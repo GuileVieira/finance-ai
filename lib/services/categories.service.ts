@@ -26,7 +26,7 @@ import {
   isNotNull
 } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getFinancialExclusionClause } from './financial-exclusion';
+import { getFinancialExclusionClause, getCategoryExclusionClause, getTransactionDescriptionExclusionClause } from './financial-exclusion';
 
 export default class CategoriesService {
   /**
@@ -77,7 +77,8 @@ export default class CategoriesService {
       // Apply financial exclusion to hide non-operational/system categories like "Saldo"
       // from the main list unless specifically requested?
       // The user wants them gone from the views.
-      whereConditions.push(getFinancialExclusionClause());
+      // FIXED: Use only category exclusion for the main query to avoid "missing FROM-clause" error
+      whereConditions.push(getCategoryExclusionClause());
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -108,7 +109,9 @@ export default class CategoriesService {
             and(
               eq(categories.id, transactions.categoryId),
               filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
-              filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined
+              filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined,
+              // Apply transaction description exclusion here (e.g. exclude "SALDO TOTAL" snapshots)
+              getTransactionDescriptionExclusionClause()
             )
           )
           .where(whereClause)
@@ -423,7 +426,8 @@ export default class CategoriesService {
       }
 
       // Apply exclusion to summary as well
-      whereConditions.push(getFinancialExclusionClause());
+      // FIXED: Use only category exclusion for the main query
+      whereConditions.push(getCategoryExclusionClause());
 
       const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
@@ -467,7 +471,9 @@ export default class CategoriesService {
             eq(categories.id, transactions.categoryId),
             filters.startDate ? gte(transactions.transactionDate, filters.startDate) : undefined,
             filters.endDate ? lte(transactions.transactionDate, filters.endDate) : undefined,
-            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined
+            filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
+            // Apply transaction description exclusion here
+            getTransactionDescriptionExclusionClause()
           )
         )
         .where(whereClause)

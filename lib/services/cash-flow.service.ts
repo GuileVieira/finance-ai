@@ -89,7 +89,10 @@ export default class CashFlowService {
           whereConditions.push(eq(accounts.companyId, cleanFilters.companyId));
         }
 
-        const whereClause = and(...whereConditions, getFinancialExclusionClause());
+        const whereClause = and(
+          ...whereConditions,
+          getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
+        );
 
         // Buscar transações individuais para calcular fluxo diário
         const allTransactions = await innerTx
@@ -97,6 +100,7 @@ export default class CashFlowService {
             date: sql<string>`transaction_date`,
             type: sql<'credit' | 'debit'>`type_to_sum`,
             amount: sql<number>`amount_to_sum`,
+            description: sql<string>`combined_transactions.description`,
           })
           .from(sql`(
             -- Transações que NÃO possuem desmembramentos
@@ -106,7 +110,8 @@ export default class CashFlowService {
               t.amount as amount_to_sum,
               t.type as type_to_sum,
               t.transaction_date,
-              t.account_id
+              t.account_id,
+              t.description
             FROM ${transactions} t
             WHERE t.id NOT IN (SELECT transaction_id FROM ${transactionSplits})
             
@@ -119,7 +124,8 @@ export default class CashFlowService {
               ts.amount as amount_to_sum,
               t.type as type_to_sum,
               t.transaction_date,
-              t.account_id
+              t.account_id,
+              t.description
             FROM ${transactionSplits} ts
             JOIN ${transactions} t ON ts.transaction_id = t.id
           ) as combined_transactions`)
