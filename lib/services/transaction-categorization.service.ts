@@ -39,8 +39,11 @@ export interface CategorizationResult {
   categoryId: string;
   categoryName: string;
   confidence: number;           // 0-100
-  source: 'cache' | 'rule' | 'history' | 'ai' | 'manual';
+  source: 'cache' | 'cache-exact' | 'cache-similar' | 'rule' | 'history' | 'ai' | 'manual';
   ruleId?: string;             // Se foi categorizado por regra
+  needsReview?: boolean;       // Se a categorização precisa de revisão
+  suggestions?: any[];         // Sugestões para revisão
+  movementType?: string;       // Tipo de movimento identificado
   reasoning?: string;
   metadata?: {
     matchedText?: string;
@@ -119,7 +122,7 @@ export class TransactionCategorizationService {
     // CAMADA 1: Cache
     if (!skipCache) {
       attemptedSources.push('cache');
-      result = await this.tryCache(context);
+      result = await this.tryCache(context, companyId);
 
       if (result && result.confidence >= confidenceThreshold) {
         result.metadata = { ...result.metadata, attemptedSources };
@@ -138,7 +141,9 @@ export class TransactionCategorizationService {
         // Adicionar ao cache para acelerar futuras buscas
         categoryCacheService.addToCache(
           context.description,
+          result.categoryId,
           result.categoryName,
+          companyId,
           result.confidence / 100
         );
 
@@ -157,7 +162,9 @@ export class TransactionCategorizationService {
         // Adicionar ao cache
         categoryCacheService.addToCache(
           context.description,
+          result.categoryId,
           result.categoryName,
+          companyId,
           result.confidence / 100
         );
 
@@ -177,7 +184,9 @@ export class TransactionCategorizationService {
         if (result.confidence >= 80) {
           categoryCacheService.addToCache(
             context.description,
+            result.categoryId,
             result.categoryName,
+            companyId,
             result.confidence / 100
           );
         }
@@ -220,46 +229,44 @@ export class TransactionCategorizationService {
       }
     }
 
-    // Se chegou aqui, não conseguiu categorizar
-    throw new Error(
-      `Unable to categorize transaction: ${context.description}. ` +
-      `Tried: ${attemptedSources.join(', ')}`
-    );
+    // Se chegou aqui, não conseguiu categorizar com confiança suficiente
+    // Em vez de lançar erro, retornamos um resultado que pede revisão
+    return {
+      categoryId: '',
+      categoryName: 'Não classificado',
+      confidence: 0,
+      needsReview: true,
+      source: 'manual',
+      reasoning: `Não foi possível categorizar com confiança >= ${confidenceThreshold}%. Tried: ${attemptedSources.join(', ')}`,
+      suggestions: attemptedSources.includes('ai') ? [] : [], // Poderíamos coletar os "quase matches" aqui
+      metadata: { attemptedSources }
+    };
   }
 
   /**
-   * CAMADA 1: Verificar cache
+   * CAMADA 1: Verificar cache (segmentado por empresa)
    */
   private static async tryCache(
-    context: TransactionContext
+    context: TransactionContext,
+    companyId: string
   ): Promise<CategorizationResult | null> {
-    const categoryName = categoryCacheService.findInCache(
+    const cacheResult = categoryCacheService.findInCache(
       context.description,
+      companyId,
       0.95 // 95% similaridade para cache
     );
 
-    if (!categoryName) {
+    if (!cacheResult) {
       return null;
     }
 
-    // Buscar categoryId do nome
-    const category = await db
-      .select({ id: categories.id, name: categories.name })
-      .from(categories)
-      .where(eq(categories.name, categoryName))
-      .limit(1);
-
-    if (category.length === 0) {
-      console.warn(`Cache returned category "${categoryName}" but it doesn't exist in DB`);
-      return null;
-    }
-
+    // O cache agora guarda categoryId diretamente — não precisa re-consultar o banco
     return {
-      categoryId: category[0].id,
-      categoryName: category[0].name,
-      confidence: 95, // Cache tem alta confiança por padrão
-      source: 'cache',
-      reasoning: 'Found similar transaction in cache'
+      categoryId: cacheResult.categoryId,
+      categoryName: cacheResult.categoryName,
+      confidence: Math.round(cacheResult.confidence * 100),
+      source: cacheResult.source,
+      reasoning: `Found ${cacheResult.source === 'cache-exact' ? 'exact' : 'similar'} transaction in cache`
     };
   }
 
@@ -388,7 +395,7 @@ export class TransactionCategorizationService {
     );
 
     return {
-      categoryId: bestMatch.transaction.categoryId,
+      categoryId: bestMatch.transaction.categoryId || '',
       categoryName: bestMatch.transaction.categoryName || 'Unknown',
       confidence: Math.round(confidence),
       source: 'history',
@@ -419,11 +426,16 @@ export class TransactionCategorizationService {
 
       if (!result) return null;
 
-      // Buscar categoryId do nome retornado pela IA
+      // Buscar categoryId do nome retornado pela IA (filtrado por empresa)
       const category = await db
         .select({ id: categories.id, name: categories.name })
         .from(categories)
-        .where(eq(categories.name, result.category))
+        .where(
+          and(
+            eq(categories.name, result.category),
+            eq(categories.companyId, companyId)
+          )
+        )
         .limit(1);
 
       if (category.length === 0) {
@@ -454,8 +466,8 @@ export class TransactionCategorizationService {
   private static normalizeDescription(description: string): string {
     return description
       .toUpperCase()
-      .replace(/\d+/g, '')
-      .replace(/[^A-Z\s]/g, ' ')
+      .replace(/\d{6,}/g, '')          // Remove só sequências longas (>= 6 dígitos)
+      .replace(/[^A-Z0-9\s]/g, ' ')    // Mantém letras E dígitos curtos
       .replace(/\s+/g, ' ')
       .trim();
   }

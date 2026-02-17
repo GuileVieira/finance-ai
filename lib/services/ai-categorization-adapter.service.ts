@@ -13,6 +13,7 @@ import { aiProviderService } from '@/lib/ai/ai-provider.service';
 import CategoriesService from '@/lib/services/categories.service';
 import { filterCategoriesByTransactionType } from '@/lib/utils/category-filter';
 import { descriptionEnrichmentService, type EnrichedDescription } from './description-enrichment.service';
+import { searchCompanyInfo, searchByCNPJ, ProcessedSearchResult } from '@/lib/tools/duckduckgo-search.tool';
 
 // Cache de categorias do banco para evitar múltiplas consultas
 let cachedCategories: Array<{name: string; type: string}> = [];
@@ -120,6 +121,7 @@ export class AICategorization implements AICategorizationService {
     confidence: number;
     reasoning?: string;
     modelUsed?: string;
+    companyInfo?: any;
   }> {
     try {
       console.log('[AI-ADAPTER] Iniciando categorização direta via aiProviderService');
@@ -136,6 +138,26 @@ export class AICategorization implements AICategorizationService {
         }
       } catch (enrichError) {
         console.warn('[AI-ADAPTER] Erro ao enriquecer descrição, continuando sem enriquecimento:', enrichError);
+      }
+
+      // NOVO: Tentar extrair informações de empresa da descrição (DuckDuckGo)
+      // Se encontrarmos o CNPJ ou o setor da empresa, isso pode economizar uma chamada de IA 
+      // ou prover contexto valioso.
+      console.log('[AI-ADAPTER] Tentando extrair informações de empresa da descrição...');
+      const companyInfo = await this.extractCompanyInfo(context.description, context.memo ?? undefined);
+
+      if (companyInfo && companyInfo.confidence > 0.3) {
+        const companyBasedCategoryName = this.getCompanyBasedCategory(companyInfo, context.amount ?? 0);
+        if (companyBasedCategoryName) {
+           console.log(`[AI-ADAPTER] Categoria baseada na pesquisa de empresa: "${companyBasedCategoryName}"`);
+           return {
+             category: companyBasedCategoryName,
+             confidence: Math.min(0.85, companyInfo.confidence),
+             reasoning: `Categoria determinada por pesquisa web: "${companyInfo.companyName}" - Atividade: ${companyInfo.activity || 'não identificada'}`,
+             modelUsed: 'company-research',
+             companyInfo
+           };
+        }
       }
 
       // Buscar categorias do banco de dados
@@ -206,7 +228,7 @@ REGRAS:
             },
             {
               role: 'user' as const,
-              content: `Categorize a transação: "${context.description}" (R$ ${(context.amount ?? 0).toFixed(2)})`
+              content: `Categorize a transação: "${context.description}" (R$ ${(context.amount ?? 0).toFixed(2)})${companyInfo ? `\n\nINFORMAÇÕES DA EMPRESA:\n• Nome: ${companyInfo.companyName}\n• Setor: ${companyInfo.sector}\n• Atividade: ${companyInfo.activity}` : ''}`
             }
           ];
 
@@ -359,6 +381,72 @@ REGRAS:
           // Por enquanto, apenas não aplicamos regra e deixamos IA com o prompt enriquecido resolver,
           // mas o "bankingTerm" FIDC acima já deve ter capturado.
        }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extrai informações de empresa da descrição usando DuckDuckGo
+   */
+  private async extractCompanyInfo(description: string, memo?: string): Promise<ProcessedSearchResult | null> {
+    try {
+      const fullText = `${description} ${memo || ''}`.toLowerCase();
+
+      // 1. Procurar por CNPJ no texto
+      const cnpjMatch = fullText.match(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/);
+      if (cnpjMatch) {
+        const searchResult = await searchByCNPJ(cnpjMatch[0]);
+        if (searchResult.confidence > 0.3) return searchResult;
+      }
+
+      // 2. Tentar identificar nome de empresa por padrões
+      const companyPatterns = [
+        /\b([A-Z][A-ZÀ-ÿ\s]+) LTDA\.?\b/gi,
+        /\b([A-Z][A-ZÀ-ÿ\s]+) S\.?A\.?\b/gi,
+        /\b([A-Z][A-ZÀ-ÿ\s]+) ME\b/gi,
+        /\b([A-Z][A-ZÀ-ÿ\s]+) EPP\b/gi,
+      ];
+
+      for (const pattern of companyPatterns) {
+        const matches = fullText.match(pattern);
+        if (matches) {
+          const companyName = matches[0].trim();
+          if (companyName.length > 5) {
+            const searchResult = await searchCompanyInfo(companyName);
+            if (searchResult.confidence > 0.3) return searchResult;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[AI-ADAPTER] Erro ao pesquisar empresa:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Determina categoria com base nas informações da empresa (Setor/Atividade)
+   */
+  private getCompanyBasedCategory(companyInfo: ProcessedSearchResult, amount: number): string | null {
+    if (companyInfo.isFinancial) return 'Financeiros e Bancários';
+
+    if (companyInfo.sector === 'Comércio') {
+      return amount > 10000 ? 'Custos de Produtos' : 'Utilidades e Insumos';
+    }
+
+    if (companyInfo.sector === 'Indústria') return 'Custos de Produtos';
+
+    if (companyInfo.sector === 'Serviços') {
+      const act = companyInfo.activity?.toLowerCase() || '';
+      if (act.includes('consultoria') || act.includes('contabilidade') || act.includes('advocacia')) {
+        return 'Serviços Profissionais';
+      }
+      if (act.includes('tecnologia') || act.includes('software')) {
+        return 'Tecnologia e Software';
+      }
+      return 'Serviços Profissionais';
     }
 
     return null;

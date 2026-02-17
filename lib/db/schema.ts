@@ -140,6 +140,9 @@ export const transactions = pgTable('financeai_transactions', {
   // Novos campos para rastreamento de categorização
   categorizationSource: varchar('categorization_source', { length: 20 }), // cache, rule, history, ai, manual
   ruleId: uuid('rule_id').references(() => categoryRules.id, { onDelete: 'set null' }), // Se foi categorizado por regra
+  needsReview: boolean('needs_review').default(false), // Se a categorização precisa de revisão
+  reviewSuggestions: json('review_suggestions'), // Sugestões da IA para revisão
+  movementType: varchar('movement_type', { length: 30 }), // operacional_receita, deducao, custo_direto, etc.
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({

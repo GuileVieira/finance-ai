@@ -30,6 +30,7 @@ export interface TransactionContext {
   memo?: string | null;
   name?: string | null;
   amount?: number;
+  balance?: number;
 }
 
 /**
@@ -93,8 +94,8 @@ export class RuleScoringService {
 
     return {
       ruleId: rule.id,
-      categoryId: rule.categoryId,
-      pattern: rule.rulePattern,
+      categoryId: rule.categoryId || '',
+      pattern: rule.rulePattern || '',
       ruleType: rule.ruleType,
       matchedText,
       score: finalScore,

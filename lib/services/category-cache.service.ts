@@ -1,15 +1,21 @@
 /**
  * Serviço de Cache para Categorização de Transações
  *
+ * v2.0 - Multi-tenant seguro:
+ *   - Chave de cache inclui companyId (isolamento obrigatório)
+ *   - Guarda categoryId (não apenas nome)
+ *   - Normalização menos destrutiva (preserva dígitos curtos)
+ *
  * Evita chamadas desnecessárias para IA cacheando descrições similares
- * Economia estimada: 30% das transações podem usar cache
  */
 
 export interface CachedCategory {
-  category: string;
+  categoryId: string;    // ID da categoria no banco
+  categoryName: string;  // Nome legível (para logs)
+  companyId: string;     // Isolamento multi-tenant
   confidence: number;
   timestamp: Date;
-  hitCount: number; // Quantas vezes foi reutilizado
+  hitCount: number;
 }
 
 export interface CacheStats {
@@ -18,6 +24,14 @@ export interface CacheStats {
   hitRate: number;
   oldestEntry: Date | null;
   newestEntry: Date | null;
+  byCompany: Record<string, number>;
+}
+
+export interface CacheLookupResult {
+  categoryId: string;
+  categoryName: string;
+  confidence: number;
+  source: 'cache-exact' | 'cache-similar';
 }
 
 class CategoryCacheService {
@@ -26,16 +40,29 @@ class CategoryCacheService {
   private totalLookups = 0;
 
   /**
-   * Normaliza descrição da transação para matching
-   * Remove números, caracteres especiais e normaliza espaços
+   * Normaliza descrição da transação para matching.
+   *
+   * v2.0 - Menos destrutiva:
+   *   - Remove apenas sequências de 6+ dígitos (IDs, NSUs, protocolos)
+   *   - Mantém dígitos curtos (13º, 3G, PIX 1234)
+   *   - Preserva tokens discriminantes
    */
   private normalizeDescription(description: string): string {
     return description
       .toUpperCase()
-      .replace(/\d+/g, '') // Remove todos números
-      .replace(/[^A-Z\s]/g, ' ') // Remove caracteres especiais, mantém espaços
-      .replace(/\s+/g, ' ') // Normaliza múltiplos espaços
+      .replace(/\d{6,}/g, '')          // Remove só sequências longas (>= 6 dígitos)
+      .replace(/[^A-Z0-9\s]/g, ' ')    // Mantém letras E dígitos curtos
+      .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  /**
+   * Gera chave de cache segmentada por empresa.
+   * Formato: "companyId::normalizedDescription"
+   */
+  private generateCacheKey(description: string, companyId: string): string {
+    const normalized = this.normalizeDescription(description);
+    return `${companyId}::${normalized}`;
   }
 
   /**
@@ -45,7 +72,6 @@ class CategoryCacheService {
   private levenshteinDistance(str1: string, str2: string): number {
     const matrix: number[][] = [];
 
-    // Inicializar matriz
     for (let i = 0; i <= str1.length; i++) {
       matrix[i] = [i];
     }
@@ -53,16 +79,15 @@ class CategoryCacheService {
       matrix[0][j] = j;
     }
 
-    // Preencher matriz
     for (let i = 1; i <= str1.length; i++) {
       for (let j = 1; j <= str2.length; j++) {
         if (str1[i - 1] === str2[j - 1]) {
           matrix[i][j] = matrix[i - 1][j - 1];
         } else {
           matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1, // substituição
-            matrix[i][j - 1] + 1,     // inserção
-            matrix[i - 1][j] + 1      // remoção
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
           );
         }
       }
@@ -88,75 +113,109 @@ class CategoryCacheService {
   }
 
   /**
+   * Extrai o sufixo de descrição normalizada da chave (remove prefixo companyId::)
+   */
+  private getDescriptionFromKey(key: string): string {
+    const separatorIndex = key.indexOf('::');
+    return separatorIndex >= 0 ? key.substring(separatorIndex + 2) : key;
+  }
+
+  /**
+   * Extrai o companyId do prefixo da chave
+   */
+  private getCompanyIdFromKey(key: string): string {
+    const separatorIndex = key.indexOf('::');
+    return separatorIndex >= 0 ? key.substring(0, separatorIndex) : '';
+  }
+
+  /**
    * Busca categoria no cache (match exato ou por similaridade)
+   * SEGURO: filtra obrigatoriamente por companyId
    *
    * @param description - Descrição original da transação
+   * @param companyId - ID da empresa (obrigatório para isolamento)
    * @param similarityThreshold - Threshold de similaridade (padrão: 0.90)
-   * @returns Categoria encontrada ou null
+   * @returns Resultado encontrado ou null
    */
   public findInCache(
     description: string,
+    companyId: string,
     similarityThreshold = 0.90
-  ): string | null {
+  ): CacheLookupResult | null {
     this.totalLookups++;
 
+    const cacheKey = this.generateCacheKey(description, companyId);
     const normalized = this.normalizeDescription(description);
 
-    // 1. Tentar match exato primeiro (mais rápido)
-    if (this.cache.has(normalized)) {
-      const entry = this.cache.get(normalized)!;
+    // 1. Match exato (rápido)
+    if (this.cache.has(cacheKey)) {
+      const entry = this.cache.get(cacheKey)!;
       entry.hitCount++;
       this.totalHits++;
 
-      console.log(`💾 [CACHE-HIT-EXACT] "${description}" → "${entry.category}" (hit #${entry.hitCount})`);
-      return entry.category;
+      console.log(`💾 [CACHE-HIT-EXACT] [${companyId.slice(0,8)}] "${description}" → "${entry.categoryName}" (hit #${entry.hitCount})`);
+      return {
+        categoryId: entry.categoryId,
+        categoryName: entry.categoryName,
+        confidence: entry.confidence,
+        source: 'cache-exact'
+      };
     }
 
-    // 2. Buscar por similaridade (mais lento, mas efetivo)
-    let bestMatch: {key: string; similarity: number; category: string} | null = null;
+    // 2. Busca por similaridade (apenas dentro da mesma empresa)
+    let bestMatch: { key: string; similarity: number; entry: CachedCategory } | null = null;
 
-    for (const [key, value] of this.cache.entries()) {
-      const similarity = this.calculateSimilarity(normalized, key);
+    for (const [key, entry] of this.cache.entries()) {
+      // ISOLAMENTO: só comparar com entradas da mesma empresa
+      if (this.getCompanyIdFromKey(key) !== companyId) continue;
+
+      const cachedDescription = this.getDescriptionFromKey(key);
+      const similarity = this.calculateSimilarity(normalized, cachedDescription);
 
       if (similarity >= similarityThreshold) {
         if (!bestMatch || similarity > bestMatch.similarity) {
-          bestMatch = {
-            key,
-            similarity,
-            category: value.category
-          };
+          bestMatch = { key, similarity, entry };
         }
       }
     }
 
     if (bestMatch) {
-      const entry = this.cache.get(bestMatch.key)!;
-      entry.hitCount++;
+      bestMatch.entry.hitCount++;
       this.totalHits++;
 
       console.log(
-        `💾 [CACHE-HIT-SIMILAR] "${description}" → "${entry.category}" ` +
-        `(${(bestMatch.similarity * 100).toFixed(1)}% similar, hit #${entry.hitCount})`
+        `💾 [CACHE-HIT-SIMILAR] [${companyId.slice(0,8)}] "${description}" → "${bestMatch.entry.categoryName}" ` +
+        `(${(bestMatch.similarity * 100).toFixed(1)}% similar, hit #${bestMatch.entry.hitCount})`
       );
 
-      return entry.category;
+      return {
+        categoryId: bestMatch.entry.categoryId,
+        categoryName: bestMatch.entry.categoryName,
+        confidence: bestMatch.entry.confidence * bestMatch.similarity, // Desconta pela similaridade
+        source: 'cache-similar'
+      };
     }
 
     // 3. Cache miss
-    console.log(`❌ [CACHE-MISS] "${description}" (não encontrado)`);
+    console.log(`❌ [CACHE-MISS] [${companyId.slice(0,8)}] "${description}" (não encontrado)`);
     return null;
   }
 
   /**
    * Adiciona entrada no cache
+   * SEGURO: sempre vinculada a um companyId
    *
    * @param description - Descrição da transação
-   * @param category - Categoria identificada
+   * @param categoryId - ID da categoria no banco (não apenas nome)
+   * @param categoryName - Nome legível da categoria (para logs)
+   * @param companyId - ID da empresa (obrigatório)
    * @param confidence - Confiança da classificação (0-1)
    */
   public addToCache(
     description: string,
-    category: string,
+    categoryId: string,
+    categoryName: string,
+    companyId: string,
     confidence: number
   ): void {
     // Só cachear se tiver alta confiança (>= 0.8)
@@ -165,25 +224,29 @@ class CategoryCacheService {
       return;
     }
 
-    const normalized = this.normalizeDescription(description);
+    const cacheKey = this.generateCacheKey(description, companyId);
 
-    // Verificar se já existe (atualizar timestamp se existir)
-    if (this.cache.has(normalized)) {
-      const existing = this.cache.get(normalized)!;
+    // Atualizar timestamp se já existir
+    if (this.cache.has(cacheKey)) {
+      const existing = this.cache.get(cacheKey)!;
       existing.timestamp = new Date();
-      console.log(`🔄 [CACHE-UPDATE] "${description}" → "${category}"`);
+      existing.categoryId = categoryId;
+      existing.categoryName = categoryName;
+      console.log(`🔄 [CACHE-UPDATE] [${companyId.slice(0,8)}] "${description}" → "${categoryName}"`);
       return;
     }
 
     // Adicionar nova entrada
-    this.cache.set(normalized, {
-      category,
+    this.cache.set(cacheKey, {
+      categoryId,
+      categoryName,
+      companyId,
       confidence,
       timestamp: new Date(),
       hitCount: 0
     });
 
-    console.log(`✅ [CACHE-ADD] "${description}" → "${category}" (confidence: ${confidence})`);
+    console.log(`✅ [CACHE-ADD] [${companyId.slice(0,8)}] "${description}" → "${categoryName}" (confidence: ${confidence})`);
   }
 
   /**
@@ -191,6 +254,11 @@ class CategoryCacheService {
    */
   public getStats(): CacheStats {
     const entries = Array.from(this.cache.values());
+    const byCompany: Record<string, number> = {};
+
+    for (const entry of entries) {
+      byCompany[entry.companyId] = (byCompany[entry.companyId] || 0) + 1;
+    }
 
     return {
       totalEntries: this.cache.size,
@@ -201,7 +269,8 @@ class CategoryCacheService {
         : null,
       newestEntry: entries.length > 0
         ? new Date(Math.max(...entries.map(e => e.timestamp.getTime())))
-        : null
+        : null,
+      byCompany
     };
   }
 
@@ -217,11 +286,28 @@ class CategoryCacheService {
   }
 
   /**
+   * Limpa cache apenas de uma empresa específica
+   */
+  public clearByCompany(companyId: string): number {
+    let removed = 0;
+    for (const key of this.cache.keys()) {
+      if (this.getCompanyIdFromKey(key) === companyId) {
+        this.cache.delete(key);
+        removed++;
+      }
+    }
+    if (removed > 0) {
+      console.log(`🗑️ [CACHE-CLEAR-COMPANY] ${removed} entradas removidas para empresa ${companyId.slice(0,8)}`);
+    }
+    return removed;
+  }
+
+  /**
    * Remove entradas antigas do cache (> 30 dias)
    */
   public cleanOldEntries(maxAgeDays = 30): number {
     const now = Date.now();
-    const maxAge = maxAgeDays * 24 * 60 * 60 * 1000; // dias para ms
+    const maxAge = maxAgeDays * 24 * 60 * 60 * 1000;
     let removed = 0;
 
     for (const [key, value] of this.cache.entries()) {
@@ -250,6 +336,15 @@ class CategoryCacheService {
     console.log(`   Total de hits: ${stats.totalHits}`);
     console.log(`   Taxa de acerto: ${stats.hitRate.toFixed(2)}%`);
 
+    // Entradas por empresa
+    const companyCounts = Object.entries(stats.byCompany);
+    if (companyCounts.length > 0) {
+      console.log(`   Empresas no cache: ${companyCounts.length}`);
+      companyCounts.forEach(([companyId, count]) => {
+        console.log(`     - ${companyId.slice(0,8)}...: ${count} entradas`);
+      });
+    }
+
     if (stats.oldestEntry) {
       console.log(`   Entrada mais antiga: ${stats.oldestEntry.toLocaleDateString()}`);
     }
@@ -265,7 +360,8 @@ class CategoryCacheService {
     if (topEntries.length > 0) {
       console.log('\n   🏆 Top 10 mais reutilizadas:');
       topEntries.forEach(([key, value], index) => {
-        console.log(`   ${index + 1}. "${key}" → ${value.category} (${value.hitCount} hits)`);
+        const desc = this.getDescriptionFromKey(key);
+        console.log(`   ${index + 1}. [${value.companyId.slice(0,8)}] "${desc}" → ${value.categoryName} (${value.hitCount} hits)`);
       });
     }
 
