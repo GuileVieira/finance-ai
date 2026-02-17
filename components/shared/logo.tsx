@@ -40,9 +40,9 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
 
   return (
     <svg
-      width="220"
+      width="155"
       height="40"
-      viewBox="0 0 220 40"
+      viewBox="0 0 155 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -50,9 +50,9 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       <rect x="5" y="10" width="4" height="20" rx="2" fill={brandColor} />
       <rect x="12" y="18" width="4" height="12" rx="2" fill={brandColor} fillOpacity="0.4" />
       <circle cx="24" cy="14" r="3.5" fill="#FBBF24" />
-      
+
       <text
-        x="40"
+        x="35"
         y="28"
         fill={isDark ? '#F9FAFB' : '#0E0E10'}
         style={{ fontFamily: 'var(--font-outfit), sans-serif', fontWeight: 800, fontSize: '26px', letterSpacing: '-0.5px' }}
@@ -60,7 +60,7 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
         AUDIT
       </text>
       <text
-        x="122"
+        x="117"
         y="28"
         fill={brandColor}
         style={{ fontFamily: 'var(--font-instrument), serif', fontStyle: 'italic', fontSize: '28px', letterSpacing: '1px' }}
