@@ -937,8 +937,8 @@ export class RuleGenerationService {
       const strategy = extraction.strategy || 'fallback';
 
       // 7. Criar regra no banco
-      // PR2: Regras candidatas nascem inactive (active: false).
-      // Só ativam quando promovidas pelo lifecycle (candidate → active).
+      // Regras de IA com alta confiança nascem ativas.
+      // O feedback negativo (rule-lifecycle.service.ts) cuida de desativar regras ruins.
       await db
         .insert(categoryRules)
         .values({
@@ -947,13 +947,13 @@ export class RuleGenerationService {
           categoryId: category.id,
           companyId,
           confidenceScore: ruleConfidence.toFixed(2),
-          active: false,
+          active: true,
           usageCount: 0,
           sourceType: 'ai',
           matchFields: ['description', 'memo', 'name'],
           examples: [description],
           patternStrategy: strategy,
-          status: 'candidate', // Começa como candidata
+          status: 'active',
           createdAt: new Date(),
           updatedAt: new Date()
         });

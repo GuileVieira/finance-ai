@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import { LayoutWrapper } from '@/components/shared/layout-wrapper';
 import { useTransactions } from '@/hooks/use-transactions';
-import { useTransactionGroups } from '@/hooks/use-transaction-groups';
+import { useTransactionGroups, findCommonWords } from '@/hooks/use-transaction-groups';
 import { useAccountsForSelect } from '@/hooks/use-accounts';
 import { useAllCategories } from '@/hooks/use-all-categories';
 import { Search, Download, Plus, Filter, TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle, CheckSquare, X, Upload, FileUp, ArrowRight } from 'lucide-react';
@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { ToastAction } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MetricCardSkeleton } from '@/components/transactions/metric-card-skeleton';
 import { TableSkeleton } from '@/components/transactions/table-skeleton';
@@ -55,6 +56,70 @@ export default function TransactionsPage() {
   const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const periods = periodsResponse?.periods ?? [];
 
+  // Callback para quando merge de categorias é bem-sucedido — sugere criação de regra
+  const handleMergeSuccess = useCallback((data: { transactionIds: string[]; targetCategoryId: string; count: number }) => {
+    // Buscar as transações que foram mescladas para extrair padrão
+    const mergedTransactions = transactions.filter(t => data.transactionIds.includes(t.id));
+    const descriptions = mergedTransactions.map(t => (t.description || '').toLowerCase());
+    const commonWords = findCommonWords(descriptions);
+    const pattern = commonWords.length > 0 ? commonWords.join(' ') : '';
+
+    const category = categoryOptions.find(c => c.value === data.targetCategoryId);
+    const categoryName = category?.label || '';
+
+    // Encontrar a transação mais representativa (maior valor absoluto)
+    const representativeTransaction = mergedTransactions.reduce((best, t) => {
+      const bestAmount = Math.abs(typeof best.amount === 'string' ? parseFloat(best.amount) : best.amount);
+      const currentAmount = Math.abs(typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount);
+      return currentAmount > bestAmount ? t : best;
+    }, mergedTransactions[0]);
+
+    if (pattern && representativeTransaction) {
+      // Padrão encontrado — abrir dialog diretamente
+      toast({
+        title: 'Categorias Mescladas',
+        description: `${data.count} transações atualizadas. Abrindo sugestão de regra...`,
+      });
+
+      setTransactionForRule({
+        id: representativeTransaction.id,
+        description: representativeTransaction.description,
+        amount: typeof representativeTransaction.amount === 'string'
+          ? parseFloat(representativeTransaction.amount)
+          : representativeTransaction.amount,
+        categoryName,
+        selectedCategoryId: data.targetCategoryId,
+      });
+      setRuleDialogOpen(true);
+    } else {
+      // Sem padrão claro — toast com botão para criar regra manualmente
+      toast({
+        title: 'Categorias Mescladas',
+        description: `${data.count} transações atualizadas.`,
+        action: representativeTransaction ? (
+          <ToastAction
+            altText="Criar regra de categorização"
+            onClick={() => {
+              setTransactionForRule({
+                id: representativeTransaction.id,
+                description: representativeTransaction.description,
+                amount: typeof representativeTransaction.amount === 'string'
+                  ? parseFloat(representativeTransaction.amount)
+                  : representativeTransaction.amount,
+                categoryName,
+                selectedCategoryId: data.targetCategoryId,
+              });
+              setRuleDialogOpen(true);
+            }}
+          >
+            Criar Regra
+          </ToastAction>
+        ) : undefined,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, categoryOptions, toast]);
+
   // Hook para gerenciar grupos de transações
   const {
     selectedTransactions,
@@ -68,7 +133,7 @@ export default function TransactionsPage() {
     createCategorizationRule,
     isTransactionSelected,
     selectionStats: hookSelectionStats,
-  } = useTransactionGroups({ companyId: filters.companyId });
+  } = useTransactionGroups({ companyId: filters.companyId, onMergeSuccess: handleMergeSuccess });
 
 
   // Limpar seleção de categoria quando não há transações selecionadas

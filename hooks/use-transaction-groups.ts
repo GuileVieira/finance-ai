@@ -23,11 +23,18 @@ interface GroupOperation {
   pattern?: string;
 }
 
-interface UseTransactionGroupsOptions {
-  companyId: string;
+interface MergeSuccessData {
+  transactionIds: string[];
+  targetCategoryId: string;
+  count: number;
 }
 
-export function useTransactionGroups({ companyId }: UseTransactionGroupsOptions) {
+interface UseTransactionGroupsOptions {
+  companyId: string;
+  onMergeSuccess?: (data: MergeSuccessData) => void;
+}
+
+export function useTransactionGroups({ companyId, onMergeSuccess }: UseTransactionGroupsOptions) {
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [isGroupMode, setIsGroupMode] = useState(false);
   const { toast } = useToast();
@@ -62,15 +69,24 @@ export function useTransactionGroups({ companyId }: UseTransactionGroupsOptions)
 
       return response.json();
     },
-    onSuccess: (data, variables) => {
-      toast({
-        title: 'Categorias Mescladas',
-        description: `${variables.transactionIds.length} transações atualizadas`,
-      });
-
+    onSuccess: (_data, variables) => {
       // Invalidar caches relevantes
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-stats'] });
+
+      // Notificar o componente pai para sugerir criação de regra
+      if (onMergeSuccess) {
+        onMergeSuccess({
+          transactionIds: variables.transactionIds,
+          targetCategoryId: variables.targetCategoryId,
+          count: variables.transactionIds.length,
+        });
+      } else {
+        toast({
+          title: 'Categorias Mescladas',
+          description: `${variables.transactionIds.length} transações atualizadas`,
+        });
+      }
 
       // Limpar seleção
       setSelectedTransactions(new Set());
@@ -271,7 +287,7 @@ export function useTransactionGroups({ companyId }: UseTransactionGroupsOptions)
 }
 
 // Função auxiliar para encontrar palavras comuns
-function findCommonWords(strings: string[]): string[] {
+export function findCommonWords(strings: string[]): string[] {
   if (strings.length === 0) return [];
 
   // Dividir strings em palavras e contar frequência
