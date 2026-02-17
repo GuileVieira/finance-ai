@@ -56,6 +56,34 @@ export default function TransactionsPage() {
   const { data: periodsResponse, isLoading: isLoadingPeriods } = useAvailablePeriods({ companyId: filters.companyId });
   const periods = periodsResponse?.periods ?? [];
 
+  // Filtros com paginação (movido antes do handleMergeSuccess para evitar TDZ)
+  const filtersWithPagination = useMemo(() => ({
+    ...filters,
+    ...extraFilters,
+    page: currentPage,
+    limit: itemsPerPage,
+  }), [filters, extraFilters, currentPage, itemsPerPage]);
+
+  // Usar hook do TanStack Query para buscar transações
+  const {
+    transactions,
+    stats,
+    pagination,
+    isLoading,
+    isLoadingStats,
+    isRefetching,
+    error,
+    statsError,
+    refetch,
+    isEmpty,
+    hasError,
+    prefetchNextPage,
+    updateTransactionCategory,
+  } = useTransactions(filtersWithPagination, {
+    enabled: true,
+    refetchInterval: 1000 * 60 * 5, // Atualizar a cada 5 minutos
+  });
+
   // Callback para quando merge de categorias é bem-sucedido — sugere criação de regra
   const handleMergeSuccess = useCallback((data: { transactionIds: string[]; targetCategoryId: string; count: number }) => {
     // Buscar as transações que foram mescladas para extrair padrão
@@ -200,34 +228,6 @@ export default function TransactionsPage() {
     }
     setCurrentPage(1);
   };
-
-  // Filtros com paginação
-  const filtersWithPagination = useMemo(() => ({
-    ...filters,
-    ...extraFilters,
-    page: currentPage,
-    limit: itemsPerPage,
-  }), [filters, extraFilters, currentPage, itemsPerPage]);
-
-  // Usar hook do TanStack Query para buscar transações
-  const {
-    transactions,
-    stats,
-    pagination,
-    isLoading,
-    isLoadingStats,
-    isRefetching,
-    error,
-    statsError,
-    refetch,
-    isEmpty,
-    hasError,
-    prefetchNextPage,
-    updateTransactionCategory,
-  } = useTransactions(filtersWithPagination, {
-    enabled: true,
-    refetchInterval: 1000 * 60 * 5, // Atualizar a cada 5 minutos
-  });
 
   // Calcular estatísticas da seleção localmente pois dependem dos dados das transações
   const selectionStats = useMemo(() => {
