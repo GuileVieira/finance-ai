@@ -19,6 +19,7 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
   if (!mounted) return null;
 
   const isDark = resolvedTheme === 'dark';
+  const brandColor = isDark ? '#2DD4BF' : '#0D9488'; // #0D9488 is high contrast for Light Mode
 
   if (variant === 'icon') {
     return (
@@ -30,8 +31,8 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
         xmlns="http://www.w3.org/2000/svg"
         className={className}
       >
-        <rect x="10" y="8" width="5" height="24" rx="2.5" fill="#2DD4BF" />
-        <rect x="18" y="16" width="5" height="16" rx="2.5" fill="#2DD4BF" fillOpacity="0.4" />
+        <rect x="10" y="8" width="5" height="24" rx="2.5" fill={brandColor} />
+        <rect x="18" y="16" width="5" height="16" rx="2.5" fill={brandColor} fillOpacity="0.4" />
         <circle cx="30" cy="12" r="4" fill="#FBBF24" />
       </svg>
     );
@@ -46,8 +47,8 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <rect x="5" y="10" width="4" height="20" rx="2" fill="#2DD4BF" />
-      <rect x="12" y="18" width="4" height="12" rx="2" fill="#2DD4BF" fillOpacity="0.4" />
+      <rect x="5" y="10" width="4" height="20" rx="2" fill={brandColor} />
+      <rect x="12" y="18" width="4" height="12" rx="2" fill={brandColor} fillOpacity="0.4" />
       <circle cx="24" cy="14" r="3.5" fill="#FBBF24" />
       
       <text
@@ -61,7 +62,7 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       <text
         x="122"
         y="28"
-        fill="#2DD4BF"
+        fill={brandColor}
         style={{ fontFamily: 'var(--font-instrument), serif', fontStyle: 'italic', fontSize: '28px', letterSpacing: '1px' }}
       >
         Go
