@@ -8,7 +8,7 @@ import {
   TrendData,
   TopExpense
 } from '@/lib/api/dashboard';
-import { eq, and, gte, lte, desc, sum, count, avg, sql, not, ilike } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, desc, sum, count, avg, sql, not, ilike } from 'drizzle-orm';
 import { Transaction } from '@/lib/db/schema';
 import { getFinancialExclusionClause } from './financial-exclusion';
 import { createLogger } from '@/lib/logger';
@@ -335,6 +335,9 @@ export default class DashboardService {
         this.checkDatabaseConnection();
         const whereClause = and(...this.getCombinedWhereConditions(cleanFilters));
 
+        // Buscar saldo inicial real (último balance_after antes do período)
+        const openingBalance = await this.getOpeningBalanceForTrend(cleanFilters, innerTx);
+
         // Agrupar por dia
         const dailyData = await innerTx
           .select({
@@ -355,17 +358,22 @@ export default class DashboardService {
           .groupBy(sql`combined_transactions.transaction_date`)
           .orderBy(sql`combined_transactions.transaction_date`);
 
-        // Calcular saldo cumulativo
-        let runningBalance = 0;
-        return dailyData.map((day: any) => {
+        // Calcular saldo cumulativo partindo do saldo real da conta
+        let runningBalance = openingBalance;
+        return dailyData.map((day: { date: string; income: number; expenses: number; transactions: number }, index: number) => {
           runningBalance += (day.income || 0) - (day.expenses || 0);
-          return {
+          const result: TrendData = {
             date: day.date,
             income: day.income || 0,
             expenses: day.expenses || 0,
             balance: runningBalance,
             transactions: day.transactions || 0,
           };
+          // Incluir openingBalance apenas no primeiro item
+          if (index === 0) {
+            result.openingBalance = openingBalance;
+          }
+          return result;
         });
 
       } catch (error) {
@@ -379,6 +387,59 @@ export default class DashboardService {
       return withUser(userId, execute);
     }
     return execute(tx);
+  }
+
+  /**
+   * Buscar saldo inicial para o gráfico de tendências.
+   * Retorna o último balance_after de transação anterior ao período filtrado.
+   * Quando period=all ou sem filtro de data, retorna 0.
+   */
+  private static async getOpeningBalanceForTrend(
+    filters: Omit<DashboardFilters, 'userId'>,
+    tx: typeof db
+  ): Promise<number> {
+    try {
+      // Sem filtro de data = sem saldo inicial (partimos de 0)
+      if (!filters.startDate) {
+        return 0;
+      }
+
+      const whereConditions: ReturnType<typeof eq>[] = [
+        lt(transactions.transactionDate, filters.startDate) as ReturnType<typeof eq>,
+      ];
+
+      if (filters.accountId && filters.accountId !== 'all') {
+        if (this.isUUID(filters.accountId)) {
+          whereConditions.push(eq(transactions.accountId, filters.accountId));
+        } else {
+          whereConditions.push(eq(accounts.bankName, filters.accountId));
+        }
+      }
+
+      if (filters.companyId && filters.companyId !== 'all') {
+        whereConditions.push(eq(accounts.companyId, filters.companyId));
+      }
+
+      const whereClause = and(
+        ...whereConditions,
+        getFinancialExclusionClause()
+      );
+
+      const latestBalance = await tx
+        .select({
+          balance: transactions.balanceAfter,
+        })
+        .from(transactions)
+        .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+        .where(whereClause || undefined)
+        .orderBy(desc(transactions.transactionDate))
+        .limit(1);
+
+      return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
+    } catch (error) {
+      log.error({ err: error }, 'Error getting opening balance for trend');
+      return 0;
+    }
   }
 
   /**

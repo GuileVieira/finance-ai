@@ -41,6 +41,7 @@ export interface TrendData {
   expenses: number;
   balance: number;
   transactions: number;
+  openingBalance?: number;
 }
 
 export interface TopExpense {

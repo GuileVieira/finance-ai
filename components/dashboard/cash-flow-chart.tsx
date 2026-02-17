@@ -87,8 +87,11 @@ export function CashFlowChart({ data, isLoading, period }: CashFlowChartProps) {
     };
   });
 
-  // Calcular saldo mínimo
+  // Calcular saldo mínimo e final
   const minBalance = Math.min(...chartData.map(d => d.balance));
+  const closingBalance = chartData[chartData.length - 1]?.balance ?? 0;
+  const openingBalance = data[0]?.openingBalance;
+  const hasSpecificPeriod = period && period !== 'all';
 
   return (
     <Card>
@@ -120,15 +123,37 @@ export function CashFlowChart({ data, isLoading, period }: CashFlowChartProps) {
             />
           </ComposedChart>
         </ResponsiveContainer>
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">💰 Insight:</span> Saldo mínimo no período foi
-            <span className="text-primary font-semibold"> R$ {minBalance.toLocaleString('pt-BR')}</span>.
-            {!period || period === 'all'
-              ? " Mantenha um buffer de caixa de pelo menos 3 meses de despesas fixas."
-              : " Mantenha um buffer de caixa de pelo menos 30 dias de despesas fixas."
-            }
-          </p>
+        <div className="mt-4 p-3 bg-muted rounded-lg space-y-1">
+          {hasSpecificPeriod && openingBalance != null ? (
+            <>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Saldo Inicial</span>
+                <span className="font-semibold text-foreground">
+                  R$ {openingBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Saldo Mínimo</span>
+                <span className={`font-semibold ${minBalance < 0 ? 'text-red-600' : 'text-foreground'}`}>
+                  R$ {minBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Saldo Final</span>
+                <span className={`font-semibold ${closingBalance < 0 ? 'text-red-600' : 'text-foreground'}`}>
+                  R$ {closingBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Saldo mínimo no período:
+              <span className={`font-semibold ${minBalance < 0 ? 'text-red-600' : 'text-primary'}`}>
+                {' '}R$ {minBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>.
+              {' '}Mantenha um buffer de caixa de pelo menos 3 meses de despesas fixas.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
