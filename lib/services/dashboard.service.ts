@@ -489,14 +489,10 @@ export default class DashboardService {
             ruleId: null,
             createdAt: new Date(),
             updatedAt: new Date(),
-            category: transaction.categoryName ? {
-              id: transaction.categoryId,
-              name: transaction.categoryName,
-              type: transaction.categoryType,
-              colorHex: transaction.categoryColor,
-              icon: transaction.categoryIcon
-            } : null
-          } as any; // Cast as any to avoid strict Transaction type issues with the nested category object
+            categoryName: transaction.categoryName
+              ? this.capitalizeText(transaction.categoryName)
+              : 'Sem Categoria'
+          } as any;
         });
 
       } catch (error) {
