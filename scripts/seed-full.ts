@@ -41,8 +41,12 @@ async function seed() {
   ];
 
   for (const table of tables) {
-    console.log(`  Deleting data from: ${table}`);
-    await db.execute(sql`DELETE FROM ${sql.identifier(table)} CASCADE`);
+    try {
+      console.log(`  Deleting data from: ${table}`);
+      await db.execute(sql`DELETE FROM ${sql.identifier(table)} CASCADE`);
+    } catch (error) {
+      console.log(`  ⚠️  Table ${table} not found or could not be cleared, skipping...`);
+    }
   }
   
   console.log('✅ Tables cleared.');
@@ -50,7 +54,7 @@ async function seed() {
   console.log('👤 Creating test user...');
   const passwordHash = await bcrypt.hash('Gxh3xO9BD', 10);
   const [user] = await db.insert(schema.users).values({
-    name: 'Usuário Teste',
+    name: 'usuario',
     email: 'empresa@teste.com',
     passwordHash: passwordHash,
     isSuperAdmin: true,
@@ -60,9 +64,9 @@ async function seed() {
 
   console.log('🏢 Creating test company...');
   const [company] = await db.insert(schema.companies).values({
-    name: 'Empresa Teste Ltda',
+    name: 'empresa XPTO',
     cnpj: '12345678000199',
-    corporateName: 'Empresa de Teste e Demonstração LTDA',
+    corporateName: 'EMPRESA XPTO LTDA',
     active: true,
   }).returning();
   console.log(`✅ Company created: ${company.name}`);
@@ -75,18 +79,6 @@ async function seed() {
     isDefault: true,
   });
   console.log('✅ User linked to company');
-
-  console.log('🏦 Creating default bank account...');
-  await db.insert(schema.accounts).values({
-    companyId: company.id,
-    name: 'Conta Principal',
-    bankName: 'Banco do Brasil',
-    bankCode: '001',
-    accountNumber: '123456-7',
-    accountType: 'checking',
-    active: true,
-  });
-  console.log('✅ Default account created');
 
   console.log('📊 Seeding categories...');
   const categoriesToInsert = mockCategories.map(cat => ({

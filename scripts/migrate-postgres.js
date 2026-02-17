@@ -8,7 +8,8 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { sql } from 'drizzle-orm';
 import { config } from 'dotenv';
 
-config({ path: '.env.local' });
+config();
+config({ path: '.env.local', override: true });
 
 async function migrateDatabase() {
   console.log('🚀 Migrando banco de dados PostgreSQL...');

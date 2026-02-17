@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:custom": "node scripts/migrate-postgres.js",
     "db:reset": "node scripts/clean-and-migrate.mjs",
+    "db:setup": "pnpm db:reset && npx tsx scripts/seed-full.ts",
     "db:seed:categories": "tsx scripts/seed-categories.ts",
     "db:studio": "drizzle-kit studio",
     "reset-data": "node scripts/reset-data-simple.js",

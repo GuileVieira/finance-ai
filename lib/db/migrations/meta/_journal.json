@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761343491482,
-      "tag": "0000_quiet_nomad",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761346555008,
-      "tag": "0001_strong_lenny_balinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1763347512623,
-      "tag": "0002_dry_captain_cross",
+      "when": 1771340477690,
+      "tag": "0000_legal_sabra",
       "breakpoints": true
     }
   ]
