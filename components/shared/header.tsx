@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { dispatchTutorialEvent } from '@/components/tutorial';
+import { Logo } from './logo';
 
 export function Header() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -39,7 +40,7 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="font-bold text-xl text-primary">FINANCEAI</div>
+            <Logo className="h-8 w-auto" />
           </Link>
 
           {/* Navigation Tabs */}
