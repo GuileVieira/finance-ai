@@ -161,7 +161,7 @@ export class TransactionCategorizationService {
     // CAMADA 2: Regras
     if (!skipRules) {
       attemptedSources.push('rules');
-      const rulesResult = await this.tryRules(context, companyId);
+      const rulesResult = await this.tryRules(context, companyId, movementType);
 
       if (rulesResult && rulesResult.confidence >= confidenceThreshold) {
         // Adicionar ao cache para acelerar futuras buscas
@@ -399,7 +399,8 @@ export class TransactionCategorizationService {
    */
   private static async tryRules(
     context: TransactionContext,
-    companyId: string
+    companyId: string,
+    movementType?: MovementType
   ): Promise<CategorizationResult | null> {
     // Buscar todas as regras ativas da empresa
     const activeRules = await db
@@ -414,49 +415,75 @@ export class TransactionCategorizationService {
         )
       );
 
+    // PR4: Filtrar regras que violam restrições de tipo de movimento
+    // Isso evita que uma regra "burra" (ex: IOF -> Operacional) ganhe de uma "certa" (IOF -> Financeiro)
+    if (movementType) {
+      const allowedTypes = CategorizationValidators.getValidCategoryTypes(movementType);
+      const forbiddenGroups = CategorizationValidators.getForbiddenCategoryGroups(movementType);
+
+      // Filtrar em memória (já que fizemos o fetch join)
+      // Poderia ser no SQL, mas como rules.length é pequeno (<1000), memória é ok e mais seguro com tipos
+      const validRules = activeRules.filter(r => {
+        const cat = r.financeai_categories;
+        
+        // 1. Checar Whitelist de Tipos
+        if (allowedTypes.length > 0 && !allowedTypes.includes(cat.type)) {
+          return false;
+        }
+
+        // 2. Checar Blacklist de Grupos
+        if (cat.dreGroup && forbiddenGroups.includes(cat.dreGroup)) {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (validRules.length === 0) return null;
+      
+      // Converter para formato CategoryRule
+      const rules: CategoryRule[] = validRules.map(r => r.financeai_category_rules);
+      
+      // Usar o sistema de scoring para encontrar a melhor regra
+      const bestMatch = RuleScoringService.findBestMatch(rules, context);
+
+      if (!bestMatch) return null;
+
+      // Buscar nome da categoria
+      const category = validRules.find(r => r.financeai_category_rules.id === bestMatch.ruleId);
+
+      if (!category) return null;
+
+      // Registrar uso positivo da regra (atualiza contadores e avalia promoção)
+      RuleLifecycleService.recordPositiveUse(bestMatch.ruleId).catch(err => {
+        console.warn('Failed to record positive rule use:', err);
+      });
+
+      return {
+        categoryId: bestMatch.categoryId,
+        categoryName: category.financeai_categories.name,
+        confidence: bestMatch.score,
+        source: 'rule',
+        ruleId: bestMatch.ruleId,
+        reason: {
+          code: 'RULE_APPLIED',
+          message: `Regra aplicada: "${bestMatch.pattern}"`,
+          metadata: { ruleId: bestMatch.ruleId, pattern: bestMatch.pattern }
+        },
+        reasoning: `Matched rule pattern: "${bestMatch.pattern}"`,
+        metadata: {
+          matchedText: bestMatch.matchedText,
+          scoringBreakdown: bestMatch.breakdown
+        }
+      };
+    }
+
+    // Fallback: Lógica legado sem filtro (caso movementType falhe ou não seja passado)
     if (activeRules.length === 0) {
       return null;
     }
 
-    // Converter para formato CategoryRule
     const rules: CategoryRule[] = activeRules.map(r => r.financeai_category_rules);
-
-    // Usar o sistema de scoring para encontrar a melhor regra
-    const bestMatch = RuleScoringService.findBestMatch(rules, context);
-
-    if (!bestMatch) {
-      return null;
-    }
-
-    // Buscar nome da categoria
-    const category = activeRules.find(r => r.financeai_category_rules.id === bestMatch.ruleId);
-
-    if (!category) {
-      return null;
-    }
-
-    // Registrar uso positivo da regra (atualiza contadores e avalia promoção)
-    RuleLifecycleService.recordPositiveUse(bestMatch.ruleId).catch(err => {
-      console.warn('Failed to record positive rule use:', err);
-    });
-
-    return {
-      categoryId: bestMatch.categoryId,
-      categoryName: category.financeai_categories.name,
-      confidence: bestMatch.score,
-      source: 'rule',
-      ruleId: bestMatch.ruleId,
-      reason: {
-        code: 'RULE_APPLIED',
-        message: `Regra aplicada: "${bestMatch.pattern}"`,
-        metadata: { ruleId: bestMatch.ruleId, pattern: bestMatch.pattern }
-      },
-      reasoning: `Matched rule pattern: "${bestMatch.pattern}"`,
-      metadata: {
-        matchedText: bestMatch.matchedText,
-        scoringBreakdown: bestMatch.breakdown
-      }
-    };
   }
 
   /**

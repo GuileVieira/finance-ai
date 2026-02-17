@@ -107,6 +107,35 @@ export class CategorizationValidators {
   }
 
   /**
+   * Retorna lista de grupos de DRE proibidos para um dado tipo de movimento.
+   * Usado para filtrar regras e evitar categorizações absurdas.
+   */
+  static getForbiddenCategoryGroups(movementType: MovementType): string[] {
+    switch (movementType) {
+      case 'financeiro':
+      case 'investimento':
+        // Financeiro não deve ser misturado com Operacional (EBITDA)
+        return ['RoB', 'RL', 'CMV', 'CSP', 'DO', 'DA', 'DL', 'Deducao'];
+      
+      case 'operacional_receita':
+        // Receita Operacional não pode ser Despesa Financeira ou Operacional
+        return ['DF', 'DO', 'DA', 'DL', 'CMV', 'CSP'];
+
+      case 'custo_direto':
+      case 'despesa_operacional':
+        // Despesa Operacional não pode ser Receita ou Financeiro
+        return ['RoB', 'RL', 'RF', 'DF']; // DF opcional, as vezes misturam
+
+      case 'transferencia_interna':
+        // Transferência não afeta resultado (nem Op nem Fin)
+        return ['RoB', 'RL', 'CMV', 'CSP', 'DO', 'DA', 'DL', 'DF', 'RF'];
+
+      default:
+        return [];
+    }
+  }
+
+  /**
    * Retorna os tipos de categoria permitidos para um dado tipo de movimento.
    * Usado para filtrar candidatos antes mesmo da classificação.
    */
