@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/drizzle';
-import { categoryRules, transactions, categories } from '@/lib/db/schema';
-import { ilike, or, and, eq, desc, isNull } from 'drizzle-orm';
+import { categoryRules, transactions, categories, accounts } from '@/lib/db/schema';
+import { ilike, or, and, eq, desc, isNull, sql } from 'drizzle-orm';
 
 export interface RuleMatch {
   ruleId: string;
@@ -31,18 +31,19 @@ export class CategoryRulesService {
    */
   static async applyRulesToTransaction(
     transactionDescription: string,
-    companyId?: string
+    companyId: string
   ): Promise<RuleMatch | null> {
     try {
       this.checkDatabaseConnection();
 
       // Construir condições de filtro
-      const conditions = [eq(categoryRules.active, true)];
-
-      // IMPORTANTE: Filtrar por empresa para evitar cross-contamination
-      if (companyId) {
-        conditions.push(eq(categoryRules.companyId, companyId));
-      }
+      const conditions = [
+        eq(categoryRules.active, true),
+        // PR1: Filtrar apenas regras com status maduro (mesmo filtro do pipeline principal)
+        sql`${categoryRules.status} IN ('active', 'refined', 'consolidated')`,
+        // Filtrar por empresa para evitar cross-contamination
+        eq(categoryRules.companyId, companyId),
+      ];
 
       // Buscar regras ativas ordenadas por confidenceScore (maior primeiro)
       const activeRules = await db
@@ -102,7 +103,7 @@ export class CategoryRulesService {
    */
   static async applyRulesToTransactions(
     transactions: Array<{ id: string; description: string }>,
-    companyId?: string
+    companyId: string
   ): Promise<Array<{ transactionId: string; match: RuleMatch | null }>> {
     try {
       this.checkDatabaseConnection();
@@ -127,30 +128,35 @@ export class CategoryRulesService {
 
   /**
    * Categorizar automaticamente transações sem categoria
+   * @param companyId - ID da empresa (OBRIGATÓRIO)
    */
-  static async categorizeUncategorizedTransactions(): Promise<number> {
+  static async categorizeUncategorizedTransactions(companyId: string): Promise<number> {
     try {
       this.checkDatabaseConnection();
 
-      // Buscar transações sem categoria (categoryId é null)
+      // Buscar transações sem categoria (categoryId é null) da empresa
+      // Transações não têm companyId direto, filtramos via join com accounts
       const uncategorizedTransactions = await db
         .select({
           id: transactions.id,
           description: transactions.description,
         })
         .from(transactions)
+        .innerJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(
-          or(
-            isNull(transactions.categoryId),
-            // Se categoryId for string vazia, também considera sem categoria
-            eq(transactions.categoryId, '')
+          and(
+            eq(accounts.companyId, companyId),
+            or(
+              isNull(transactions.categoryId),
+              eq(transactions.categoryId, '')
+            )
           )
         );
 
       let categorizedCount = 0;
 
       for (const transaction of uncategorizedTransactions) {
-        const match = await this.applyRulesToTransaction(transaction.description);
+        const match = await this.applyRulesToTransaction(transaction.description, companyId);
 
         if (match) {
           // Atualizar a transação com a categoria encontrada

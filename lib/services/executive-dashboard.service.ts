@@ -2,6 +2,7 @@ import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts, projections } from '@/lib/db/schema';
 import { DashboardFilters } from '@/lib/api/dashboard';
 import { eq, and, gte, lte, sum, sql, desc, not, ilike } from 'drizzle-orm';
+import { DRE_GROUPS, DRE_GROUP_LABELS } from '@/lib/constants/dre-utils';
 
 export interface ExecutiveDashboardData {
     summary: {
@@ -190,6 +191,7 @@ export default class ExecutiveDashboardService {
                 yearMonth: sql<string>`TO_CHAR(${transactions.transactionDate}, 'YYYY-MM')`,
                 monthName: sql<string>`TO_CHAR(${transactions.transactionDate}, 'Mon')`,
                 dreGroup: categories.dreGroup,
+                // Mantém o sinal: credit = positivo, debit = negativo
                 amount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE -ABS(${transactions.amount}) END`).mapWith(Number),
             })
             .from(transactions)
@@ -236,7 +238,11 @@ export default class ExecutiveDashboardService {
             const projKey = `${item.yearMonth}-${item.dreGroup}`;
             return {
                 month: item.monthName || '',
-                actual: Math.abs(item.amount),
+                // IMPORTANTE: Aqui poderíamos decidir se o gráfico mostra tudo positivo ou não.
+                // Por enquanto, vamos manter assinado para consistência, o front decide como plotar.
+                // Mas cuidado: area charts acumulados geralmente esperam positivo.
+                // Se o usuário quiser DRE visual (cascata), precisa de sinal.
+                actual: item.amount,
                 projected: projectionMap.get(projKey) || 0,
                 dreGroup: item.dreGroup || '',
             };
@@ -248,6 +254,7 @@ export default class ExecutiveDashboardService {
         const actualsByGroup = await db
             .select({
                 dreGroup: categories.dreGroup,
+                // amount já vem somado com sinal correto (credit +, debit -)
                 amount: sum(sql`CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount} ELSE -ABS(${transactions.amount}) END`).mapWith(Number),
             })
             .from(transactions)
@@ -263,21 +270,12 @@ export default class ExecutiveDashboardService {
             ))
             .groupBy(categories.dreGroup);
 
-        // Mapeamento dos labels do DRE
-        const labels: Record<string, string> = {
-            'RoB': 'Receita Bruta',
-            'TDCF': 'Tributos/Devoluções',
-            'MP': 'Matéria Prima/Custos',
-            'CF': 'Custos Fixos',
-            'RNOP': 'Rec. Não Operacional',
-            'DNOP': 'Desp. Não Operacional',
-        };
-
         return actualsByGroup.map(item => ({
             group: item.dreGroup || 'OUTROS',
-            label: labels[item.dreGroup || ''] || 'Outros',
-            actual: Math.abs(item.amount),
-            projected: 0, // TODO: Buscar da tabela projections
+            label: DRE_GROUP_LABELS[item.dreGroup || ''] || 'Outros',
+            // CRITICAL FIX: Removed Math.abs() to preserve sign (Revenue +, Cost -)
+            actual: item.amount,
+            projected: 0, // TODO: Buscar da tabela projections se necessário no breakdown
             variance: 0,
         }));
     }

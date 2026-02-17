@@ -837,13 +837,12 @@ export class RuleGenerationService {
     shouldCreate: boolean;
     reason: string;
   } {
-    // Regra 1: Permitir regras mais fracas (PR3)
-    // Antes: >= 75%
-    // Agora: >= 20% (para capturar weak signals como candidate)
-    if (aiConfidence < 20) {
+    // PR3: Threshold conservador para sistema financeiro
+    // Subido de 20%→70% para evitar regras baseadas em inferências fracas
+    if (aiConfidence < 70) {
       return {
         shouldCreate: false,
-        reason: `Confiança da IA muito baixa: ${aiConfidence}% (Mínimo 20%)`
+        reason: `Confiança da IA muito baixa: ${aiConfidence}% (Mínimo 70%)`
       };
     }
 
@@ -931,6 +930,8 @@ export class RuleGenerationService {
       const strategy = extraction.strategy || 'fallback';
 
       // 7. Criar regra no banco
+      // PR2: Regras candidatas nascem inactive (active: false).
+      // Só ativam quando promovidas pelo lifecycle (candidate → active).
       await db
         .insert(categoryRules)
         .values({
@@ -939,7 +940,7 @@ export class RuleGenerationService {
           categoryId: category.id,
           companyId,
           confidenceScore: ruleConfidence.toFixed(2),
-          active: true,
+          active: false,
           usageCount: 0,
           sourceType: 'ai',
           matchFields: ['description', 'memo', 'name'],

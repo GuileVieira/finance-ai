@@ -27,10 +27,12 @@ const AUTO_LEARNING_CONFIG = {
   // NOTA: Desabilitado por padrão para criar regras imediatamente
   // Habilite quando tiver volume maior de transações (100+)
   useClusteringFirst: false,
-  // Mínimo de transações no cluster para criar regra automaticamente
-  clusterSizeForAutoRule: 2, // Reduzido para ser mais agressivo
-  // Confidence mínima da IA para adicionar ao cluster
-  minConfidenceForClustering: 70,
+  // PR3: Mínimo de transações no cluster para criar regra automaticamente
+  // Subido de 2→5 para evitar regras baseadas em poucos exemplos (sistema financeiro)
+  clusterSizeForAutoRule: 5,
+  // PR3: Confidence mínima da IA para adicionar ao cluster
+  // Subido de 70→85 para garantir qualidade dos clusters
+  minConfidenceForClustering: 85,
   // Processar clusters pendentes periodicamente
   processClustersBatchSize: 10
 };
