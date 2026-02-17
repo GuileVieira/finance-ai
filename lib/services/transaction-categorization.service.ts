@@ -146,79 +146,96 @@ export class TransactionCategorizationService {
     // CAMADA 1: Cache
     if (!skipCache) {
       attemptedSources.push('cache');
-      const cacheResult = await this.tryCache(context, companyId);
+      let cacheResult = await this.tryCache(context, companyId);
 
-      if (cacheResult && cacheResult.confidence >= confidenceThreshold) {
-        return {
-          ...cacheResult,
-          movementType,
-          metadata: { ...cacheResult.metadata, attemptedSources }
-        };
+      if (cacheResult) {
+        // [PR5] Hard Validation: Validar antes de aceitar
+        cacheResult = await this.validateHardConstraints(cacheResult, context);
+
+        if (cacheResult.confidence >= confidenceThreshold) {
+          return {
+            ...cacheResult,
+            movementType,
+            metadata: { ...cacheResult.metadata, attemptedSources }
+          };
+        }
+        result = cacheResult;
       }
-      result = cacheResult;
     }
 
     // CAMADA 2: Regras
     if (!skipRules) {
       attemptedSources.push('rules');
-      const rulesResult = await this.tryRules(context, companyId, movementType);
+      let rulesResult = await this.tryRules(context, companyId, movementType);
 
-      if (rulesResult && rulesResult.confidence >= confidenceThreshold) {
-        // Adicionar ao cache para acelerar futuras buscas
-        categoryCacheService.addToCache(
-          context.description,
-          rulesResult.categoryId,
-          rulesResult.categoryName,
-          companyId,
-          rulesResult.confidence / 100
-        );
+      if (rulesResult) {
+        // [PR5] Hard Validation
+        rulesResult = await this.validateHardConstraints(rulesResult, context);
 
-        return {
-          ...rulesResult,
-          movementType,
-          metadata: { ...rulesResult.metadata, attemptedSources }
-        };
-      }
-      
-      // Se a regra é melhor que nada, guarda como sugestão
-      if (rulesResult && (!result || rulesResult.confidence > result.confidence)) {
-        result = rulesResult;
+        if (rulesResult.confidence >= confidenceThreshold) {
+          // Adicionar ao cache para acelerar futuras buscas
+          categoryCacheService.addToCache(
+            context.description,
+            rulesResult.categoryId,
+            rulesResult.categoryName,
+            companyId,
+            rulesResult.confidence / 100
+          );
+
+          return {
+            ...rulesResult,
+            movementType,
+            metadata: { ...rulesResult.metadata, attemptedSources }
+          };
+        }
+        
+        // Se a regra é melhor que nada, guarda como sugestão
+        if (!result || rulesResult.confidence > result.confidence) {
+          result = rulesResult;
+        }
       }
     }
 
     // CAMADA 3: Histórico
     if (!skipHistory) {
       attemptedSources.push('history');
-      const historyResult = await this.tryHistory(context, companyId, historyDaysLimit);
+      let historyResult = await this.tryHistory(context, companyId, historyDaysLimit);
 
-      if (historyResult && historyResult.confidence >= confidenceThreshold) {
-        categoryCacheService.addToCache(
-          context.description,
-          historyResult.categoryId,
-          historyResult.categoryName,
-          companyId,
-          historyResult.confidence / 100
-        );
+      if (historyResult) {
+         // [PR5] Hard Validation
+         historyResult = await this.validateHardConstraints(historyResult, context);
 
-        return {
-          ...historyResult,
-          movementType,
-          metadata: { ...historyResult.metadata, attemptedSources }
-        };
-      }
+         if (historyResult.confidence >= confidenceThreshold) {
+          categoryCacheService.addToCache(
+            context.description,
+            historyResult.categoryId,
+            historyResult.categoryName,
+            companyId,
+            historyResult.confidence / 100
+          );
 
-      if (historyResult && (!result || historyResult.confidence > result.confidence)) {
-        result = historyResult;
+          return {
+            ...historyResult,
+            movementType,
+            metadata: { ...historyResult.metadata, attemptedSources }
+          };
+        }
+
+        if (!result || historyResult.confidence > result.confidence) {
+          result = historyResult;
+        }
       }
     }
 
     // CAMADA 4: IA
     if (!skipAI) {
       attemptedSources.push('ai');
-      const aiResult = await this.tryAI(context, companyId);
+      let aiResult = await this.tryAI(context, companyId);
 
       if (aiResult) {
-        // Se a IA aprendeu algo confiável, podemos usar
+        // [PR5] Hard Validation
+        aiResult = await this.validateHardConstraints(aiResult, context);
+
         if (aiResult.confidence >= confidenceThreshold) {
           // Adicionar ao cache
           categoryCacheService.addToCache(
@@ -266,49 +283,6 @@ export class TransactionCategorizationService {
         };
         result.confidence = Math.min(result.confidence, 60);
       }
-      
-      // PASSO FINAL: Validadores Duros (Hard Validators)
-      // Bloquear resultados que violam regras contábeis básicas (DRE Reliability)
-      if (result.confidence >= confidenceThreshold && result.categoryId) {
-        try {
-          // Buscar metadados da categoria para validação
-          const categoryMetadata = await db
-            .select({
-              type: categories.type,
-              dreGroup: categories.dreGroup,
-              isIgnored: categories.isIgnored
-            })
-            .from(categories)
-            .where(eq(categories.id, result.categoryId))
-            .limit(1);
-
-          if (categoryMetadata && categoryMetadata.length > 0) {
-            const validation = CategorizationValidators.validate(
-              context,
-              { ...result, movementType },
-              categoryMetadata[0]
-            );
-
-            if (!validation.isValid) {
-              // Se inválido, rebaixar para needsReview e adicionar motivo
-              result = {
-                ...result,
-                confidence: 60, // Forçar abaixo do threshold
-                needsReview: true,
-                reason: {
-                  code: 'MOVEMENT_RESTRICTION',
-                  message: `Regra Contábil: ${validation.reason}`,
-                  metadata: { originalReason: result.reason }
-                },
-                reasoning: `⚠️ ${validation.reason} [Original: ${result.reasoning || 'Auto'}]`
-              };
-            }
-          }
-        } catch (error) {
-          console.error('Error in hard validation:', error);
-          // Falha na validação não deve quebrar o fluxo, mas logar erro
-        }
-      }
     }
 
     // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
@@ -329,8 +303,16 @@ export class TransactionCategorizationService {
 
     // PR1: Hardening Critical - Garantir threshold absoluto
     // Independente da fonte (AI, Regra, etc), se a confiança final for menor que o threshold,
-    // forçar needsReview=true e marcar motivo como LOW_CONFIDENCE
+    // forçar needsReview=true.
+    // [PR5 UPDATE] Exceto se o motivo já for uma violação contábil (hard constraint),
+    // caso em que mantemos o motivo específico.
     if (finalOutcome.confidence < confidenceThreshold) {
+      if (finalOutcome.reason?.code === 'ACCOUNTING_CONSISTENCY_VIOLATION') {
+        finalOutcome = {
+          ...finalOutcome,
+          needsReview: true
+        };
+      } else {
         finalOutcome = {
             ...finalOutcome,
             needsReview: true,
@@ -345,6 +327,7 @@ export class TransactionCategorizationService {
             },
             reasoning: `⚠️ Confiança insuficiente (${finalOutcome.confidence}%). Threshold: ${confidenceThreshold}%`
         };
+      }
     }
 
     return {
@@ -392,6 +375,61 @@ export class TransactionCategorizationService {
       },
       reasoning: message
     };
+  }
+
+  /**
+   * [PR5] Validador Duro: Garante integridade contábil
+   * Bloquear resultados que violam regras contábeis básicas (DRE Reliability)
+   */
+  private static async validateHardConstraints(
+    result: CategorizationResult,
+    context: TransactionContext
+  ): Promise<CategorizationResult> {
+    // Se já foi invalidado ou não tem categoria, retorna como está
+    if (!result.categoryId || !result.confidence || result.confidence < 60) {
+      return result;
+    }
+
+    try {
+      // Buscar metadados da categoria para validação
+      const categoryMetadata = await db
+        .select({
+          type: categories.type,
+          dreGroup: categories.dreGroup,
+          isIgnored: categories.isIgnored
+        })
+        .from(categories)
+        .where(eq(categories.id, result.categoryId))
+        .limit(1);
+
+      if (categoryMetadata && categoryMetadata.length > 0) {
+        const validation = CategorizationValidators.validate(
+          context,
+          result,
+          categoryMetadata[0]
+        );
+
+        if (!validation.isValid) {
+            // Se inválido, rebaixar para needsReview e adicionar motivo
+            return {
+                ...result,
+                confidence: 60, // [PR5] Downgrade forçado
+                needsReview: true,
+                reason: {
+                  code: 'ACCOUNTING_CONSISTENCY_VIOLATION',
+                  message: `Regra Contábil: ${validation.reason}`,
+                  metadata: { originalReason: result.reason }
+                },
+                reasoning: `⚠️ ${validation.reason} [Original: ${result.reasoning || 'Auto'}]`
+            };
+        }
+      }
+    } catch (error) {
+      console.error('Error in hard validation:', error);
+      // Fail-safe: Em caso de erro de DB, não bloqueia, mas loga.
+    }
+
+    return result;
   }
 
   /**
