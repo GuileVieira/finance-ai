@@ -30,8 +30,8 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
         xmlns="http://www.w3.org/2000/svg"
         className={className}
       >
-        <rect x="10" y="8" width="5" height="24" rx="2.5" fill="#7C3AED" />
-        <rect x="18" y="16" width="5" height="16" rx="2.5" fill="#7C3AED" fillOpacity="0.4" />
+        <rect x="10" y="8" width="5" height="24" rx="2.5" fill="#2DD4BF" />
+        <rect x="18" y="16" width="5" height="16" rx="2.5" fill="#2DD4BF" fillOpacity="0.4" />
         <circle cx="30" cy="12" r="4" fill="#FBBF24" />
       </svg>
     );
@@ -46,14 +46,14 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <rect x="5" y="10" width="4" height="20" rx="2" fill="#7C3AED" />
-      <rect x="12" y="18" width="4" height="12" rx="2" fill="#7C3AED" fillOpacity="0.4" />
+      <rect x="5" y="10" width="4" height="20" rx="2" fill="#2DD4BF" />
+      <rect x="12" y="18" width="4" height="12" rx="2" fill="#2DD4BF" fillOpacity="0.4" />
       <circle cx="24" cy="14" r="3.5" fill="#FBBF24" />
       
       <text
         x="40"
         y="28"
-        fill={isDark ? '#F3F4F6' : '#0E0E10'}
+        fill={isDark ? '#F9FAFB' : '#0E0E10'}
         style={{ fontFamily: 'var(--font-outfit), sans-serif', fontWeight: 800, fontSize: '26px', letterSpacing: '-0.5px' }}
       >
         AUDIT
@@ -61,7 +61,7 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       <text
         x="122"
         y="28"
-        fill="#7C3AED"
+        fill="#2DD4BF"
         style={{ fontFamily: 'var(--font-instrument), serif', fontStyle: 'italic', fontSize: '28px', letterSpacing: '1px' }}
       >
         Go
