@@ -3,6 +3,9 @@ import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/
 import { db } from '@/lib/db/connection';
 import { companies, accounts, transactions, uploads } from '@/lib/db/schema';
 import { desc, eq, count } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('test-api');
 
 export async function GET(request: NextRequest) {
   // Desativar em produção
@@ -11,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('🧪 [TEST-API] Iniciando testes do sistema...');
+    log.info('Starting system tests');
 
     // Inicializar banco
     await initializeDatabase();
@@ -117,7 +120,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro no teste:', error);
+    log.error({ err: error }, 'Error in system test');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',

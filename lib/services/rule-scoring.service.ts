@@ -6,6 +6,9 @@
  */
 
 import type { CategoryRule } from '@/lib/db/schema';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('rule-scoring');
 
 export interface ScoringBreakdown {
   matchTypeScore: number;     // 0-1 baseado no tipo (exact=1.0, contains=0.85, regex=0.75)
@@ -232,7 +235,7 @@ export class RuleScoringService {
         }
       } catch (error) {
         // Regex/pattern inválido - tentar fallback
-        console.warn(`Invalid pattern in rule ${rule.id}:`, pattern);
+        log.warn({ ruleId: rule.id, pattern }, 'Invalid pattern in rule');
         if (normalized.includes(pattern.replace(/[*?]/g, ''))) {
           return { matched: true, matchedText: text };
         }

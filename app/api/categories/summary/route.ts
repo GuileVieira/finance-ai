@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-summary');
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-SUMMARY-API] Error fetching categories summary:', error);
+    log.error({ err: error }, 'Error fetching categories summary');
     return NextResponse.json(
       {
         success: false,

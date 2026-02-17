@@ -3,6 +3,9 @@ import { transactions, accounts, categories } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, sql, isNotNull } from 'drizzle-orm';
 import type { Insight, RecurringExpense, InsightThresholds } from '@/lib/types';
 import { DEFAULT_THRESHOLDS } from './threshold.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('recurrence');
 
 interface RecurrenceFilters {
   companyId?: string;
@@ -115,7 +118,7 @@ export default class RecurrenceService {
 
       return recurringExpenses;
     } catch (error) {
-      console.error('Error detecting recurring expenses:', error);
+      log.error({ err: error }, 'Error detecting recurring expenses');
       return [];
     }
   }
@@ -239,7 +242,7 @@ export default class RecurrenceService {
 
       return insights;
     } catch (error) {
-      console.error('Error generating recurrence insights:', error);
+      log.error({ err: error }, 'Error generating recurrence insights');
       return insights;
     }
   }

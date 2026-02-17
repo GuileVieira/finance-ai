@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ReclassificationService } from '@/lib/services/reclassification.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-reclassify');
 
 /**
  * GET - Preview da reclassificação
@@ -55,7 +58,7 @@ export async function GET(
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RECLASSIFY-PREVIEW-ERROR]', error);
+    log.error({ err: error }, 'Error previewing reclassification');
     return NextResponse.json(
       {
         success: false,
@@ -116,7 +119,7 @@ export async function POST(
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RECLASSIFY-ERROR]', error);
+    log.error({ err: error }, 'Error reclassifying transactions');
     return NextResponse.json(
       {
         success: false,

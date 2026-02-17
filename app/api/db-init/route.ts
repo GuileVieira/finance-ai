@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/connection';
 import { companies, accounts, categories } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('db-init');
 
 export async function POST(request: NextRequest) {
   // Desativar em produção
@@ -10,7 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('🚀 [DB-INIT] Inicializando dados no PostgreSQL...');
+    log.info('Initializing data in PostgreSQL');
 
     // Verificar se empresa já existe
     const [existingCompany] = await db.select()
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     let company;
     if (!existingCompany) {
-      console.log('🏢 Criando empresa padrão...');
+      log.info('Creating default company');
       const [newCompany] = await db.insert(companies).values({
         name: 'Empresa Padrão',
         cnpj: '00000000000000',
@@ -28,10 +31,10 @@ export async function POST(request: NextRequest) {
       }).returning();
 
       company = newCompany;
-      console.log('✅ Empresa criada:', newCompany.name);
+      log.info({ name: newCompany.name }, 'Company created');
     } else {
       company = existingCompany;
-      console.log('✅ Empresa já existe:', company.name);
+      log.info({ name: company.name }, 'Company already exists');
     }
 
     // Verificar se conta já existe
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     let account;
     if (!existingAccount) {
-      console.log('🏦 Criando conta padrão...');
+      log.info('Creating default account');
       const [newAccount] = await db.insert(accounts).values({
         companyId: company.id,
         name: 'Conta Principal',
@@ -54,10 +57,10 @@ export async function POST(request: NextRequest) {
       }).returning();
 
       account = newAccount;
-      console.log('✅ Conta criada:', newAccount.name);
+      log.info({ name: newAccount.name }, 'Account created');
     } else {
       account = existingAccount;
-      console.log('✅ Conta já existe:', account.name);
+      log.info({ name: account.name }, 'Account already exists');
     }
 
     // Inserir categorias completas do mock-categories.ts se não existirem
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
       .where(eq(categories.companyId, company.id));
 
     if (existingCategories.length === 0) {
-      console.log('📊 Inserindo categorias completas do mock-categories.ts...');
+      log.info('Inserting categories from mock-categories.ts');
 
       // Importar dados completos do mockCategories
       const { mockCategories } = await import('@/lib/mock-categories');
@@ -84,9 +87,9 @@ export async function POST(request: NextRequest) {
       }));
 
       await db.insert(categories).values(categoriesToInsert);
-      console.log(`✅ ${categoriesToInsert.length} categorias completas inseridas`);
+      log.info({ count: categoriesToInsert.length }, 'Categories inserted');
     } else {
-      console.log('✅ Categorias já existem:', existingCategories.length);
+      log.info({ count: existingCategories.length }, 'Categories already exist');
     }
 
     // Retornar estatísticas
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [DB-INIT] Erro:', error);
+    log.error({ err: error }, 'Error initializing database');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

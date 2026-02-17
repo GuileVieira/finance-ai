@@ -14,6 +14,9 @@
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, categories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('rule-generation');
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -955,9 +958,9 @@ export class RuleGenerationService {
           updatedAt: new Date()
         });
 
-      console.log(
-        `🤖 [AUTO-RULE-CREATED] Pattern: "${extraction.pattern}" (${ruleType}/${strategy}) → ${categoryName} ` +
-        `(confidence: ${(ruleConfidence * 100).toFixed(0)}%)`
+      log.info(
+        { pattern: extraction.pattern, ruleType, strategy, categoryName, confidence: (ruleConfidence * 100).toFixed(0) },
+        'Auto-rule created'
       );
 
       return {
@@ -976,7 +979,7 @@ export class RuleGenerationService {
       };
 
     } catch (error) {
-      console.error('Error creating auto-rule:', error);
+      log.error({ err: error }, 'Error creating auto-rule');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -998,7 +1001,7 @@ export class RuleGenerationService {
       .limit(1);
 
     if (!rule) {
-      console.warn(`Rule ${ruleId} not found`);
+      log.warn({ ruleId }, 'Rule not found');
       return;
     }
 

@@ -4,6 +4,9 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getServerSession } from '@/lib/auth/get-session';
 import { TutorialState } from '@/lib/types/tutorial';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tutorial-api');
 
 // GET - Buscar estado do tutorial do usuário
 export async function GET() {
@@ -37,7 +40,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar estado do tutorial:', error);
+    log.error({ err: error }, 'Error fetching tutorial state');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -92,7 +95,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar estado do tutorial:', error);
+    log.error({ err: error }, 'Error updating tutorial state');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

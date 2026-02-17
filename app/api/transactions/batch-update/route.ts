@@ -3,6 +3,9 @@ import { db } from '@/lib/db/connection';
 import { transactions, categoryRules } from '@/lib/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-batch-update');
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +29,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔄 Atualizando ${transactionIds.length} transações em lote`);
-    console.log(`Updates:`, updates);
+    log.info({ count: transactionIds.length, updates }, 'Atualizando transacoes em lote');
 
     // Construir updates dinamicamente
     const dbUpdates: any = { updatedAt: new Date() };
@@ -43,13 +45,13 @@ export async function POST(request: NextRequest) {
       .where(inArray(transactions.id, transactionIds))
       .returning();
 
-    console.log(`✅ ${result.length} transações atualizadas com sucesso`);
+    log.info({ count: result.length }, 'Transacoes atualizadas com sucesso');
 
     // Se foi uma atualização de categoria via regra, incrementar contador de uso
     if (incrementRuleUsage && updates.categoryId) {
       // Aqui poderíamos incrementar o usageCount da regra,
       // mas precisaríamos identificar qual regra foi usada
-      console.log(`ℹ️ Sugestão: Incrementar contador de uso da regra aplicada`);
+      log.info('Sugestao: Incrementar contador de uso da regra aplicada');
     }
 
     return NextResponse.json({
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar transações em lote:', error);
+    log.error({ err: error }, 'Erro ao atualizar transacoes em lote');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

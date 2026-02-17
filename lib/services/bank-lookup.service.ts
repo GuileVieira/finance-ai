@@ -3,6 +3,9 @@
  */
 
 import { getBankByCode, getBankName, getBankColor, BrazilianBank } from '@/lib/data/brazilian-banks';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('bank-lookup');
 
 // Cache para resultados da IA (evita chamadas repetidas)
 const aiCache = new Map<string, string>();
@@ -69,7 +72,7 @@ export class BankLookupService {
           };
         }
       } catch (error) {
-        console.error(`[BankLookup] Erro ao buscar banco ${normalizedCode} via IA:`, error);
+        log.error({ err: error, bankCode: normalizedCode }, 'Error looking up bank via AI');
       }
     }
 
@@ -143,12 +146,12 @@ export class BankLookupService {
       if (textContent && textContent.type === 'text') {
         const bankName = textContent.text.trim();
         if (bankName && bankName.toLowerCase() !== 'desconhecido') {
-          console.log(`[BankLookup] IA identificou banco ${code}: ${bankName}`);
+          log.info({ bankCode: code, bankName }, 'AI identified bank');
           return bankName;
         }
       }
     } catch (error) {
-      console.error(`[BankLookup] Erro na chamada à IA:`, error);
+      log.error({ err: error }, 'Error in AI bank lookup call');
     }
 
     return null;

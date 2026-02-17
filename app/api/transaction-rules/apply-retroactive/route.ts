@@ -3,6 +3,9 @@ import { db } from '@/lib/db/connection';
 import { transactions, categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, or, ilike, isNull, inArray } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-rules-retroactive');
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔄 Aplicando regra retroativamente: ${ruleId} para empresa: ${companyId}`);
+    log.info({ ruleId, companyId }, 'Aplicando regra retroativamente');
 
     // Buscar a regra
     const [rule] = await db
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
       .from(transactions)
       .where(whereCondition);
 
-    console.log(`📊 Encontradas ${matchingTransactions.length} transações que correspondem ao padrão`);
+    log.info({ count: matchingTransactions.length }, 'Transacoes encontradas que correspondem ao padrao');
 
     if (matchingTransactions.length === 0) {
       return NextResponse.json({
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(categoryRules.id, ruleId));
 
-    console.log(`✅ Regra aplicada em ${updatedTransactions.length} transações (${newlyCategorized} novas categorizações)`);
+    log.info({ updated: updatedTransactions.length, newlyCategorized }, 'Regra aplicada retroativamente');
 
     return NextResponse.json({
       success: true,
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao aplicar regra retroativamente:', error);
+    log.error({ err: error }, 'Erro ao aplicar regra retroativamente');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

@@ -8,6 +8,9 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('reclassification');
 
 export interface ReclassificationJob {
   jobId: string;
@@ -169,12 +172,7 @@ export class ReclassificationService {
         errors: []
       };
 
-      console.log(`🔄 [RECLASSIFY-START] Job ${jobId}:`, {
-        ruleId,
-        oldCategory: rule.oldCategoryName,
-        newCategory: newCategory.name,
-        totalTransactions: affectedTransactions.length
-      });
+      log.info({ jobId, ruleId, oldCategory: rule.oldCategoryName, newCategory: newCategory.name, totalTransactions: affectedTransactions.length }, 'Reclassification job started');
 
       // 4. Processar em batches
       const totalBatches = Math.ceil(affectedTransactions.length / batchSize);
@@ -196,15 +194,12 @@ export class ReclassificationService {
 
           job.processedCount += batch.length;
 
-          console.log(
-            `✅ [RECLASSIFY-BATCH] Job ${jobId} - Batch ${i + 1}/${totalBatches} completed: ` +
-            `${job.processedCount}/${job.affectedCount} (${Math.round((job.processedCount / job.affectedCount) * 100)}%)`
-          );
+          log.info({ jobId, batch: i + 1, totalBatches, processedCount: job.processedCount, affectedCount: job.affectedCount }, 'Reclassification batch completed');
 
         } catch (error) {
           const errorMsg = `Batch ${i + 1} failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
           job.errors.push(errorMsg);
-          console.error(`❌ [RECLASSIFY-ERROR] ${errorMsg}`);
+          log.error({ jobId, batch: i + 1, errorMsg }, 'Reclassification batch failed');
         }
       }
 
@@ -212,17 +207,12 @@ export class ReclassificationService {
       job.status = job.errors.length > 0 ? 'failed' : 'completed';
       job.completedAt = new Date();
 
-      console.log(`🎉 [RECLASSIFY-COMPLETE] Job ${jobId}:`, {
-        processed: job.processedCount,
-        total: job.affectedCount,
-        errors: job.errors.length,
-        duration: job.completedAt.getTime() - (job.startedAt?.getTime() || 0)
-      });
+      log.info({ jobId, processed: job.processedCount, total: job.affectedCount, errors: job.errors.length, durationMs: job.completedAt.getTime() - (job.startedAt?.getTime() || 0) }, 'Reclassification job completed');
 
       return job;
 
     } catch (error) {
-      console.error('[RECLASSIFY-FAILED]', error);
+      log.error({ err: error }, 'Reclassification job failed');
       throw error;
     }
   }
@@ -269,7 +259,7 @@ export class ReclassificationService {
     const affectedTransactions = await this.findAffectedTransactions(ruleId, false);
 
     // Aqui você poderia salvar em uma tabela de backup ou arquivo
-    console.log(`💾 [BACKUP-CREATED] ${backupId}: ${affectedTransactions.length} transactions`);
+    log.info({ backupId, transactionCount: affectedTransactions.length }, 'Backup created');
 
     return {
       backupId,

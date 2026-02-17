@@ -6,6 +6,9 @@
  */
 
 import { DuckDuckGoService } from '@/lib/search/serpapi';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('description-enrichment');
 
 // Tipos
 export interface BankingTermInfo {
@@ -437,7 +440,7 @@ export class DescriptionEnrichmentService {
         return result;
       }
     } catch (error) {
-      console.error('[ENRICHMENT] Erro ao pesquisar termo:', error);
+      log.error({ err: error }, 'Error searching term for enrichment');
     }
 
     return undefined;

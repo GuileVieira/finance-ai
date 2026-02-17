@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import InsightsService from '@/lib/services/insights.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-insights');
 
 // GET - Buscar insights do dashboard
 export async function GET(request: NextRequest) {
@@ -20,7 +23,7 @@ export async function GET(request: NextRequest) {
       accountId: searchParams.get('accountId') || undefined,
     };
 
-    console.log('💡 [DASHBOARD-INSIGHTS-API] Buscando insights com filtros:', filters);
+    log.info({ filters }, 'Fetching dashboard insights with filters');
 
     const result = await InsightsService.getSimpleInsights(filters);
 
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar insights do dashboard:', error);
+    log.error({ err: error }, 'Error fetching dashboard insights');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

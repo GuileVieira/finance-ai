@@ -10,6 +10,9 @@
 import { db } from '@/lib/db/drizzle';
 import { transactionClusters, transactions, categories } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-clustering');
 import { RuleGenerationService } from './rule-generation.service';
 
 // ============================================================================
@@ -212,7 +215,7 @@ export class TransactionClusteringService {
         clusterSize: 1
       };
     } catch (error) {
-      console.error('Error adding to cluster:', error);
+      log.error({ err: error }, 'Error adding to cluster');
       throw error;
     }
   }
@@ -271,7 +274,7 @@ export class TransactionClusteringService {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, limit);
     } catch (error) {
-      console.error('Error finding similar transactions:', error);
+      log.error({ err: error }, 'Error finding similar transactions');
       return [];
     }
   }
@@ -374,7 +377,7 @@ export class TransactionClusteringService {
         suggestedPattern
       };
     } catch (error) {
-      console.error('Error evaluating cluster quality:', error);
+      log.error({ err: error }, 'Error evaluating cluster quality');
       return null;
     }
   }
@@ -438,12 +441,12 @@ export class TransactionClusteringService {
       }
 
       if (processed > 0) {
-        console.log(`🔄 [CLUSTER-PROCESSING] Processed ${processed} clusters, created ${rulesCreated} rules`);
+        log.info({ processed, rulesCreated }, 'Cluster processing progress');
       }
 
       return { processed, rulesCreated };
     } catch (error) {
-      console.error('Error processing pending clusters:', error);
+      log.error({ err: error }, 'Error processing pending clusters');
       return { processed: 0, rulesCreated: 0 };
     }
   }
@@ -489,7 +492,7 @@ export class TransactionClusteringService {
         readyForRule
       };
     } catch (error) {
-      console.error('Error getting cluster stats:', error);
+      log.error({ err: error }, 'Error getting cluster stats');
       return {
         total: 0,
         pending: 0,

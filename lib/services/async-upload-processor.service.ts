@@ -3,6 +3,9 @@ import { db } from '@/lib/db/connection';
 import { uploads } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('async-upload');
 
 export interface TransactionData {
   description: string;
@@ -38,7 +41,7 @@ export class AsyncUploadProcessorService {
   ): Promise<void> {
     // Se já está processando, não fazer nada
     if (this.processingQueue.has(uploadId)) {
-      console.log(`⚠️ Upload ${uploadId} já está sendo processado`);
+      log.warn({ uploadId }, 'Upload is already being processed');
       return;
     }
 
@@ -59,7 +62,7 @@ export class AsyncUploadProcessorService {
         this.processingQueue.delete(uploadId);
       })
       .catch((error) => {
-        console.error(`❌ Erro no processamento de ${uploadId}:`, error);
+        log.error({ err: error, uploadId }, 'Error processing upload');
         this.processingQueue.delete(uploadId);
       });
   }
@@ -76,7 +79,7 @@ export class AsyncUploadProcessorService {
     const startTime = Date.now();
 
     try {
-      console.log(`🚀 Iniciando processamento assíncrono de ${uploadId}`);
+      log.info({ uploadId }, 'Starting async processing');
 
       // Atualizar status para processing
       await db
@@ -101,7 +104,6 @@ export class AsyncUploadProcessorService {
       // Converter transações para o formato esperado
       const formattedTransactions = transactions.map((tx) => ({
         description: tx.description,
-        name: tx.name,
         memo: tx.memo,
         amount: tx.amount,
         date: tx.date,
@@ -118,10 +120,9 @@ export class AsyncUploadProcessorService {
         const batchNumber = Math.floor(i / batchSize) + 1;
         const batchTransactions = formattedTransactions.slice(i, i + batchSize);
 
-        console.log(
-          `🔄 [${uploadId}] Processando batch ${batchNumber}/${Math.ceil(
-            formattedTransactions.length / batchSize
-          )}`
+        log.info(
+          { uploadId, batchNumber, totalBatches: Math.ceil(formattedTransactions.length / batchSize) },
+          'Processing batch'
         );
 
         try {
@@ -138,7 +139,7 @@ export class AsyncUploadProcessorService {
           totalSuccessful += batchResult.success;
           totalFailed += batchResult.failed;
         } catch (error) {
-          console.error(`❌ Erro no batch ${batchNumber}:`, error);
+          log.error({ err: error, uploadId, batchNumber }, 'Error processing batch');
           totalFailed += batchTransactions.length;
         }
       }
@@ -150,11 +151,12 @@ export class AsyncUploadProcessorService {
         totalTime: Date.now() - startTime
       });
 
-      console.log(
-        `✅ [${uploadId}] Processamento concluído: ${totalSuccessful} sucesso, ${totalFailed} falhas (${Date.now() - startTime}ms)`
+      log.info(
+        { uploadId, successful: totalSuccessful, failed: totalFailed, durationMs: Date.now() - startTime },
+        'Processing completed'
       );
     } catch (error) {
-      console.error(`❌ Erro fatal no processamento de ${uploadId}:`, error);
+      log.error({ err: error, uploadId }, 'Fatal error in upload processing');
 
       // Marcar como failed
       await db

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseOFXFile } from '@/lib/ofx-parser';
+import { parseOFXFile, OFXTransaction } from '@/lib/ofx-parser';
 import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -7,13 +7,17 @@ import { initializeDatabase, getDefaultCompany, getDefaultAccount, findAccountBy
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { createHash } from 'crypto';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+import { TransactionData } from '@/lib/services/batch-processing.service';
+
+const log = createLogger('ofx-queue');
 
 // Importar sistema de filas se disponível
-let QueueService: any = null;
+let QueueService: { initialize: () => Promise<void>; addOFXProcessingJob: (uploadId: string, transactions: unknown[], context: Record<string, unknown>, options: Record<string, unknown>) => Promise<string>; getQueueStats: () => Promise<unknown> } | null = null;
 try {
   // QueueService = require('@/lib/services/queue.service').default;
 } catch (error) {
-  console.log('📋 [QUEUE] Sistema de filas não disponível, usando background processing');
+  log.info('[QUEUE] Sistema de filas nao disponivel, usando background processing');
 }
 
 export async function POST(request: NextRequest) {
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log('\n=== [OFX-UPLOAD-QUEUE] Upload com sistema de filas ===');
+    log.info('[OFX-UPLOAD-QUEUE] Upload com sistema de filas');
 
     // Inicializar banco
     await initializeDatabase();
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📁 Arquivo recebido:', { name: file.name, size: file.size });
+    log.info({ name: file.name, size: file.size }, 'Arquivo recebido');
 
     // Processar arquivo
     const arrayBuffer = await file.arrayBuffer();
@@ -107,10 +111,10 @@ export async function POST(request: NextRequest) {
     let targetAccount = null;
 
     if (parseResult.bankInfo && parseResult.bankInfo.bankId && parseResult.bankInfo.accountId) {
-      console.log('🔍 Buscando conta existente para:', {
+      log.info({
         bankCode: parseResult.bankInfo.bankId,
         accountNumber: parseResult.bankInfo.accountId
-      });
+      }, 'Buscando conta existente');
 
       // Tentar encontrar conta que corresponda ao banco e número de conta do OFX
       targetAccount = await findAccountByBankInfo(
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
 
       if (targetAccount && parseResult.bankInfo.bankName) {
         // Conta encontrada - atualizar com informações do OFX
-        console.log('🔄 Atualizando informações bancárias da conta existente...');
+        log.debug('Atualizando informacoes bancarias da conta existente...');
         targetAccount = await updateAccountBankInfo(targetAccount.id, {
           bankName: parseResult.bankInfo.bankName,
           bankCode: parseResult.bankInfo.bankId,
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
         });
       } else if (!targetAccount) {
         // Conta não encontrada - criar nova
-        console.log('🏦 Criando nova conta baseada no OFX...');
+        log.info('Criando nova conta baseada no OFX...');
         const [newAccount] = await db.insert(accounts).values({
           companyId: defaultCompany.id,
           name: parseResult.bankInfo.accountId
@@ -142,7 +146,7 @@ export async function POST(request: NextRequest) {
           agencyNumber: parseResult.bankInfo.branchId || '0000',
           accountNumber: parseResult.bankInfo.accountId || '00000-0',
           accountType: parseResult.bankInfo.accountType || 'checking',
-          openingBalance: '0',
+          openingBalance: parseResult.balance?.amount?.toString() ?? '0',
           active: true
         }).returning();
 
@@ -150,7 +154,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // OFX não tem bankInfo completo - usar conta padrão
-      console.log('ℹ️ OFX sem bankInfo completo, usando conta padrão...');
+      log.info('OFX sem bankInfo completo, usando conta padrao...');
       targetAccount = await getDefaultAccount();
     }
 
@@ -161,7 +165,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`✅ Conta selecionada: ${targetAccount.name} (${targetAccount.bankName})`);
+    log.info({ accountName: targetAccount.name, bankName: targetAccount.bankName }, 'Conta selecionada');
 
     // Criar registro de upload
     const [newUpload] = await db.insert(uploads).values({
@@ -179,7 +183,7 @@ export async function POST(request: NextRequest) {
       uploadedAt: new Date()
     }).returning();
 
-    console.log(`✅ Upload registrado: ${newUpload.id} (${parseResult.transactions.length} transações)`);
+    log.info({ uploadId: newUpload.id, transactionCount: parseResult.transactions.length }, 'Upload registrado');
 
     // *** ESCOLHER MÉTODO DE PROCESSAMENTO ***
     let processingMethod = 'background';
@@ -204,17 +208,17 @@ export async function POST(request: NextRequest) {
         );
 
         processingMethod = 'queue';
-        console.log(`🚀 [QUEUE] Job ${jobId} adicionado à fila de processamento`);
+        log.info({ jobId }, '[QUEUE] Job adicionado a fila de processamento');
 
       } catch (queueError) {
-        console.error('❌ [QUEUE] Falha ao adicionar job na fila, usando background processing:', queueError);
+        log.error({ err: queueError }, '[QUEUE] Falha ao adicionar job na fila, usando background processing');
         processingMethod = 'background';
       }
     }
 
     if (processingMethod === 'background') {
       // MÉTODO 2: Background Processing (nível atual)
-      console.log('🔄 [BACKGROUND] Iniciando processamento em background...');
+      log.info('[BACKGROUND] Iniciando processamento em background...');
 
       // Processar em background sem bloquear resposta
       import('@/lib/services/batch-processing.service').then(({ default: BatchService }) => {
@@ -224,7 +228,7 @@ export async function POST(request: NextRequest) {
           accountId: targetAccount.id,
           companyId: defaultCompany.id
         }, BatchService).catch(error => {
-          console.error(`❌ [BACKGROUND] Erro no processamento:`, error);
+          log.error({ err: error }, '[BACKGROUND] Erro no processamento');
         });
       });
     }
@@ -258,7 +262,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro no upload com filas:', error);
+    log.error({ err: error }, 'Erro no upload com filas');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno'
@@ -266,23 +270,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
+interface BatchService {
+  prepareUploadForBatchProcessing: (uploadId: string, count: number) => Promise<void>;
+  processBatch: (
+    uploadId: string,
+    transactions: TransactionData[],
+    accountId: string,
+    categoryId: string | null,
+    context: { fileName: string; bankName?: string },
+    batchNumber: number,
+    offset: number
+  ) => Promise<{ success: number; failed: number }>;
+  completeUpload: (uploadId: string, stats: { successful: number; failed: number; totalTime: number }) => Promise<void>;
+}
+
 /**
- * Função de background processing (fallback quando filas não disponíveis)
+ * Funcao de background processing (fallback quando filas nao disponiveis)
  */
 async function processOFXInBackground(
   uploadId: string,
-  transactions: any[],
-  context: any,
-  BatchService: any
+  transactions: OFXTransaction[],
+  context: { fileName: string; bankName?: string; accountId: string; companyId: string },
+  BatchServiceInstance: BatchService
 ) {
   try {
-    console.log(`🔄 [BACKGROUND] Processando upload ${uploadId}`);
+    log.info({ uploadId }, '[BACKGROUND] Processando upload');
 
-    await BatchService.prepareUploadForBatchProcessing(uploadId, transactions.length);
+    await BatchServiceInstance.prepareUploadForBatchProcessing(uploadId, transactions.length);
 
-    const formattedTransactions = transactions.map((tx: any) => ({
+    const formattedTransactions: TransactionData[] = transactions.map((tx) => ({
       description: tx.description,
-      name: tx.name,
       memo: tx.memo,
       amount: tx.amount,
       date: tx.date,
@@ -299,7 +316,7 @@ async function processOFXInBackground(
       const batchTransactions = formattedTransactions.slice(i, i + batchSize);
 
       try {
-        const batchResult = await BatchService.processBatch(
+        const batchResult = await BatchServiceInstance.processBatch(
           uploadId,
           batchTransactions,
           context.accountId,
@@ -318,21 +335,21 @@ async function processOFXInBackground(
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (error) {
-        console.error(`❌ [BACKGROUND] Erro no batch ${batchNumber}:`, error);
+        log.error({ err: error, batchNumber }, '[BACKGROUND] Erro no batch');
         totalFailed += batchTransactions.length;
       }
     }
 
-    await BatchService.completeUpload(uploadId, {
+    await BatchServiceInstance.completeUpload(uploadId, {
       successful: totalSuccessful,
       failed: totalFailed,
       totalTime: Date.now() - Date.now()
     });
 
-    console.log(`🎉 [BACKGROUND] Upload ${uploadId} concluído`);
+    log.info({ uploadId }, '[BACKGROUND] Upload concluido');
 
   } catch (error) {
-    console.error(`❌ [BACKGROUND] Falha no upload ${uploadId}:`, error);
+    log.error({ err: error, uploadId }, '[BACKGROUND] Falha no upload');
   }
 }
 
@@ -349,30 +366,30 @@ export async function GET(_request: NextRequest) {
         available: !!QueueService,
         stats: queueStats,
         features: [
-          '✅ Processos sobrevivem a restarts',
-          '✅ Múltiplos workers paralelos',
-          '✅ Retentativas automáticas',
-          '✅ Prioridade de jobs',
-          '✅ Dashboard de monitoramento'
+          'Processos sobrevivem a restarts',
+          'Multiplos workers paralelos',
+          'Retentativas automaticas',
+          'Prioridade de jobs',
+          'Dashboard de monitoramento'
         ]
       },
       background: {
         available: true,
         features: [
-          '✅ Upload instantâneo',
-          '✅ Processamento sem bloquear',
-          '✅ Progresso salvo',
-          '✅ Retomada automática'
+          'Upload instantaneo',
+          'Processamento sem bloquear',
+          'Progresso salvo',
+          'Retomada automatica'
         ]
       }
     },
     workflow: [
-      '1️⃣ Upload instantâneo',
-      '2️⃣ Criar registro no banco',
-      '3️⃣ Adicionar job na fila (se disponível)',
-      '4️⃣ Processar em background (fallback)',
-      '5️⃣ Retornar resposta imediata',
-      '6️⃣ Acompanhar progresso via API'
+      '1. Upload instantaneo',
+      '2. Criar registro no banco',
+      '3. Adicionar job na fila (se disponivel)',
+      '4. Processar em background (fallback)',
+      '5. Retornar resposta imediata',
+      '6. Acompanhar progresso via API'
     ]
   });
 }

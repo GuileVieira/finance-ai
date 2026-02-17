@@ -13,6 +13,9 @@ import { db } from '@/lib/db/connection';
 import { aiUsageLogs } from '@/lib/db/schema';
 import { desc, eq, and, gte, lte, sql } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-costs');
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
       return handleList(searchParams);
     }
   } catch (error) {
-    console.error('[AI-COSTS-API] Erro:', error);
+    log.error({ err: error }, 'Erro ao processar requisicao de custos');
     return NextResponse.json(
       {
         error: 'Erro ao processar requisição',

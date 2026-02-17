@@ -4,12 +4,15 @@ import { uploads, companies, accounts } from '@/lib/db/schema';
 import { eq, desc, and, or, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('uploads-api');
 
 export async function GET(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log('\n=== [UPLOADS-LIST] Nova requisição de listagem ===');
+    log.info('New upload listing request');
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🏢 Listando uploads para empresa: ${defaultCompany.name} (${defaultCompany.id})`);
+    log.info({ companyName: defaultCompany.name, companyId: defaultCompany.id }, 'Listing uploads for company');
 
     // Parse dos query parameters
     const { searchParams } = new URL(request.url);
@@ -93,7 +96,7 @@ export async function GET(request: NextRequest) {
         .where(and(...filters))
     ]);
 
-    console.log(`📊 Encontrados ${uploadsList.length} uploads (página ${page})`);
+    log.info({ count: uploadsList.length, page }, 'Uploads found');
 
     // Formatar resultados
     const formattedUploads = uploadsList.map(upload => ({
@@ -168,20 +171,17 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    console.log('✅ Listagem concluída:', {
+    log.info({
       returned: formattedUploads.length,
       total: totalCount.length,
       page,
       stats
-    });
+    }, 'Listing completed');
 
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Erro na listagem de uploads:', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    log.error({ err: error }, 'Error listing uploads');
 
     return NextResponse.json({
       success: false,

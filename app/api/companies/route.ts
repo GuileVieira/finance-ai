@@ -4,6 +4,9 @@ import { companies, accounts, transactions } from '@/lib/db/schema';
 import { eq, desc, like, sql, inArray, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('companies');
 
 // GET - Listar empresas
 export async function GET(request: NextRequest) {
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get('active');
     const search = searchParams.get('search');
 
-    console.log('🏢 [COMPANIES-API] Listando empresas:', { active, search });
+    log.info({ active, search }, 'Listando empresas');
 
     let query = db.select().from(companies);
 
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    console.log(`✅ Encontradas ${companiesWithRevenue.length} empresas`);
+    log.info({ count: companiesWithRevenue.length }, 'Empresas encontradas');
 
     return NextResponse.json({
       success: true,
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao listar empresas:', error);
+    log.error({ err: error }, 'Erro ao listar empresas');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
     await initializeDatabase();
 
     const body = await request.json();
-    console.log('🏢 [COMPANIES-API] Criando nova empresa:', body);
+    log.info({ body }, 'Criando nova empresa');
 
     // Validações básicas
     if (!body.name || body.name.trim().length === 0) {
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
       active: body.active !== undefined ? body.active : true
     }).returning();
 
-    console.log(`✅ Empresa criada: ${newCompany.name} (${newCompany.id})`);
+    log.info({ companyId: newCompany.id, name: newCompany.name }, 'Empresa criada');
 
     return NextResponse.json({
       success: true,
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('❌ Erro ao criar empresa:', error);
+    log.error({ err: error }, 'Erro ao criar empresa');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

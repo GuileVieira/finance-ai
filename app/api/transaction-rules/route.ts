@@ -4,12 +4,15 @@ import { categoryRules, categories, companies } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-rules');
 
 export async function GET(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log(`🔍 Buscando regras para empresa: ${companyId}`);
+    log.info({ companyId }, 'Buscando regras para empresa');
 
     // Buscar regras da empresa com informações da categoria
     const rules = await db
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
       ))
       .orderBy(desc(categoryRules.usageCount), desc(categoryRules.createdAt));
 
-    console.log(`✅ Encontradas ${rules.length} regras ativas`);
+    log.info({ count: rules.length }, 'Encontradas regras ativas');
 
     return NextResponse.json({
       success: true,
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar regras:', error);
+    log.error({ err: error }, 'Erro ao buscar regras');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -89,10 +92,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    console.log(`📝 Criando regra para empresa ${companyId}:`);
-    console.log(`   Pattern: ${pattern}`);
-    console.log(`   Categoria: ${category.name}`);
-    console.log(`   Confiança: ${confidence}`);
+    log.info({ companyId, pattern, category: category.name, confidence }, 'Criando regra');
 
     // Verificar se já existe regra similar
     const existingRule = await db.select()
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     }).returning();
 
-    console.log(`✅ Regra criada: ${newRule.id}`);
+    log.info({ ruleId: newRule.id }, 'Regra criada');
 
     // Retornar regra com informações da categoria
     const ruleWithCategory = {
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao criar regra:', error);
+    log.error({ err: error }, 'Erro ao criar regra');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -164,7 +164,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔄 Atualizando regra: ${ruleId}`);
+    log.info({ ruleId }, 'Atualizando regra');
 
     // Construir updates dinamicamente
     const updates: any = { updatedAt: new Date() };
@@ -184,7 +184,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    console.log(`✅ Regra atualizada: ${ruleId}`);
+    log.info({ ruleId }, 'Regra atualizada');
 
     return NextResponse.json({
       success: true,
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar regra:', error);
+    log.error({ err: error }, 'Erro ao atualizar regra');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

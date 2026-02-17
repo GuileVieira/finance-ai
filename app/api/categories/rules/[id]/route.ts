@@ -10,6 +10,9 @@ import { db } from '@/lib/db/drizzle';
 import { categoryRules } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-detail');
 
 /**
  * GET - Buscar regra específica
@@ -57,7 +60,7 @@ export async function GET(
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ [GET-RULE] Erro:', error);
+    log.error({ err: error }, 'Error fetching rule');
     return NextResponse.json(
       { success: false, error: 'Erro ao buscar regra' },
       { status: 500 }
@@ -147,7 +150,7 @@ export async function PATCH(
       updatedAt: dbUpdatedRule.updatedAt
     };
 
-    console.log(`✅ [UPDATE-RULE] Regra ${ruleId} atualizada`);
+    log.info({ ruleId }, 'Rule updated');
 
     return NextResponse.json({
       success: true,
@@ -161,7 +164,7 @@ export async function PATCH(
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ [UPDATE-RULE] Erro:', error);
+    log.error({ err: error }, 'Error updating rule');
     return NextResponse.json(
       {
         success: false,
@@ -202,7 +205,7 @@ export async function DELETE(
       .delete(categoryRules)
       .where(eq(categoryRules.id, ruleId));
 
-    console.log(`🗑️ [DELETE-RULE] Regra ${ruleId} deletada`);
+    log.info({ ruleId }, 'Rule deleted');
 
     return NextResponse.json({
       success: true,
@@ -213,7 +216,7 @@ export async function DELETE(
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ [DELETE-RULE] Erro:', error);
+    log.error({ err: error }, 'Error deleting rule');
     return NextResponse.json(
       {
         success: false,

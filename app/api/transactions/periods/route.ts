@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import TransactionsService from '@/lib/services/transactions.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-periods');
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ Erro ao listar períodos disponíveis:', error);
+    log.error({ err: error }, 'Erro ao listar periodos disponiveis');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro ao listar períodos'

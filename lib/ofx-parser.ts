@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ofx-parser');
+
 // Interface para transação OFX
 export interface OFXTransaction {
   id?: string;
@@ -42,7 +46,7 @@ export interface OFXParseResult {
 // Função principal para parse de arquivo OFX
 export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> {
   try {
-    console.log('🔍 Iniciando parser OFX...');
+    log.info('Iniciando parser OFX');
 
     // Limpar e normalizar o conteúdo
     let content = ofxContent.trim();
@@ -57,23 +61,23 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
       .replace(/\s+/g, ' ')
       .trim();
 
-    console.log('📋 Conteúdo OFX limpo e normalizado');
+    log.debug('Conteúdo OFX limpo e normalizado');
 
     // Extrair informações do banco
     const bankInfo = extractBankInfo(content);
-    console.log('🏦 Informações do banco extraídas:', bankInfo);
+    log.info({ bankInfo }, 'Informações do banco extraídas');
 
     // Extrair saldo (LEDGERBAL)
     const balance = extractLedgerBalance(content);
     if (balance) {
-      console.log(`💰 LEDGERBAL extraído: ${balance.amount} (${balance.asOfDate || 'sem data'})`);
+      log.info({ amount: balance.amount, asOfDate: balance.asOfDate }, 'LEDGERBAL extraído');
     } else {
-      console.log('⚠️ LEDGERBAL não encontrado no arquivo OFX');
+      log.warn('LEDGERBAL não encontrado no arquivo OFX');
     }
 
     // Extrair transações
     const transactions = extractTransactions(content);
-    console.log(`💳 Transações extraídas: ${transactions.length}`);
+    log.info({ count: transactions.length }, 'Transações extraídas');
 
     if (transactions.length === 0) {
       return {
@@ -90,7 +94,7 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
     const startDate = transactions[0]?.date;
     const endDate = transactions[transactions.length - 1]?.date;
 
-    console.log(`📅 Período: ${startDate} a ${endDate}`);
+    log.info({ startDate, endDate }, 'Período do extrato');
 
     return {
       success: true,
@@ -102,7 +106,7 @@ export async function parseOFXFile(ofxContent: string): Promise<OFXParseResult> 
     };
 
   } catch (error) {
-    console.error('❌ Erro no parser OFX:', error);
+    log.error({ err: error }, 'Erro no parser OFX');
     return {
       success: false,
       transactions: [],
@@ -168,27 +172,13 @@ function extractBankInfo(content: string): OFXBankInfo {
     bankInfo.bankName = cleanBankName(bankInfo.bankName);
   }
 
-  console.log('🏦 Banco identificado:', {
-    name: bankInfo.bankName,
-    fid: bankInfo.bankId
-  });
+  log.debug({ name: bankInfo.bankName, fid: bankInfo.bankId }, 'Banco identificado');
 
   return bankInfo;
 }
 
-// Extrair saldo LEDGERBAL do conteúdo OFX
-function extractLedgerBalance(content: string): OFXBalance | null {
-  // Buscar bloco LEDGERBAL (saldo final do extrato)
-  const ledgerBalRegex = /<LEDGERBAL>([\s\S]*?)(?:<\/LEDGERBAL>|<(?:AVAILBAL|BANKMSGSRSV1|\/STMTRS))/gi;
-  const ledgerMatch = ledgerBalRegex.exec(content);
-
-  if (!ledgerMatch) {
-    return null;
-  }
-
-  const block = ledgerMatch[1];
-
-  // Extrair valor
+// Extrair BALAMT e DTASOF de um bloco de saldo OFX
+function parseBalanceBlock(block: string): OFXBalance | null {
   const amountRegex = /<BALAMT>([^<]+)/gi;
   const amountMatch = amountRegex.exec(block);
 
@@ -201,12 +191,40 @@ function extractLedgerBalance(content: string): OFXBalance | null {
     return null;
   }
 
-  // Extrair data (opcional)
   const dateRegex = /<DTASOF>([^<]+)/gi;
   const dateMatch = dateRegex.exec(block);
   const asOfDate = dateMatch?.[1] ? parseOFXDate(dateMatch[1].trim()) : undefined;
 
   return { amount, asOfDate };
+}
+
+// Extrair saldo do conteúdo OFX (LEDGERBAL prioritário, AVAILBAL como fallback)
+function extractLedgerBalance(content: string): OFXBalance | null {
+  // 1. Tentar LEDGERBAL (saldo contábil — obrigatório na spec, presente em todos os bancos BR testados)
+  const ledgerBalRegex = /<LEDGERBAL>([\s\S]*?)(?:<\/LEDGERBAL>|<(?:AVAILBAL|BANKMSGSRSV1|\/STMTRS))/gi;
+  const ledgerMatch = ledgerBalRegex.exec(content);
+
+  if (ledgerMatch) {
+    const result = parseBalanceBlock(ledgerMatch[1]);
+    if (result) {
+      log.debug('Saldo extraído de LEDGERBAL');
+      return result;
+    }
+  }
+
+  // 2. Fallback: AVAILBAL (saldo disponível — alguns bancos podem enviar apenas este)
+  const availBalRegex = /<AVAILBAL>([\s\S]*?)(?:<\/AVAILBAL>|<(?:BANKMSGSRSV1|\/STMTRS))/gi;
+  const availMatch = availBalRegex.exec(content);
+
+  if (availMatch) {
+    const result = parseBalanceBlock(availMatch[1]);
+    if (result) {
+      log.info('Saldo extraído de AVAILBAL (fallback)');
+      return result;
+    }
+  }
+
+  return null;
 }
 
 // Extrair transações do conteúdo OFX
@@ -218,11 +236,11 @@ function extractTransactions(content: string): OFXTransaction[] {
   const matches = content.match(transactionRegex);
 
   if (!matches) {
-    console.log('⚠️ Nenhum bloco de transação encontrado');
+    log.warn('Nenhum bloco de transação encontrado');
     return transactions;
   }
 
-  console.log(`📝 Encontrados ${matches.length} blocos de transação`);
+  log.debug({ count: matches.length }, 'Blocos de transação encontrados');
 
   for (const match of matches) {
     try {
@@ -231,7 +249,7 @@ function extractTransactions(content: string): OFXTransaction[] {
         transactions.push(transaction);
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao processar bloco de transação:', error);
+      log.warn({ err: error }, 'Erro ao processar bloco de transação');
     }
   }
 
@@ -307,7 +325,7 @@ function parseTransactionBlock(block: string): OFXTransaction | null {
 
   // Validar transação
   if (!transaction.date || isNaN(transaction.amount) || !transaction.description) {
-    console.warn('⚠️ Transação inválida ignorada:', transaction);
+    log.warn({ transaction }, 'Transação inválida ignorada');
     return null;
   }
 
@@ -342,7 +360,7 @@ function parseOFXDate(dateString: string): string {
 
     throw new Error(`Formato de data não reconhecido: ${dateString}`);
   } catch (error) {
-    console.warn('⚠️ Erro ao parsear data:', dateString, error);
+    log.warn({ dateString, err: error }, 'Erro ao parsear data');
     return new Date().toISOString();
   }
 }

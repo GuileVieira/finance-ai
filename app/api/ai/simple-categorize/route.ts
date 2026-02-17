@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runSimpleAgent } from '@/lib/agent/simple-agent';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-categorize');
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
     await requireAuth();
-    console.log('\n=== [SIMPLE-CATEGORIZE] Nova requisição de categorização ===');
+    log.info('Nova requisicao de categorizacao');
 
     const body = await request.json();
     const { description, amount } = body;
 
-    console.log('📥 Dados recebidos:', {
-      description,
-      amount,
-      timestamp: new Date().toISOString()
-    });
+    log.info({ description, amount }, 'Dados recebidos');
 
     if (!description || !amount) {
-      console.log('❌ Erro: Descrição e valor são obrigatórios');
+      log.warn('Descricao e valor sao obrigatorios');
       return NextResponse.json({
         success: false,
         error: 'Descrição e valor são obrigatórios'
@@ -27,11 +26,11 @@ export async function POST(request: NextRequest) {
     }
 
     const numAmount = parseFloat(amount);
-    console.log('💰 Valor processado:', numAmount);
+    log.info({ numAmount }, 'Valor processado');
 
-    console.log('🤖 Executando agente simples...');
+    log.info('Executando agente simples');
     const result = await runSimpleAgent(description, numAmount);
-    console.log('✅ Resultado do agente:', result);
+    log.info({ result }, 'Resultado do agente');
 
     const finalResult = {
       ...result,
@@ -39,8 +38,7 @@ export async function POST(request: NextRequest) {
       processingTime: Date.now() - startTime
     };
 
-    console.log('🎯 Resultado final:', finalResult);
-    console.log('=== [SIMPLE-CATEGORIZE] Fim da requisição ===\n');
+    log.info({ finalResult }, 'Resultado final');
 
     return NextResponse.json({
       success: true,
@@ -49,13 +47,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error('❌ Erro na API de categorização simples:', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined,
-      processingTime: `${processingTime}ms`,
-      timestamp: new Date().toISOString()
-    });
-    console.log('=== [SIMPLE-CATEGORIZE] Fim da requisição (ERRO) ===\n');
+    log.error({ err: error, processingTime }, 'Erro na API de categorizacao simples');
 
     return NextResponse.json({
       success: false,

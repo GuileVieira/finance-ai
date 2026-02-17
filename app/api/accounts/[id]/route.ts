@@ -4,6 +4,9 @@ import { accounts, companies, transactions } from '@/lib/db/schema';
 import { eq, desc, count, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('accounts');
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    console.log(`🏦 [ACCOUNTS-API] Buscando conta: ${id}`);
+    log.info({ accountId: id }, 'Buscando conta');
 
     // Buscar conta verificando que pertence à empresa do usuário
     const [account] = await db.select({
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .from(transactions)
       .where(eq(transactions.accountId, id));
 
-    console.log(`✅ Conta encontrada: ${account.name}`);
+    log.info({ name: account.name }, 'Conta encontrada');
 
     return NextResponse.json({
       success: true,
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao buscar conta:', error);
+    log.error({ err: error }, 'Erro ao buscar conta');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -91,7 +94,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    console.log(`🏦 [ACCOUNTS-API] Atualizando conta ${id}:`, body);
+    log.info({ accountId: id, body }, 'Atualizando conta');
 
     // Verificar se conta existe E pertence à empresa do usuário
     const [existingAccount] = await db.select()
@@ -129,7 +132,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .where(eq(accounts.id, id))
       .returning();
 
-    console.log(`✅ Conta atualizada: ${updatedAccount.name}`);
+    log.info({ name: updatedAccount.name }, 'Conta atualizada');
 
     return NextResponse.json({
       success: true,
@@ -143,7 +146,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao atualizar conta:', error);
+    log.error({ err: error }, 'Erro ao atualizar conta');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -159,7 +162,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    console.log(`🏦 [ACCOUNTS-API] Desativando conta: ${id}`);
+    log.info({ accountId: id }, 'Desativando conta');
 
     // Verificar se conta existe E pertence à empresa do usuário
     const [existingAccount] = await db.select()
@@ -183,7 +186,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .where(eq(accounts.id, id))
       .returning();
 
-    console.log(`✅ Conta desativada: ${deactivatedAccount.name}`);
+    log.info({ name: deactivatedAccount.name }, 'Conta desativada');
 
     return NextResponse.json({
       success: true,
@@ -197,7 +200,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao desativar conta:', error);
+    log.error({ err: error }, 'Erro ao desativar conta');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

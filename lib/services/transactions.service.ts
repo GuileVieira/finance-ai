@@ -3,6 +3,9 @@ import { transactions, accounts, companies, categories, uploads, transactionSpli
 import { eq, and, desc, between, gte, lte, sql, not, ilike } from 'drizzle-orm';
 import { initializeDatabase, getDefaultCompany, getDefaultAccount } from '@/lib/db/init-db';
 import { getFinancialExclusionClause } from './financial-exclusion';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('transactions');
 
 export interface TransactionFilters {
   accountId?: string;
@@ -65,7 +68,7 @@ export class TransactionsService {
         const limit = cleanFilters.limit || 50;
         const offset = (page - 1) * limit;
 
-        console.log('📊 [TRANSACTIONS-SERVICE] Listando transações:', cleanFilters);
+        log.info({ filters: cleanFilters }, 'Listing transactions');
 
         // Construir query principal
         let query: any = tx.select({
@@ -183,7 +186,7 @@ export class TransactionsService {
       const [countResult] = await countQuery;
       const total = countResult?.count || 0;
 
-      console.log(`✅ Encontradas ${transactionsList.length} transações (total: ${total})`);
+      log.info({ count: transactionsList.length, total }, 'Transactions found');
 
       return {
         transactions: transactionsList,
@@ -198,7 +201,7 @@ export class TransactionsService {
       };
 
     } catch (error) {
-      console.error('❌ Erro ao listar transações:', error);
+      log.error({ err: error }, 'Error listing transactions');
       throw error;
     }
   };
@@ -220,7 +223,7 @@ export class TransactionsService {
       try {
         await initializeDatabase();
 
-        console.log('📈 [TRANSACTIONS-SERVICE] Calculando estatísticas:', cleanFilters);
+        log.info({ filters: cleanFilters }, 'Calculating statistics');
 
         let query: any = tx.select({
         totalTransactions: sql<number>`count(*)`,
@@ -322,7 +325,7 @@ export class TransactionsService {
       };
 
     } catch (error) {
-      console.error('❌ Erro ao calcular estatísticas:', error);
+      log.error({ err: error }, 'Error calculating statistics');
       throw error;
     }
   };
@@ -387,7 +390,7 @@ export class TransactionsService {
       }));
 
     } catch (error) {
-      console.error('❌ Erro ao obter tendência mensal:', error);
+      log.error({ err: error }, 'Error getting monthly trend');
       return [];
     }
   }
@@ -464,7 +467,7 @@ export class TransactionsService {
           };
         });
       } catch (error) {
-        console.error('❌ Erro ao obter períodos disponíveis:', error);
+        log.error({ err: error }, 'Error getting available periods');
         return [];
       }
     };
@@ -497,7 +500,7 @@ export class TransactionsService {
     const execute = async (tx: any) => {
       try {
         await initializeDatabase();
-        console.log(`🔍 [TRANSACTIONS-SERVICE] Buscando splits para a transação: ${transactionId}`);
+        log.info({ transactionId }, 'Fetching splits for transaction');
 
         const splits = await tx.select({
           id: transactionSplits.id,
@@ -514,7 +517,7 @@ export class TransactionsService {
 
         return splits;
       } catch (error) {
-        console.error('❌ Erro ao buscar splits da transação:', error);
+        log.error({ err: error, transactionId }, 'Error fetching transaction splits');
         throw error;
       }
     };
@@ -533,7 +536,7 @@ export class TransactionsService {
     const execute = async (tx: any) => {
       try {
         await initializeDatabase();
-        console.log(`💾 [TRANSACTIONS-SERVICE] Atualizando splits para a transação: ${transactionId}`);
+        log.info({ transactionId }, 'Updating splits for transaction');
 
         // Executar em transação (tx já é uma transação se vier de withUser)
         // Se tx for db, precisamos abrir uma transação.
@@ -568,7 +571,7 @@ export class TransactionsService {
 
         return { success: true };
       } catch (error) {
-        console.error('❌ Erro ao atualizar splits da transação:', error);
+        log.error({ err: error, transactionId }, 'Error updating transaction splits');
         throw error;
       }
     };

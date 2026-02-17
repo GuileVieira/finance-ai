@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-api');
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-API] Error fetching categories:', error);
+    log.error({ err: error }, 'Error fetching categories');
     return NextResponse.json(
       {
         success: false,
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-API] Error creating category:', error);
+    log.error({ err: error }, 'Error creating category');
     return NextResponse.json(
       {
         success: false,
@@ -117,7 +120,7 @@ export async function PUT(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-API] Error updating category:', error);
+    log.error({ err: error }, 'Error updating category');
     return NextResponse.json(
       {
         success: false,
@@ -157,7 +160,7 @@ export async function DELETE(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-API] Error deleting category:', error);
+    log.error({ err: error }, 'Error deleting category');
     return NextResponse.json(
       {
         success: false,

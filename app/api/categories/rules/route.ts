@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoryRulesService from '@/lib/services/category-rules.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules');
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-RULES-API] Error fetching category rules:', error);
+    log.error({ err: error }, 'Error fetching category rules');
     return NextResponse.json(
       {
         success: false,
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-RULES-API] Error creating category rule:', error);
+    log.error({ err: error }, 'Error creating category rule');
 
     // Verificar se é erro de duplicata
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -142,7 +145,7 @@ export async function PUT(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-RULES-API] Error updating category rule:', error);
+    log.error({ err: error }, 'Error updating category rule');
     return NextResponse.json(
       {
         success: false,
@@ -181,7 +184,7 @@ export async function DELETE(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[CATEGORIES-RULES-API] Error deleting category rule:', error);
+    log.error({ err: error }, 'Error deleting category rule');
     return NextResponse.json(
       {
         success: false,

@@ -11,6 +11,9 @@
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, ruleFeedback, transactions, categories } from '@/lib/db/schema';
 import { eq, and, sql, desc, lt, gt } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('rule-lifecycle');
 
 // ============================================================================
 // TIPOS E INTERFACES
@@ -120,7 +123,7 @@ export class RuleLifecycleService {
         reason: statusChange ? statusChange.reason : 'Positive feedback recorded'
       };
     } catch (error) {
-      console.error('Error recording positive use:', error);
+      log.error({ err: error, ruleId }, 'Error recording positive use');
       return {
         success: false,
         action: 'ignored',
@@ -175,7 +178,7 @@ export class RuleLifecycleService {
         reason: statusChange ? statusChange.reason : 'Negative feedback recorded'
       };
     } catch (error) {
-      console.error('Error recording negative use:', error);
+      log.error({ err: error, ruleId }, 'Error recording negative use');
       return {
         success: false,
         action: 'ignored',
@@ -237,7 +240,7 @@ export class RuleLifecycleService {
           })
           .where(eq(categoryRules.id, ruleId));
 
-        console.log(`📊 [RULE-STATUS-CHANGE] ${ruleId}: ${currentStatus} → ${newStatus} (${reason})`);
+        log.info({ ruleId, oldStatus: currentStatus, newStatus, reason }, 'Rule status changed');
 
         return {
           ruleId,
@@ -249,7 +252,7 @@ export class RuleLifecycleService {
 
       return null;
     } catch (error) {
-      console.error('Error evaluating rule status:', error);
+      log.error({ err: error, ruleId }, 'Error evaluating rule status');
       return null;
     }
   }
@@ -291,7 +294,7 @@ export class RuleLifecycleService {
         reason: 'Manually promoted to active'
       };
     } catch (error) {
-      console.error('Error promoting rule:', error);
+      log.error({ err: error, ruleId }, 'Error promoting rule');
       return null;
     }
   }
@@ -312,10 +315,10 @@ export class RuleLifecycleService {
         })
         .where(eq(categoryRules.id, ruleId));
 
-      console.log(`🚫 [RULE-DEACTIVATED] ${ruleId}: ${reason}`);
+      log.info({ ruleId, reason }, 'Rule deactivated');
       return true;
     } catch (error) {
-      console.error('Error deactivating rule:', error);
+      log.error({ err: error, ruleId }, 'Error deactivating rule');
       return false;
     }
   }
@@ -408,12 +411,12 @@ export class RuleLifecycleService {
       }
 
       if (deactivatedCount > 0) {
-        console.log(`🧹 [CLEANUP] Deactivated ${deactivatedCount} low-performing rules for company ${companyId}`);
+        log.info({ deactivatedCount, companyId }, 'Deactivated low-performing rules');
       }
 
       return deactivatedCount;
     } catch (error) {
-      console.error('Error deactivating low performing rules:', error);
+      log.error({ err: error, companyId }, 'Error deactivating low performing rules');
       return 0;
     }
   }
@@ -475,7 +478,7 @@ export class RuleLifecycleService {
         averagePrecision: rules.length > 0 ? totalPrecision / rules.length : 0
       };
     } catch (error) {
-      console.error('Error getting rules health stats:', error);
+      log.error({ err: error, companyId }, 'Error getting rules health stats');
       return {
         total: 0,
         byStatus: { candidate: 0, active: 0, refined: 0, consolidated: 0, inactive: 0 },

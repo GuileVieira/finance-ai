@@ -6,6 +6,9 @@ import _ from 'lodash';
 import categoryCacheService from '@/lib/services/category-cache.service';
 import { TransactionCategorizationService } from '@/lib/services/transaction-categorization.service';
 import { aiCategorizationAdapter } from '@/lib/services/ai-categorization-adapter.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('batch-processing');
 
 export interface BatchProcessingConfig {
   batchSize: number;
@@ -83,11 +86,7 @@ export class BatchProcessingService {
       })
       .where(eq(uploads.id, uploadId));
 
-    console.log(`🔄 [BATCH-PREP] Upload ${uploadId} preparado:`, {
-      totalTransactions,
-      totalBatches,
-      batchSize: this.config.batchSize
-    });
+    log.info({ uploadId, totalTransactions, totalBatches, batchSize: this.config.batchSize }, '[BATCH-PREP] Upload preparado');
   }
 
   /**
@@ -108,7 +107,7 @@ export class BatchProcessingService {
       })
       .returning();
 
-    console.log(`📦 [BATCH-CREATE] Batch ${batchNumber}/${totalTransactions} criado para upload ${uploadId}`);
+    log.info({ batchNumber, totalTransactions, uploadId }, '[BATCH-CREATE] Batch criado');
     return batch;
   }
 
@@ -139,11 +138,7 @@ export class BatchProcessingService {
     failed: number;
     errors: string[];
   }> {
-    console.log(`🔄 [BATCH-PROCESS] Iniciando batch ${batchNumber}:`, {
-      uploadId,
-      transactionsCount: batchTransactions.length,
-      startIndex
-    });
+    log.info({ batchNumber, uploadId, transactionsCount: batchTransactions.length, startIndex }, '[BATCH-PROCESS] Iniciando batch');
 
     let success = 0;
     let failed = 0;
@@ -167,7 +162,7 @@ export class BatchProcessingService {
       // Divide transações em grupos de PARALLEL_LIMIT para processar simultaneamente
       const chunks = _.chunk(batchTransactions, this.PARALLEL_LIMIT);
 
-      console.log(`⚡ [PARALLEL] Processando ${batchTransactions.length} transações em ${chunks.length} chunks paralelos (${this.PARALLEL_LIMIT} por vez)`);
+      log.info({ totalTransactions: batchTransactions.length, chunks: chunks.length, parallelLimit: this.PARALLEL_LIMIT }, '[PARALLEL] Processando transacoes em chunks paralelos');
 
       for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
         const chunk = chunks[chunkIndex];
@@ -229,7 +224,7 @@ export class BatchProcessingService {
             failed++;
             const errorMsg = `Erro na transação ${globalIndex}: ${result.reason?.message || 'Erro desconhecido'}`;
             errors.push(errorMsg);
-            console.error(`❌ [BATCH-ERROR] ${errorMsg}`);
+            log.error({ globalIndex, errorMsg }, '[BATCH-ERROR]');
           }
         });
 
@@ -237,7 +232,7 @@ export class BatchProcessingService {
         const processedSoFar = startIndex + (chunkIndex + 1) * this.PARALLEL_LIMIT;
         await this.updateUploadProgress(uploadId, Math.min(processedSoFar, startIndex + batchTransactions.length), batchNumber);
 
-        console.log(`✅ [PARALLEL-CHUNK] Chunk ${chunkIndex + 1}/${chunks.length} concluído: ${chunk.length} transações (${success} sucesso, ${failed} falhas)`);
+        log.info({ chunkIndex: chunkIndex + 1, totalChunks: chunks.length, chunkSize: chunk.length, success, failed }, '[PARALLEL-CHUNK] Chunk concluido');
       }
 
       // Atualizar batch como concluído
@@ -263,11 +258,7 @@ export class BatchProcessingService {
       // Atualizar progresso final do batch
       await this.updateUploadProgress(uploadId, startIndex + batchTransactions.length, batchNumber);
 
-      console.log(`✅ [BATCH-COMPLETE] Batch ${batchNumber} concluído:`, {
-        success,
-        failed,
-        uploadId
-      });
+      log.info({ batchNumber, success, failed, uploadId }, '[BATCH-COMPLETE] Batch concluido');
 
     } catch (error) {
       // Marcar batch como falha
@@ -284,7 +275,7 @@ export class BatchProcessingService {
           )
         );
 
-      console.error(`❌ [BATCH-FAIL] Batch ${batchNumber} falhou:`, error);
+      log.error({ err: error, batchNumber }, '[BATCH-FAIL] Batch falhou');
       throw error;
     }
 
@@ -351,7 +342,7 @@ export class BatchProcessingService {
       // 1. OTIMIZAÇÃO: Pré-filtro determinístico (Custo Zero)
       const preFilterResult = await this.preFilterTechnicalTransactions(transaction.description);
       if (preFilterResult) {
-        console.log(`⚡ [PRE-FILTER] "${transaction.description}" → ${preFilterResult.categoryName} (Bypass IA)`);
+        log.info({ description: transaction.description, categoryName: preFilterResult.categoryName }, '[PRE-FILTER] Bypass IA');
         return preFilterResult;
       }
 
@@ -370,9 +361,9 @@ export class BatchProcessingService {
         }
       );
 
-      console.log(
-        `✅ [CATEGORIZE] "${transaction.description}" → ${result.categoryName} ` +
-        `(${result.confidence}% via ${result.source})`
+      log.info(
+        { description: transaction.description, categoryName: result.categoryName, confidence: result.confidence, source: result.source },
+        '[CATEGORIZE] Transaction categorized'
       );
 
       // Garantir que categoryId nunca seja uma string vazia — usar null se inválido
@@ -392,7 +383,7 @@ export class BatchProcessingService {
 
     } catch (error) {
       // Fallback para categoria "Não Classificado"
-      console.error('❌ Erro na classificação:', error);
+      log.error({ err: error }, 'Erro na classificacao');
 
       const [fallbackCategory] = await db.select()
         .from(categories)
@@ -513,7 +504,7 @@ export class BatchProcessingService {
       })
       .where(eq(uploads.id, uploadId));
 
-    console.log(`🎉 [UPLOAD-COMPLETE] Upload ${uploadId} concluído:`, stats);
+    log.info({ uploadId, ...stats }, '[UPLOAD-COMPLETE] Upload concluido');
 
     // 📊 Log estatísticas do cache
     categoryCacheService.logStats();

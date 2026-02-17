@@ -5,12 +5,15 @@ import { companies, accounts, uploads, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ofx-simple');
 
 export async function POST(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log('\n=== [UPLOAD-SIMPLE] Iniciando upload simplificado ===');
+    log.info('[UPLOAD-SIMPLE] Iniciando upload simplificado');
 
     // Inicializar banco
     await initializeDatabase();
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🏢 Empresa: ${defaultCompany.name}`);
+    log.info({ companyName: defaultCompany.name }, 'Empresa encontrada');
 
     // Verificar multipart
     const contentType = request.headers.get('content-type');
@@ -45,15 +48,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`📁 Arquivo: ${file.name} (${file.size} bytes)`);
+    log.info({ fileName: file.name, fileSize: file.size }, 'Arquivo recebido');
 
     // Ler arquivo
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const ofxContent = fileBuffer.toString('utf-8');
     const fileHash = createHash('sha256').update(fileBuffer).digest('hex');
 
-    console.log(`📋 Conteúdo lido: ${ofxContent.length} caracteres`);
-    console.log(`🔐 Hash: ${fileHash}`);
+    log.info({ contentLength: ofxContent.length }, 'Conteudo lido');
+    log.debug({ fileHash }, 'Hash calculado');
 
     // Salvar arquivo (simplificado)
     const fs = require('fs');
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(uploadsDir, filename);
     fs.writeFileSync(filePath, fileBuffer);
 
-    console.log(`💾 Arquivo salvo: ${filePath}`);
+    log.info({ filePath }, 'Arquivo salvo');
 
     // Buscar ou criar conta
     const existingAccounts = await db.select()
@@ -79,9 +82,9 @@ export async function POST(request: NextRequest) {
     let targetAccount;
     if (existingAccounts.length > 0) {
       targetAccount = existingAccounts[0];
-      console.log(`✅ Conta existente: ${targetAccount.name}`);
+      log.info({ accountName: targetAccount.name }, 'Conta existente encontrada');
     } else {
-      console.log('🏦 Criando conta padrão...');
+      log.info('Criando conta padrao...');
       const [newAccount] = await db.insert(accounts).values({
         companyId: defaultCompany.id,
         name: 'Conta Padrão',
@@ -90,13 +93,13 @@ export async function POST(request: NextRequest) {
         agencyNumber: '0000',
         accountNumber: '00000-0',
         accountType: 'checking',
-        openingBalance: 0,
+        openingBalance: '0',
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning();
       targetAccount = newAccount;
-      console.log(`✅ Conta criada: ${targetAccount.name}`);
+      log.info({ accountName: targetAccount.name }, 'Conta criada');
     }
 
     // Criar upload
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
       processedAt: new Date()
     }).returning();
 
-    console.log(`✅ Upload criado: ${newUpload.id}`);
+    log.info({ uploadId: newUpload.id }, 'Upload criado');
 
     // Retornar sucesso
     return NextResponse.json({
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro no upload simplificado:', error);
+    log.error({ err: error }, 'Erro no upload simplificado');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno',

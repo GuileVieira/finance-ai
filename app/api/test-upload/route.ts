@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('test-upload');
 
 export async function POST(request: NextRequest) {
   // Desativar em produção
@@ -7,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('\n=== [TEST-UPLOAD] Iniciando teste de upload ===');
+    log.info('[TEST-UPLOAD] Iniciando teste de upload');
 
     // Verificar se é multipart/form-data
     const contentType = request.headers.get('content-type');
@@ -29,20 +32,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📁 Arquivo recebido:', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
+    log.info({ name: file.name, size: file.size, type: file.type }, 'Arquivo recebido');
 
     // Ler apenas os primeiros 1000 caracteres para teste
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const ofxContent = fileBuffer.toString('utf-8').substring(0, 1000);
 
-    console.log('📋 Primeiros 1000 caracteres do OFX:');
-    console.log('--- INÍCIO DO ARQUIVO ---');
-    console.log(ofxContent);
-    console.log('--- FIM DO TRECHO ---');
+    log.debug('Primeiros 1000 caracteres do OFX lidos');
+    log.debug({ content: ofxContent }, 'Trecho do arquivo');
 
     // Verificar se parece um OFX válido
     const normalizedContent = ofxContent.toUpperCase().trim();
@@ -76,16 +73,16 @@ export async function POST(request: NextRequest) {
         hasTransactions
       },
       nextSteps: [
-        '1. OFX válido ✅',
-        '2. Extrair informações bancárias',
-        '3. Processar transações',
+        '1. OFX valido',
+        '2. Extrair informacoes bancarias',
+        '3. Processar transacoes',
         '4. Categorizar com IA',
         '5. Salvar no banco'
       ]
     });
 
   } catch (error) {
-    console.error('❌ Erro no teste de upload:', error);
+    log.error({ err: error }, 'Erro no teste de upload');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor',

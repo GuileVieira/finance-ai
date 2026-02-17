@@ -4,6 +4,9 @@ import { companies, accounts } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('companies');
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    console.log(`🏢 [COMPANIES-API] Buscando empresa: ${id}`);
+    log.info({ companyId: id }, 'Buscando empresa');
 
     const [company] = await db.select()
       .from(companies)
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .where(eq(accounts.companyId, id))
       .orderBy(desc(accounts.createdAt));
 
-    console.log(`✅ Empresa encontrada: ${company.name} com ${companyAccounts.length} contas`);
+    log.info({ name: company.name, accountsCount: companyAccounts.length }, 'Empresa encontrada');
 
     return NextResponse.json({
       success: true,
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar empresa:', error);
+    log.error({ err: error }, 'Erro ao buscar empresa');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -67,7 +70,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    console.log(`🏢 [COMPANIES-API] Atualizando empresa ${id}:`, body);
+    log.info({ companyId: id, body }, 'Atualizando empresa');
 
     // Verificar se empresa existe
     const [existingCompany] = await db.select()
@@ -124,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .where(eq(companies.id, id))
       .returning();
 
-    console.log(`✅ Empresa atualizada: ${updatedCompany.name}`);
+    log.info({ name: updatedCompany.name }, 'Empresa atualizada');
 
     return NextResponse.json({
       success: true,
@@ -135,7 +138,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar empresa:', error);
+    log.error({ err: error }, 'Erro ao atualizar empresa');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -152,7 +155,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    console.log(`🏢 [COMPANIES-API] Desativando empresa: ${id}`);
+    log.info({ companyId: id }, 'Desativando empresa');
 
     // Verificar se empresa existe
     const [existingCompany] = await db.select()
@@ -176,7 +179,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .where(eq(companies.id, id))
       .returning();
 
-    console.log(`✅ Empresa desativada: ${deactivatedCompany.name}`);
+    log.info({ name: deactivatedCompany.name }, 'Empresa desativada');
 
     return NextResponse.json({
       success: true,
@@ -187,7 +190,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao desativar empresa:', error);
+    log.error({ err: error }, 'Erro ao desativar empresa');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

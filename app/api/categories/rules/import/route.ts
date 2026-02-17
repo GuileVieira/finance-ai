@@ -13,6 +13,9 @@ import { categoryRules, categories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { RulesExport, ExportedRule, ExportedCategory } from '../export/route';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-import');
 
 export interface ImportOptions {
   conflictStrategy: 'skip' | 'replace' | 'merge'; // Como lidar com regras duplicadas
@@ -211,7 +214,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[IMPORT-ERROR]', error);
+    log.error({ err: error }, 'Error importing rules');
     return NextResponse.json(
       {
         success: false,

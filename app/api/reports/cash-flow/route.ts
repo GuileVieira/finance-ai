@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import CashFlowService from '@/lib/services/cash-flow.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('reports-cash-flow');
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +17,7 @@ export async function GET(request: NextRequest) {
     const companyId = sessionCompanyId; // Usar companyId da sessão
     const accountId = searchParams.get('accountId') || undefined;
 
-    console.log('📊 [CASH-FLOW-API] Buscando fluxo de caixa com filtros:', { period, days, companyId, accountId });
+    log.info({ period, days, companyId, accountId }, 'Fetching cash flow with filters');
 
     const cashFlowData = await CashFlowService.getCashFlowReport({
       period,
@@ -33,7 +36,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching cash flow:', error);
+    log.error({ err: error }, 'Error fetching cash flow');
     return NextResponse.json(
       {
         success: false,
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     const { startDate, endDate, accountId } = body;
     const companyId = sessionCompanyId; // Usar companyId da sessão
 
-    console.log('📊 [CASH-FLOW-API] Calculando fluxo de caixa personalizado:', { startDate, endDate, companyId, accountId });
+    log.info({ startDate, endDate, companyId, accountId }, 'Calculating custom cash flow');
 
     const cashFlowData = await CashFlowService.getCashFlowReport({
       startDate,
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
       data: cashFlowData
     });
   } catch (error) {
-    console.error('Error calculating cash flow:', error);
+    log.error({ err: error }, 'Error calculating cash flow');
     return NextResponse.json(
       {
         success: false,

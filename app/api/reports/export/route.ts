@@ -5,6 +5,9 @@ import { applyPlugin } from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { requireAuth } from '@/lib/auth/get-session';
 import DREService from '@/lib/services/dre.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('reports-export');
 import CashFlowService, { CashFlowFilters } from '@/lib/services/cash-flow.service';
 
 declare module 'jspdf' {
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error exporting report:', error);
+    log.error({ err: error }, 'Error exporting report');
     return NextResponse.json(
       {
         success: false,

@@ -5,6 +5,9 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { RuleGenerationService } from './rule-generation.service';
 import categoryCacheService from './category-cache.service';
 import { RuleLifecycleService } from './rule-lifecycle.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('review');
 
 export interface ReviewItem {
   id: string;
@@ -169,7 +172,7 @@ export class ReviewService {
 
         return { success: true, ruleCreated: false };
     } catch (error) {
-        console.error('Failed to resolve review:', error);
+        log.error({ err: error, transactionId }, 'Failed to resolve review');
         throw error;
     }
   }

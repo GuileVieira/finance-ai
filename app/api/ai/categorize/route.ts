@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { ClassificationAgent } from '@/lib/agent/agent';
 import { ClassificationResult } from '@/lib/agent/types';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-classify');
 
 // Schema de validação da requisição
 const CategorizeRequestSchema = z.object({
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro na API de categorização:', error);
+    log.error({ err: error }, 'Erro na API de categorizacao');
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({
@@ -90,7 +93,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro no feedback:', error);
+    log.error({ err: error }, 'Erro no feedback');
     return NextResponse.json({
       success: false,
       error: 'Erro ao processar feedback'
@@ -126,7 +129,7 @@ export async function GET(request: NextRequest) {
     }, { status: 400 });
 
   } catch (error) {
-    console.error('Erro na consulta de status:', error);
+    log.error({ err: error }, 'Erro na consulta de status');
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor'

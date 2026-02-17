@@ -4,6 +4,9 @@ import { categoryRules, categories, transactions } from '@/lib/db/schema';
 import { eq, and, ilike, desc, sql } from 'drizzle-orm';
 import CategoryRulesService from '@/lib/services/category-rules.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-suggest');
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔍 Buscando sugestões para descrição: "${description}"`);
+    log.info({ description }, 'Searching suggestions for description');
 
     const suggestions = [];
 
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
     const ruleMatch = await CategoryRulesService.applyRulesToTransaction(description, companyId);
 
     if (ruleMatch) {
-      console.log(`✅ Regra encontrada: ${ruleMatch.categoryName} (${ruleMatch.confidence}% confiança)`);
+      log.info({ categoryName: ruleMatch.categoryName, confidence: ruleMatch.confidence }, 'Rule match found');
 
       // Incrementar contador de uso da regra
       await db
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Se não encontrou regras, buscar transações similares
     if (suggestions.length === 0) {
-      console.log(`🔍 Nenhuma regra encontrada, buscando transações similares...`);
+      log.info('No rule found, searching similar transactions');
 
       const normalizedDescription = description.toLowerCase().trim();
 
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Ordenar por confiança
     suggestions.sort((a, b) => b.confidence - a.confidence);
 
-    console.log(`🎯 ${suggestions.length} sugestões geradas`);
+    log.info({ count: suggestions.length }, 'Suggestions generated');
 
     return NextResponse.json({
       success: true,
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao buscar sugestões:', error);
+    log.error({ err: error }, 'Error fetching suggestions');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

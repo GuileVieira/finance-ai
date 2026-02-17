@@ -14,6 +14,9 @@ import { db } from '@/lib/db/drizzle';
 import { transactions, categories } from '@/lib/db/schema';
 import { eq, sql, like } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-preview');
 
 interface PreviewRequest {
   description: string;
@@ -122,7 +125,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RULE-PREVIEW-API] Error:', error);
+    log.error({ err: error }, 'Error generating rule preview');
     return NextResponse.json(
       {
         success: false,
@@ -209,7 +212,7 @@ async function findMatchingTransactions(
     }));
 
   } catch (error) {
-    console.error('Error finding matching transactions:', error);
+    log.error({ err: error }, 'Error finding matching transactions');
     return [];
   }
 }
@@ -253,7 +256,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RULE-PREVIEW-API] Error testing pattern:', error);
+    log.error({ err: error }, 'Error testing pattern');
     return NextResponse.json(
       {
         success: false,

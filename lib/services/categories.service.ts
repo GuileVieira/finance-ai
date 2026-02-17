@@ -27,6 +27,9 @@ import {
 } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getFinancialExclusionClause, getCategoryExclusionClause, getTransactionDescriptionExclusionClause } from './financial-exclusion';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories');
 
 export default class CategoriesService {
   /**
@@ -208,7 +211,7 @@ export default class CategoriesService {
       }));
 
     } catch (error) {
-      console.error('Error getting categories:', error);
+      log.error({ err: error }, 'Error getting categories');
       throw new Error('Failed to fetch categories');
     }
   }
@@ -249,7 +252,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error getting category by ID:', error);
+      log.error({ err: error }, 'Error getting category by ID');
       throw new Error('Failed to fetch category');
     }
   }
@@ -316,7 +319,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error creating category:', error);
+      log.error({ err: error }, 'Error creating category');
       throw new Error('Failed to create category');
     }
   }
@@ -362,7 +365,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error updating category:', error);
+      log.error({ err: error }, 'Error updating category');
       throw new Error('Failed to update category');
     }
   }
@@ -403,7 +406,7 @@ export default class CategoriesService {
         .where(eq(categories.id, id));
 
     } catch (error) {
-      console.error('Error deleting category:', error);
+      log.error({ err: error }, 'Error deleting category');
       throw new Error('Failed to delete category');
     }
   }
@@ -558,7 +561,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error getting categories summary:', error);
+      log.error({ err: error }, 'Error getting categories summary');
       throw new Error('Failed to fetch categories summary');
     }
   }
@@ -601,7 +604,7 @@ export default class CategoriesService {
       }));
 
     } catch (error) {
-      console.error('Error getting category rules:', error);
+      log.error({ err: error }, 'Error getting category rules');
       throw new Error('Failed to fetch category rules');
     }
   }
@@ -642,7 +645,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error creating category rule:', error);
+      log.error({ err: error }, 'Error creating category rule');
       throw new Error('Failed to create category rule');
     }
   }
@@ -681,7 +684,7 @@ export default class CategoriesService {
       };
 
     } catch (error) {
-      console.error('Error updating category rule:', error);
+      log.error({ err: error }, 'Error updating category rule');
       throw new Error('Failed to update category rule');
     }
   }
@@ -698,7 +701,7 @@ export default class CategoriesService {
         .where(eq(categoryRules.id, id));
 
     } catch (error) {
-      console.error('Error deleting category rule:', error);
+      log.error({ err: error }, 'Error deleting category rule');
       throw new Error('Failed to delete category rule');
     }
   }

@@ -3,6 +3,9 @@ import { transactions, accounts } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
 import type { Insight, SeasonalityData, InsightThresholds } from '@/lib/types';
 import { DEFAULT_THRESHOLDS } from './threshold.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('seasonality');
 
 interface SeasonalityFilters {
   companyId?: string;
@@ -76,7 +79,7 @@ export default class SeasonalityService {
         sameMonthLastYearVariance
       };
     } catch (error) {
-      console.error('Error getting seasonality data:', error);
+      log.error({ err: error }, 'Error getting seasonality data');
       return null;
     }
   }
@@ -190,7 +193,7 @@ export default class SeasonalityService {
 
       return insights;
     } catch (error) {
-      console.error('Error generating seasonality insights:', error);
+      log.error({ err: error }, 'Error generating seasonality insights');
       return insights;
     }
   }
@@ -235,7 +238,7 @@ export default class SeasonalityService {
         totalIncome: result[0]?.totalIncome || 0
       };
     } catch (error) {
-      console.error('Error getting month data:', error);
+      log.error({ err: error }, 'Error getting month data');
       return { totalExpenses: 0, totalIncome: 0 };
     }
   }
@@ -268,7 +271,7 @@ export default class SeasonalityService {
         dataPoints
       };
     } catch (error) {
-      console.error('Error getting historical average:', error);
+      log.error({ err: error }, 'Error getting historical average');
       return { average: 0, dataPoints: 0 };
     }
   }
@@ -322,7 +325,7 @@ export default class SeasonalityService {
 
       return null;
     } catch (error) {
-      console.error('Error checking next month peak:', error);
+      log.error({ err: error }, 'Error checking next month peak');
       return null;
     }
   }
@@ -354,7 +357,7 @@ export default class SeasonalityService {
 
       return months > 0 ? totalExpenses / months : 0;
     } catch (error) {
-      console.error('Error getting overall monthly average:', error);
+      log.error({ err: error }, 'Error getting overall monthly average');
       return 0;
     }
   }

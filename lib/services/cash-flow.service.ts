@@ -4,6 +4,9 @@ import { CashFlowReport, CashFlowDay } from '@/lib/types';
 import { eq, and, gte, lte, lt, sum, count, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { getFinancialExclusionClause } from './financial-exclusion';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cash-flow');
 
 export interface CashFlowFilters {
   period?: string;
@@ -249,7 +252,7 @@ export default class CashFlowService {
         };
 
       } catch (error) {
-        console.error('Error generating cash flow report:', error);
+        log.error({ err: error }, 'Error generating cash flow report');
         throw new Error('Failed to generate cash flow report');
       }
     };
@@ -371,7 +374,7 @@ export default class CashFlowService {
         };
 
       } catch (error) {
-        console.error('Error projecting cash flow:', error);
+        log.error({ err: error }, 'Error projecting cash flow');
         throw new Error('Failed to project cash flow');
       }
     };
@@ -417,7 +420,7 @@ export default class CashFlowService {
         return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
 
       } catch (error) {
-        console.error('Error getting opening balance:', error);
+        log.error({ err: error }, 'Error getting opening balance');
         return 0;
       }
     };
@@ -463,7 +466,7 @@ export default class CashFlowService {
         return latestBalance[0]?.balance ? Number(latestBalance[0].balance) : 0;
 
       } catch (error) {
-        console.error('Error getting current balance:', error);
+        log.error({ err: error }, 'Error getting current balance');
         return 0;
       }
     };

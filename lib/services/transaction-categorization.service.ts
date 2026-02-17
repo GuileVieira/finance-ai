@@ -20,6 +20,9 @@ import { RuleGenerationService } from './rule-generation.service';
 import { RuleLifecycleService } from './rule-lifecycle.service';
 import { TransactionClusteringService } from './transaction-clustering.service';
 import type { CategoryRule } from '@/lib/db/schema';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-categorization');
 
 // Configuração do sistema de auto-learning
 const AUTO_LEARNING_CONFIG = {
@@ -141,7 +144,7 @@ export class TransactionCategorizationService {
     
     // 0. Detectar Tipo de Movimentação (PR4)
     const movementType = MovementTypeService.classify(context);
-    console.log(`[DEBUG] Movement Type: ${movementType} for description "${context.description}"`);
+    log.info({ movementType, description: context.description }, 'Movement Type detected');
 
     const attemptedSources: string[] = [];
     let result: CategorizationResult | null = null;
@@ -257,7 +260,7 @@ export class TransactionCategorizationService {
               companyId,
               aiResult.confidence,
               aiResult.reasoning
-            ).catch(err => console.warn('Auto-learning failed:', err));
+            ).catch(err => log.warn({ err }, 'Auto-learning failed'));
           }
 
           return {
@@ -433,7 +436,7 @@ export class TransactionCategorizationService {
         }
       }
     } catch (error) {
-      console.error('Error in hard validation:', error);
+      log.error({ err: error }, 'Error in hard validation');
       // Fail-safe: Em caso de erro de DB, não bloqueia, mas loga.
     }
 
@@ -510,7 +513,7 @@ export class TransactionCategorizationService {
       // Registrar uso positivo da regra (atualiza contadores e avalia promoção)
       // Não bloqueia o retorno
       RuleLifecycleService.recordPositiveUse(bestMatch.ruleId).catch(err => {
-        console.warn('Failed to record positive rule use:', err);
+        log.warn({ err }, 'Failed to record positive rule use');
       });
 
       return {
@@ -532,7 +535,7 @@ export class TransactionCategorizationService {
       };
 
     } catch (error) {
-       console.error('Error in tryRules:', error);
+       log.error({ err: error }, 'Error in tryRules');
        return null;
     }
   }
@@ -654,7 +657,7 @@ export class TransactionCategorizationService {
     this.fallbackCategoryCache.set(companyId, fallbackId);
 
     if (!fallbackId) {
-      console.warn(`⚠️ Categoria "Não Classificado" não encontrada para company ${companyId}. Transações ficarão sem categoria.`);
+      log.warn({ companyId }, 'Categoria "Nao Classificado" nao encontrada. Transacoes ficarao sem categoria.');
     }
 
     return fallbackId;
@@ -668,7 +671,7 @@ export class TransactionCategorizationService {
     companyId: string
   ): Promise<CategorizationResult | null> {
       if (!this.aiService) {
-      console.warn('AI service not configured. Skipping AI categorization.');
+      log.warn('AI service not configured. Skipping AI categorization.');
       return null;
     }
 
@@ -693,7 +696,7 @@ export class TransactionCategorizationService {
         .limit(1);
 
       if (category.length === 0) {
-        console.warn(`AI returned category "${result.category}" but it doesn't exist in DB`);
+        log.warn({ category: result.category }, 'AI returned category that does not exist in DB');
         return null;
       }
 
@@ -714,7 +717,7 @@ export class TransactionCategorizationService {
       };
 
     } catch (error) {
-      console.error('AI categorization failed:', error);
+      log.error({ err: error }, 'AI categorization failed');
       return null;
     }
   }
@@ -793,8 +796,9 @@ export class TransactionCategorizationService {
     try {
       // Verificar se confidence atende o mínimo para clustering
       if (confidence < AUTO_LEARNING_CONFIG.minConfidenceForClustering) {
-        console.log(
-          `ℹ️ [AUTO-LEARNING-SKIP] Confidence ${confidence}% below threshold for clustering`
+        log.info(
+          { confidence, threshold: AUTO_LEARNING_CONFIG.minConfidenceForClustering },
+          '[AUTO-LEARNING-SKIP] Confidence below threshold for clustering'
         );
         return;
       }
@@ -811,7 +815,7 @@ export class TransactionCategorizationService {
         .limit(1);
 
       if (!category) {
-        console.warn(`Category "${categoryName}" not found for auto-learning`);
+        log.warn({ categoryName }, 'Category not found for auto-learning');
         return;
       }
 
@@ -825,12 +829,14 @@ export class TransactionCategorizationService {
         );
 
         if (clusterResult.isNew) {
-          console.log(
-            `📦 [CLUSTERING] New cluster created for "${categoryName}"`
+          log.info(
+            { categoryName },
+            '[CLUSTERING] New cluster created'
           );
         } else {
-          console.log(
-            `📦 [CLUSTERING] Added to cluster (size: ${clusterResult.clusterSize}) for "${categoryName}"`
+          log.info(
+            { clusterSize: clusterResult.clusterSize, categoryName },
+            '[CLUSTERING] Added to cluster'
           );
         }
 
@@ -839,12 +845,13 @@ export class TransactionCategorizationService {
           // Processar clusters pendentes em background
           TransactionClusteringService.processPendingClusters(companyId).then(result => {
             if (result.rulesCreated > 0) {
-              console.log(
-                `🎓 [AUTO-LEARNING] Generated ${result.rulesCreated} rules from clusters`
+              log.info(
+                { rulesCreated: result.rulesCreated },
+                '[AUTO-LEARNING] Generated rules from clusters'
               );
             }
           }).catch(err => {
-            console.warn('Failed to process pending clusters:', err);
+            log.warn({ err }, 'Failed to process pending clusters');
           });
         }
 
@@ -861,16 +868,18 @@ export class TransactionCategorizationService {
       );
 
       if (result.success) {
-        console.log(
-          `🎓 [AUTO-LEARNING] Created rule: "${result.rule?.pattern}" → ${categoryName}`
+        log.info(
+          { pattern: result.rule?.pattern, categoryName },
+          '[AUTO-LEARNING] Created rule'
         );
       } else {
-        console.log(
-          `ℹ️ [AUTO-LEARNING-SKIP] ${result.error}`
+        log.info(
+          { error: result.error },
+          '[AUTO-LEARNING-SKIP]'
         );
       }
     } catch (error) {
-      console.error('[AUTO-LEARNING-ERROR]', error);
+      log.error({ err: error }, '[AUTO-LEARNING-ERROR]');
       // Não lançar erro - auto-learning é opcional
     }
   }
@@ -898,12 +907,9 @@ export class TransactionCategorizationService {
       // 3. Desativar regras órfãs (categoria deletada)
       const orphanCount = await CategoryRulesService.deactivateOrphanRules(companyId);
 
-      console.log(
-        `🔧 [MAINTENANCE] Company ${companyId}: ` +
-        `${clusterResult.processed} clusters processed, ` +
-        `${clusterResult.rulesCreated} rules created, ` +
-        `${deactivatedCount} low-performing rules deactivated, ` +
-        `${orphanCount} orphan rules deactivated`
+      log.info(
+        { companyId, clustersProcessed: clusterResult.processed, rulesCreated: clusterResult.rulesCreated, rulesDeactivated: deactivatedCount, orphanRulesDeactivated: orphanCount },
+        '[MAINTENANCE] Completed'
       );
 
       return {
@@ -913,7 +919,7 @@ export class TransactionCategorizationService {
         orphanRulesDeactivated: orphanCount
       };
     } catch (error) {
-      console.error('[MAINTENANCE-ERROR]', error);
+      log.error({ err: error }, '[MAINTENANCE-ERROR]');
       return {
         clustersProcessed: 0,
         rulesCreated: 0,

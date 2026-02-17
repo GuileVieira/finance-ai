@@ -11,6 +11,9 @@ import {
 import { eq, and, gte, lte, desc, sum, count, avg, sql, not, ilike } from 'drizzle-orm';
 import { Transaction } from '@/lib/db/schema';
 import { getFinancialExclusionClause } from './financial-exclusion';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard');
 
 export default class DashboardService {
   /**
@@ -43,21 +46,21 @@ export default class DashboardService {
   ): void {
     if (filters.accountId && filters.accountId !== 'all') {
       if (this.isUUID(filters.accountId)) {
-        console.log('🏦 Filtro accountId (UUID) =', filters.accountId);
+        log.info({ accountId: filters.accountId }, 'Filtro accountId (UUID)');
         whereConditions.push(eq(transactions.accountId, filters.accountId));
       } else {
-        console.log('🏦 Filtro bankName (do accountId) =', filters.accountId);
+        log.info({ bankName: filters.accountId }, 'Filtro bankName (do accountId)');
         whereConditions.push(eq(accounts.bankName, filters.accountId));
       }
     }
 
     if (filters.bankName && filters.bankName !== 'all') {
-      console.log('🏦 Filtro bankName =', filters.bankName);
+      log.info({ bankName: filters.bankName }, 'Filtro bankName');
       whereConditions.push(eq(accounts.bankName, filters.bankName));
     }
 
     if (filters.companyId && filters.companyId !== 'all') {
-      console.log('🏢 Filtro companyId =', filters.companyId);
+      log.info({ companyId: filters.companyId }, 'Filtro companyId');
       whereConditions.push(eq(accounts.companyId, filters.companyId));
     }
   }
@@ -170,13 +173,13 @@ export default class DashboardService {
     const { userId, ...cleanFilters } = filters;
     const execute = async (innerTx: any) => {
       try {
-        console.log('🎯 DashboardService.getMetrics chamado com filtros:', cleanFilters);
+        log.info({ filters: cleanFilters }, 'DashboardService.getMetrics chamado');
 
         // Proteção contra datas absurdas
         if (cleanFilters.startDate) {
           const startYear = parseInt(cleanFilters.startDate.split('-')[0]);
           if (startYear < 2000 || startYear > 2100) {
-            console.error('❌ Data inicial inválida:', cleanFilters.startDate);
+            log.error({ startDate: cleanFilters.startDate }, 'Data inicial invalida');
             throw new Error('Data inicial inválida');
           }
         }
@@ -184,7 +187,7 @@ export default class DashboardService {
         if (cleanFilters.endDate) {
           const endYear = parseInt(cleanFilters.endDate.split('-')[0]);
           if (endYear < 2000 || endYear > 2100) {
-            console.error('❌ Data final inválida:', cleanFilters.endDate);
+            log.error({ endDate: cleanFilters.endDate }, 'Data final invalida');
             throw new Error('Data final inválida');
           }
         }
@@ -194,7 +197,7 @@ export default class DashboardService {
         // Construir where clause
         const combinedConditions = this.getCombinedWhereConditions(cleanFilters);
         const whereClause = and(...combinedConditions);
-        console.log('🔍 WhereClause final:', whereClause ? `${combinedConditions.length} condições` : 'sem filtros');
+        log.info({ conditionCount: combinedConditions.length, hasFilters: !!whereClause }, 'WhereClause final');
 
         // Métricas principais
         const metricsResult = await innerTx
@@ -245,7 +248,7 @@ export default class DashboardService {
         };
 
       } catch (error) {
-        console.error('Error getting dashboard metrics:', error);
+        log.error({ err: error }, 'Error getting dashboard metrics');
         throw new Error('Failed to fetch dashboard metrics');
       }
     };
@@ -310,7 +313,7 @@ export default class DashboardService {
           .sort((a: any, b: any) => b.totalAmount - a.totalAmount); // Ordenar por valor total (maior primeiro)
 
       } catch (error) {
-        console.error('Error getting category summary:', error);
+        log.error({ err: error }, 'Error getting category summary');
         throw new Error('Failed to fetch category summary');
       }
     };
@@ -366,7 +369,7 @@ export default class DashboardService {
         });
 
       } catch (error) {
-        console.error('Error getting trend data:', error);
+        log.error({ err: error }, 'Error getting trend data');
         throw new Error('Failed to fetch trend data');
       }
     };
@@ -422,7 +425,7 @@ export default class DashboardService {
         }));
 
       } catch (error) {
-        console.error('Error getting top expenses:', error);
+        log.error({ err: error }, 'Error getting top expenses');
         throw new Error('Failed to fetch top expenses');
       }
     };
@@ -496,7 +499,7 @@ export default class DashboardService {
         });
 
       } catch (error) {
-        console.error('Error getting recent transactions:', error);
+        log.error({ err: error }, 'Error getting recent transactions');
         throw new Error('Failed to fetch recent transactions');
       }
     };
@@ -533,7 +536,7 @@ export default class DashboardService {
         };
 
       } catch (error) {
-        console.error('Error getting dashboard data:', error);
+        log.error({ err: error }, 'Error getting dashboard data');
         throw new Error('Failed to fetch dashboard data');
       }
     };
@@ -565,7 +568,7 @@ export default class DashboardService {
         };
       }
 
-      console.log('📊 Calculando comparações com mês anterior...');
+      log.info('Calculando comparacoes com mes anterior...');
 
       // Calcular datas do mês anterior
       const currentDate = new Date(filters.endDate);
@@ -575,7 +578,7 @@ export default class DashboardService {
       const previousStartDate = previousMonthStart.toISOString().split('T')[0];
       const previousEndDate = previousMonthEnd.toISOString().split('T')[0];
 
-      console.log(`📅 Comparando: ${filters.startDate} até ${filters.endDate} vs ${previousStartDate} até ${previousEndDate}`);
+      log.info({ currentStart: filters.startDate, currentEnd: filters.endDate, previousStart: previousStartDate, previousEnd: previousEndDate }, 'Comparando periodos');
 
       // Obter condições de filtro de conta/banco
       const accountConditions = this.getAccountFilterConditions(filters);
@@ -621,8 +624,8 @@ export default class DashboardService {
       const currentMetrics = currentMetricsResult[0];
       const previousMetrics = previousMetricsResult[0];
 
-      console.log('📈 Métricas atuais:', currentMetrics);
-      console.log('📉 Métricas anteriores:', previousMetrics);
+      log.info({ currentMetrics }, 'Metricas atuais');
+      log.info({ previousMetrics }, 'Metricas anteriores');
 
       // Função auxiliar para calcular taxa de crescimento
       const calculateGrowth = (current: number, previous: number): number => {
@@ -642,11 +645,11 @@ export default class DashboardService {
         transactionsGrowthRate: calculateGrowth(currentMetrics.transactionCount || 0, previousMetrics.transactionCount || 0)
       };
 
-      console.log('📊 Comparações calculadas:', comparisons);
+      log.info({ comparisons }, 'Comparacoes calculadas');
       return comparisons;
 
     } catch (error) {
-      console.error('Error calculating comparisons:', error);
+      log.error({ err: error }, 'Error calculating comparisons');
       return {
         growthRate: 0,
         expensesGrowthRate: 0,

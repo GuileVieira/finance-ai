@@ -11,6 +11,9 @@ import BatchProcessingService from '@/lib/services/batch-processing.service';
 import AsyncUploadProcessorService from '@/lib/services/async-upload-processor.service';
 import { requireAuth } from '@/lib/auth/get-session';
 import { getBankByCode } from '@/lib/data/brazilian-banks';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ofx-upload');
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -18,14 +21,14 @@ export async function POST(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log('\n=== [OFX-UPLOAD-ANALYZE] Nova requisição de upload e análise ===');
-    console.log('🔧 Headers:', {
+    log.info('[OFX-UPLOAD-ANALYZE] Nova requisicao de upload e analise');
+    log.debug({
       contentType: request.headers.get('content-type'),
       userAgent: request.headers.get('user-agent')?.substring(0, 50)
-    });
+    }, 'Headers da requisicao');
 
     // Inicializar banco de dados se necessário
-    console.log('🔧 Verificando banco de dados...');
+    log.debug('Verificando banco de dados...');
     await initializeDatabase();
 
     // Obter empresa do usuário autenticado
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🏢 Usando empresa: ${defaultCompany.name} (${defaultCompany.id})`);
+    log.info({ companyName: defaultCompany.name, companyId: defaultCompany.id }, 'Usando empresa');
 
     // Verificar se é multipart/form-data (upload de arquivo)
     const contentType = request.headers.get('content-type');
@@ -69,22 +72,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📁 Arquivo recebido:', {
+    log.info({
       name: file.name,
       size: file.size,
       type: file.type,
       lastModified: file.lastModified
-    });
+    }, 'Arquivo recebido');
 
     // Ler conteúdo do arquivo
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
     const ofxContent = fileBuffer.toString('utf-8');
 
-    console.log('📋 Arquivo lido, tamanho:', ofxContent.length, 'caracteres');
+    log.info({ contentLength: ofxContent.length }, 'Arquivo lido');
 
     // Salvar arquivo fisicamente
-    console.log('💾 Salvando arquivo no sistema...');
+    log.debug('Salvando arquivo no sistema...');
     const storageResult = await FileStorageService.saveOFXFile(
       arrayBuffer,
       file.name,
@@ -98,14 +101,14 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('✅ Arquivo salvo:', storageResult.filePath);
+    log.info({ filePath: storageResult.filePath }, 'Arquivo salvo');
 
     // Calcular hash do arquivo para detecção de duplicatas
     const fileHash = createHash('sha256').update(fileBuffer).digest('hex');
-    console.log('🔐 Hash do arquivo calculado:', fileHash);
+    log.debug({ fileHash }, 'Hash do arquivo calculado');
 
     // Verificar se o arquivo já foi enviado (duplicata)
-    console.log('🔍 Verificando duplicatas...');
+    log.debug('Verificando duplicatas...');
     const [existingUpload] = await db.select()
       .from(uploads)
       .where(and(
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingUpload) {
-      console.log(`⚠️ Arquivo duplicado detectado. Upload anterior: ${existingUpload.id} (${existingUpload.uploadedAt})`);
+      log.warn({ uploadId: existingUpload.id, uploadedAt: existingUpload.uploadedAt }, 'Arquivo duplicado detectado');
       return NextResponse.json({
         success: false,
         error: 'Arquivo já foi enviado anteriormente. Cada arquivo OFX só pode ser processado uma vez.',
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parser OFX
-    console.log('🔍 Fazendo parser do arquivo OFX...');
+    log.info('Fazendo parser do arquivo OFX...');
     const parseResult = await parseOFXFile(ofxContent);
 
     if (!parseResult.success) {
@@ -150,29 +153,33 @@ export async function POST(request: NextRequest) {
         (sum, tx) => sum + tx.amount, 0
       );
       calculatedOpeningBalance = (parseResult.balance.amount - transactionSum).toFixed(2);
-      console.log(`💰 Saldo calculado: LEDGERBAL(${parseResult.balance.amount}) - transações(${transactionSum.toFixed(2)}) = ${calculatedOpeningBalance}`);
+      log.info({
+        ledgerBalance: parseResult.balance.amount,
+        transactionSum: parseFloat(transactionSum.toFixed(2)),
+        openingBalance: calculatedOpeningBalance
+      }, 'Saldo de abertura calculado a partir do LEDGERBAL');
     }
 
-    console.log('✅ Parser OFX concluído:', {
+    log.info({
       numTransactions: parseResult.transactions?.length || 0,
       bankInfo: parseResult.bankInfo,
       ledgerBalance: parseResult.balance?.amount ?? null,
       calculatedOpeningBalance,
       safeMode
-    });
+    }, 'Parser OFX concluido');
 
     // Modo seguro: limitar a primeira transação apenas
     if (safeMode && parseResult.transactions && parseResult.transactions.length > 1) {
-      console.log(`🔒 Modo seguro: limitando de ${parseResult.transactions.length} para 1 transação`);
+      log.info({ originalCount: parseResult.transactions.length, limitedTo: 1 }, 'Modo seguro: limitando transacoes');
       parseResult.transactions = [parseResult.transactions[0]];
     }
 
     // Agora extrair informações bancárias do OFX para gerenciamento de contas
-    console.log('🔍 Extraindo informações bancárias do OFX...');
+    log.debug('Extraindo informacoes bancarias do OFX...');
 
     // Buscar todas as contas da empresa
     const allAccounts = await db.select().from(accounts).where(eq(accounts.companyId, defaultCompany.id));
-    console.log(`📋 Encontradas ${allAccounts.length} contas para a empresa`);
+    log.info({ accountCount: allAccounts.length }, 'Contas encontradas para a empresa');
 
     let defaultAccount = null;
     let accountMatchType = '';
@@ -187,11 +194,11 @@ export async function POST(request: NextRequest) {
       if (exactMatch) {
         defaultAccount = exactMatch;
         accountMatchType = 'conta exata';
-        console.log(`✅ Encontrada conta exata: ${exactMatch.name} (${exactMatch.accountNumber})`);
+        log.info({ accountName: exactMatch.name, accountNumber: exactMatch.accountNumber }, 'Encontrada conta exata');
 
         // Atualizar informações da conta com dados do OFX se disponíveis
         if (parseResult.bankInfo?.bankName) {
-          console.log('🔄 Atualizando informações bancárias da conta encontrada...');
+          log.debug('Atualizando informacoes bancarias da conta encontrada...');
           defaultAccount = await updateAccountBankInfo(exactMatch.id, {
             bankName: parseResult.bankInfo.bankName,
             bankCode: parseResult.bankInfo.bankId,
@@ -212,11 +219,11 @@ export async function POST(request: NextRequest) {
       if (bankMatch) {
         defaultAccount = bankMatch;
         accountMatchType = 'banco correspondente';
-        console.log(`✅ Encontrada conta do mesmo banco: ${bankMatch.name} (${bankMatch.bankName})`);
+        log.info({ accountName: bankMatch.name, bankName: bankMatch.bankName }, 'Encontrada conta do mesmo banco');
 
         // Atualizar informações da conta com dados do OFX
         if (parseResult.bankInfo) {
-          console.log('🔄 Atualizando informações bancárias da conta encontrada...');
+          log.debug('Atualizando informacoes bancarias da conta encontrada...');
           defaultAccount = await updateAccountBankInfo(bankMatch.id, {
             bankName: parseResult.bankInfo.bankName,
             bankCode: parseResult.bankInfo.bankId,
@@ -230,7 +237,7 @@ export async function POST(request: NextRequest) {
 
     // Estratégia 3: Criar nova conta se tiver informações do OFX mas não houver correspondência exata
     if (!defaultAccount && parseResult.bankInfo) {
-      console.log('🔍 Verificando se já existe conta com as informações do OFX...');
+      log.debug('Verificando se ja existe conta com as informacoes do OFX...');
 
       // Verificar se já existe conta com o mesmo número da conta e banco
       const similarAccount = allAccounts.find(acc => {
@@ -249,10 +256,10 @@ export async function POST(request: NextRequest) {
       if (similarAccount) {
         defaultAccount = similarAccount;
         accountMatchType = 'conta similar existente';
-        console.log(`✅ Encontrada conta similar: ${similarAccount.name} (${similarAccount.bankName})`);
+        log.info({ accountName: similarAccount.name, bankName: similarAccount.bankName }, 'Encontrada conta similar');
 
         // Atualizar informações da conta com dados do OFX
-        console.log('🔄 Atualizando informações bancárias da conta similar...');
+        log.debug('Atualizando informacoes bancarias da conta similar...');
 
         // Tentar identificar nome do banco pelo código se não vier no OFX
         let resolvedBankName = parseResult.bankInfo.bankName;
@@ -260,7 +267,7 @@ export async function POST(request: NextRequest) {
           const bankInfo = getBankByCode(parseResult.bankInfo.bankId);
           if (bankInfo) {
             resolvedBankName = bankInfo.shortName; // Usar nome curto (ex: Itaú)
-            console.log(`🏦 Identificado banco pelo código ${parseResult.bankInfo.bankId}: ${resolvedBankName}`);
+            log.info({ bankCode: parseResult.bankInfo.bankId, bankName: resolvedBankName }, 'Banco identificado pelo codigo');
           }
         }
 
@@ -272,7 +279,7 @@ export async function POST(request: NextRequest) {
           accountType: parseResult.bankInfo.accountType
         }) || defaultAccount;
       } else {
-        console.log('🏦 Criando nova conta baseada nas informações do OFX...');
+        log.info('Criando nova conta baseada nas informacoes do OFX...');
 
         // Tentar identificar nome do banco pelo código
         let resolvedBankName = parseResult.bankInfo.bankName || 'Banco Não Identificado';
@@ -282,7 +289,7 @@ export async function POST(request: NextRequest) {
           const bankInfo = getBankByCode(bankCode);
           if (bankInfo) {
             resolvedBankName = bankInfo.shortName;
-            console.log(`🏦 Identificado banco pelo código ${bankCode}: ${resolvedBankName}`);
+            log.info({ bankCode, bankName: resolvedBankName }, 'Banco identificado pelo codigo');
           }
         }
 
@@ -304,7 +311,7 @@ export async function POST(request: NextRequest) {
 
         defaultAccount = newAccount;
         accountMatchType = 'criada automaticamente do OFX';
-        console.log(`✅ Nova conta criada: ${newAccount.name} (${newAccount.bankName})`);
+        log.info({ accountName: newAccount.name, bankName: newAccount.bankName }, 'Nova conta criada');
       }
     }
 
@@ -312,12 +319,12 @@ export async function POST(request: NextRequest) {
     if (!defaultAccount && allAccounts.length > 0) {
       defaultAccount = allAccounts[0];
       accountMatchType = 'primeira disponível (sem info OFX)';
-      console.log(`⚠️ Usando primeira conta disponível: ${defaultAccount.name} (${defaultAccount.bankName})`);
+      log.warn({ accountName: defaultAccount.name, bankName: defaultAccount.bankName }, 'Usando primeira conta disponivel');
     }
 
     // Estratégia 5: Criar conta genérica se não existir nenhuma
     if (!defaultAccount) {
-      console.log('🏦 Nenhuma conta encontrada. Criando conta genérica...');
+      log.info('Nenhuma conta encontrada. Criando conta generica...');
 
       const [newAccount] = await db.insert(accounts).values({
         companyId: defaultCompany.id,
@@ -335,13 +342,13 @@ export async function POST(request: NextRequest) {
 
       defaultAccount = newAccount;
       accountMatchType = 'criada automaticamente (genérica)';
-      console.log(`✅ Conta genérica criada: ${newAccount.name}`);
+      log.info({ accountName: newAccount.name }, 'Conta generica criada');
     }
 
-    console.log(`🏦 Usando conta: ${defaultAccount.name} (${defaultAccount.id}) - ${accountMatchType}`);
+    log.info({ accountName: defaultAccount.name, accountId: defaultAccount.id, matchType: accountMatchType }, 'Conta selecionada');
 
     // Criar registro de upload
-    console.log('📝 Criando registro de upload...');
+    log.debug('Criando registro de upload...');
     const [newUpload] = await db.insert(uploads).values({
       companyId: defaultCompany.id,
       accountId: defaultAccount.id,
@@ -357,11 +364,11 @@ export async function POST(request: NextRequest) {
       uploadedAt: new Date()
     }).returning();
 
-    console.log(`✅ Upload registrado: ${newUpload.id}`);
+    log.info({ uploadId: newUpload.id }, 'Upload registrado');
 
     // Se modo assíncrono, retornar imediatamente e processar em background
     if (async) {
-      console.log('🚀 Modo assíncrono ativado - iniciando processamento em background');
+      log.info('Modo assincrono ativado - iniciando processamento em background');
 
       // Iniciar processamento em background (não aguardar)
       AsyncUploadProcessorService.startProcessing(
@@ -371,20 +378,20 @@ export async function POST(request: NextRequest) {
         {
           fileName: file.name,
           bankName: parseResult.bankInfo?.bankName,
-          companyId: defaultCompany.id  // ⬅️ ADICIONADO: necessário para categorização
+          companyId: defaultCompany.id
         }
       ).catch(async (error) => {
-        console.error('❌ Erro no processamento assíncrono:', error);
+        log.error({ err: error }, 'Erro no processamento assincrono');
         try {
           await db
             .update(uploads)
             .set({
               status: 'failed',
-              processingLog: { error: error instanceof Error ? error.message : 'Erro no processamento assíncrono' }
+              processingLog: { error: error instanceof Error ? error.message : 'Erro no processamento assincrono' }
             })
             .where(eq(uploads.id, newUpload.id));
         } catch (dbError) {
-          console.error('❌ Falha ao marcar upload como failed:', dbError);
+          log.error({ err: dbError }, 'Falha ao marcar upload como failed');
         }
       });
 
@@ -419,7 +426,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Modo síncrono (comportamento original)
-    console.log('🔄 Modo síncrono - preparando processamento incremental...');
+    log.info('Modo sincrono - preparando processamento incremental...');
     const batchService = BatchProcessingService;
     await batchService.prepareUploadForBatchProcessing(newUpload.id, parseResult.transactions.length);
 
@@ -435,7 +442,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Processar em batches
-    console.log(`📦 Processando ${formattedTransactions.length} transações em batches...`);
+    log.info({ transactionCount: formattedTransactions.length }, 'Processando transacoes em batches...');
     let totalSuccessful = 0;
     let totalFailed = 0;
     const batchSize = 15; // Mesmo batch size do serviço
@@ -443,8 +450,9 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < formattedTransactions.length; i += batchSize) {
       const batchNumber = Math.floor(i / batchSize) + 1;
       const batchTransactions = formattedTransactions.slice(i, i + batchSize);
+      const totalBatches = Math.ceil(formattedTransactions.length / batchSize);
 
-      console.log(`🔄 Processando batch ${batchNumber}/${Math.ceil(formattedTransactions.length / batchSize)} (${batchTransactions.length} transações)`);
+      log.info({ batchNumber, totalBatches, batchSize: batchTransactions.length }, 'Processando batch');
 
       try {
         const batchResult = await batchService.processBatch(
@@ -463,10 +471,10 @@ export async function POST(request: NextRequest) {
         totalSuccessful += batchResult.success;
         totalFailed += batchResult.failed;
 
-        console.log(`✅ Batch ${batchNumber} concluído: ${batchResult.success} sucesso, ${batchResult.failed} falhas`);
+        log.info({ batchNumber, success: batchResult.success, failed: batchResult.failed }, 'Batch concluido');
 
       } catch (error) {
-        console.error(`❌ Erro no batch ${batchNumber}:`, error);
+        log.error({ err: error, batchNumber }, 'Erro no batch');
         totalFailed += batchTransactions.length;
       }
     }
@@ -478,7 +486,7 @@ export async function POST(request: NextRequest) {
       totalTime: Date.now() - startTime
     });
 
-    console.log(`🎉 Processamento concluído: ${totalSuccessful} sucesso, ${totalFailed} falhas`);
+    log.info({ successful: totalSuccessful, failed: totalFailed }, 'Processamento concluido');
 
     // Buscar transações salvas para estatísticas
     const savedTransactions = await db.select()
@@ -560,8 +568,8 @@ export async function POST(request: NextRequest) {
       message: `Processado em batches - ${totalSuccessful} transações salvas com sucesso`
     };
 
-    console.log('🎯 Resultado final da análise:', analysisResult);
-    console.log('=== [OFX-UPLOAD-ANALYZE] Fim da requisição ===\n');
+    log.info({ analysisResult }, 'Resultado final da analise');
+    log.info('[OFX-UPLOAD-ANALYZE] Fim da requisicao');
 
     return NextResponse.json({
       success: true,
@@ -570,13 +578,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const processingTime = Date.now() - startTime;
-    console.error('❌ Erro no upload e análise OFX:', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined,
+    log.error({
+      err: error,
       processingTime: `${processingTime}ms`,
       timestamp: new Date().toISOString()
-    });
-    console.log('=== [OFX-UPLOAD-ANALYZE] Fim da requisição (ERRO) ===\n');
+    }, 'Erro no upload e analise OFX');
+    log.info('[OFX-UPLOAD-ANALYZE] Fim da requisicao (ERRO)');
 
     return NextResponse.json({
       success: false,
@@ -597,20 +604,20 @@ export async function GET(_request: NextRequest) {
       file: 'File (obrigatório) - Arquivo OFX'
     },
     workflow: [
-      '1️⃣ Upload do arquivo OFX',
-      '2️⃣ Parser do conteúdo OFX',
-      '3️⃣ Classificação inteligente de cada transação',
-      '4️⃣ Análise com pesquisa de empresas (CNPJ/CNAE)',
-      '5️⃣ Retorno de transações classificadas',
-      '6️⃣ Estatísticas e resumo financeiro'
+      '1. Upload do arquivo OFX',
+      '2. Parser do conteudo OFX',
+      '3. Classificacao inteligente de cada transacao',
+      '4. Analise com pesquisa de empresas (CNPJ/CNAE)',
+      '5. Retorno de transacoes classificadas',
+      '6. Estatisticas e resumo financeiro'
     ],
     features: [
-      '📁 Upload de arquivos OFX',
-      '🔍 Parser inteligente',
-      '🤖 Classificação com IA',
-      '🏭 Pesquisa de empresas',
-      '📊 Estatísticas detalhadas',
-      '💾 Botão Salvar (em desenvolvimento)'
+      'Upload de arquivos OFX',
+      'Parser inteligente',
+      'Classificacao com IA',
+      'Pesquisa de empresas',
+      'Estatisticas detalhadas',
+      'Botao Salvar (em desenvolvimento)'
     ],
     maxFileSize: '10MB',
     supportedFormats: ['.ofx']

@@ -14,6 +14,9 @@ import CategoriesService from '@/lib/services/categories.service';
 import { filterCategoriesByTransactionType } from '@/lib/utils/category-filter';
 import { descriptionEnrichmentService, type EnrichedDescription } from './description-enrichment.service';
 import { searchCompanyInfo, searchByCNPJ, ProcessedSearchResult } from '@/lib/tools/duckduckgo-search.tool';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-categorization');
 
 // Cache de categorias do banco para evitar múltiplas consultas
 let cachedCategories: Array<{name: string; type: string}> = [];
@@ -124,7 +127,7 @@ export class AICategorization implements AICategorizationService {
     companyInfo?: any;
   }> {
     try {
-      console.log('[AI-ADAPTER] Iniciando categorização direta via aiProviderService');
+      log.info('[AI-ADAPTER] Iniciando categorizacao direta via aiProviderService');
 
       // NOVO: Enriquecer descrição com contexto adicional
       let enrichment: EnrichedDescription | null = null;
@@ -134,22 +137,22 @@ export class AICategorization implements AICategorizationService {
           context.memo ?? undefined // Converter null/undefined para undefined explícito
         );
         if (enrichment.bankingTerm) {
-          console.log(`[AI-ADAPTER] Termo bancário detectado: ${enrichment.bankingTerm.term} (${enrichment.bankingTerm.meaning})`);
+          log.info({ term: enrichment.bankingTerm.term, meaning: enrichment.bankingTerm.meaning }, '[AI-ADAPTER] Termo bancario detectado');
         }
       } catch (enrichError) {
-        console.warn('[AI-ADAPTER] Erro ao enriquecer descrição, continuando sem enriquecimento:', enrichError);
+        log.warn({ err: enrichError }, '[AI-ADAPTER] Erro ao enriquecer descricao, continuando sem enriquecimento');
       }
 
       // NOVO: Tentar extrair informações de empresa da descrição (DuckDuckGo)
       // Se encontrarmos o CNPJ ou o setor da empresa, isso pode economizar uma chamada de IA 
       // ou prover contexto valioso.
-      console.log('[AI-ADAPTER] Tentando extrair informações de empresa da descrição...');
+      log.info('[AI-ADAPTER] Tentando extrair informacoes de empresa da descricao...');
       const companyInfo = await this.extractCompanyInfo(context.description, context.memo ?? undefined);
 
       if (companyInfo && companyInfo.confidence > 0.3) {
         const companyBasedCategoryName = this.getCompanyBasedCategory(companyInfo, context.amount ?? 0);
         if (companyBasedCategoryName) {
-           console.log(`[AI-ADAPTER] Categoria baseada na pesquisa de empresa: "${companyBasedCategoryName}"`);
+           log.info({ category: companyBasedCategoryName }, '[AI-ADAPTER] Categoria baseada na pesquisa de empresa');
            return {
              category: companyBasedCategoryName,
              confidence: Math.min(0.85, companyInfo.confidence),
@@ -180,7 +183,7 @@ export class AICategorization implements AICategorizationService {
       );
 
       if (forcedCategory) {
-        console.log(`[AI-ADAPTER] Regra Determinística aplicada: "${forcedCategory.category}"`);
+        log.info({ category: forcedCategory.category }, '[AI-ADAPTER] Regra Deterministica aplicada');
         return {
           category: forcedCategory.category,
           confidence: 1.0, // Confiança máxima
@@ -205,7 +208,7 @@ export class AICategorization implements AICategorizationService {
 
       for (const model of modelsToTry) {
         try {
-          console.log(`[AI-ADAPTER] Tentando modelo: ${model}`);
+          log.info({ model }, '[AI-ADAPTER] Tentando modelo');
 
           const messages = [
             {
@@ -242,7 +245,7 @@ REGRAS:
           const aiCategory = response.content?.trim() || 'OUTRAS DESPESAS NOP';
           const validCategory = mapAIResultToValidCategory(aiCategory, availableCategories);
 
-          console.log(`[AI-ADAPTER] Sucesso! Categoria: "${aiCategory}" → "${validCategory}"`);
+          log.info({ aiCategory, validCategory }, '[AI-ADAPTER] Sucesso! Categoria mapeada');
 
           // Montar reasoning com informações do enriquecimento
           let reasoning = `IA (${response.provider}/${response.model}) categorizou como "${aiCategory}" → "${validCategory}"`;
@@ -260,11 +263,11 @@ REGRAS:
             modelUsed: `${response.provider}/${response.model}`
           };
         } catch (error) {
-          console.error(`[AI-ADAPTER] Erro no modelo ${model}:`, error);
+          log.error({ err: error, model }, '[AI-ADAPTER] Erro no modelo');
 
           // Se for o último modelo, retorna fallback
           if (model === modelsToTry[modelsToTry.length - 1]) {
-            console.log('[AI-ADAPTER] Todos os modelos falharam, usando fallback');
+            log.info('[AI-ADAPTER] Todos os modelos falharam, usando fallback');
 
             const fallbackCategory = availableCategories.find(cat => cat === 'OUTRAS DESPESAS NOP')
               || availableCategories[0]
@@ -292,7 +295,7 @@ REGRAS:
       };
 
     } catch (error) {
-      console.error('[AI-ADAPTER-ERROR]', error);
+      log.error({ err: error }, '[AI-ADAPTER-ERROR]');
       throw error;
     }
   }
@@ -421,7 +424,7 @@ REGRAS:
 
       return null;
     } catch (error) {
-      console.error('[AI-ADAPTER] Erro ao pesquisar empresa:', error);
+      log.error({ err: error }, '[AI-ADAPTER] Erro ao pesquisar empresa');
       return null;
     }
   }

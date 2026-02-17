@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DashboardService from '@/lib/services/dashboard.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-top-expenses');
 
 // GET - Buscar top despesas do dashboard
 export async function GET(request: NextRequest) {
@@ -24,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-    console.log('📊 [DASHBOARD-TOP-EXPENSES-API] Buscando top despesas com filtros:', filters);
+    log.info({ filters }, 'Fetching top expenses with filters');
 
     const topExpenses = await DashboardService.getTopExpenses(filters, limit);
 
@@ -34,7 +37,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar top despesas do dashboard:', error);
+    log.error({ err: error }, 'Error fetching top expenses');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

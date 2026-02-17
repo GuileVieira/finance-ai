@@ -1,6 +1,9 @@
 import { db } from '@/lib/db/drizzle';
 import { categoryRules, transactions, categories, accounts } from '@/lib/db/schema';
 import { ilike, or, and, eq, desc, isNull, sql } from 'drizzle-orm';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('category-rules');
 
 export interface RuleMatch {
   ruleId: string;
@@ -91,7 +94,7 @@ export class CategoryRulesService {
       return null; // Nenhuma regra correspondeu
 
     } catch (error) {
-      console.error('Error applying category rules:', error);
+      log.error({ err: error }, 'Error applying category rules');
       throw new Error('Failed to apply category rules');
     }
   }
@@ -121,7 +124,7 @@ export class CategoryRulesService {
       return results;
 
     } catch (error) {
-      console.error('Error applying rules to multiple transactions:', error);
+      log.error({ err: error }, 'Error applying rules to multiple transactions');
       throw new Error('Failed to apply rules to transactions');
     }
   }
@@ -172,7 +175,7 @@ export class CategoryRulesService {
       return categorizedCount;
 
     } catch (error) {
-      console.error('Error categorizing uncategorized transactions:', error);
+      log.error({ err: error }, 'Error categorizing uncategorized transactions');
       throw new Error('Failed to categorize uncategorized transactions');
     }
   }
@@ -364,7 +367,7 @@ export class CategoryRulesService {
       return conflicts;
 
     } catch (error) {
-      console.error('Error finding conflicting rules:', error);
+      log.error({ err: error }, 'Error finding conflicting rules');
       throw new Error('Failed to find conflicting rules');
     }
   }
@@ -407,7 +410,7 @@ export class CategoryRulesService {
       return orphanRules;
 
     } catch (error) {
-      console.error('Error finding orphan rules:', error);
+      log.error({ err: error }, 'Error finding orphan rules');
       return [];
     }
   }
@@ -436,11 +439,11 @@ export class CategoryRulesService {
           .where(eq(categoryRules.id, rule.id));
       }
 
-      console.log(`🧹 [ORPHAN-CLEANUP] Desativadas ${orphanRules.length} regras órfãs`);
+      log.info({ count: orphanRules.length }, '[ORPHAN-CLEANUP] Desativadas regras orfas');
       return orphanRules.length;
 
     } catch (error) {
-      console.error('Error deactivating orphan rules:', error);
+      log.error({ err: error }, 'Error deactivating orphan rules');
       return 0;
     }
   }
@@ -530,7 +533,7 @@ export class CategoryRulesService {
       return await query.orderBy(desc(categoryRules.confidenceScore));
 
     } catch (error) {
-      console.error('Error fetching category rules:', error);
+      log.error({ err: error }, 'Error fetching category rules');
       throw new Error('Failed to fetch category rules');
     }
   }
@@ -609,7 +612,7 @@ export class CategoryRulesService {
       return similarRules.sort((a, b) => b.similarity - a.similarity);
 
     } catch (error) {
-      console.error('Error finding similar rules:', error);
+      log.error({ err: error }, 'Error finding similar rules');
       return [];
     }
   }
@@ -682,7 +685,7 @@ export class CategoryRulesService {
       };
 
     } catch (error) {
-      console.error('Error validating rule creation:', error);
+      log.error({ err: error }, 'Error validating rule creation');
       return {
         canCreate: true, // Em caso de erro, permitir (fail-safe)
         hasExactDuplicate: false,
@@ -742,7 +745,7 @@ export class CategoryRulesService {
       return { rule: newRule, validation };
 
     } catch (error) {
-      console.error('Error creating category rule:', error);
+      log.error({ err: error }, 'Error creating category rule');
       throw error instanceof Error ? error : new Error('Failed to create category rule');
     }
   }
@@ -776,7 +779,7 @@ export class CategoryRulesService {
       return updatedRule;
 
     } catch (error) {
-      console.error('Error updating category rule:', error);
+      log.error({ err: error }, 'Error updating category rule');
       throw new Error('Failed to update category rule');
     }
   }
@@ -793,7 +796,7 @@ export class CategoryRulesService {
         .where(eq(categoryRules.id, id));
 
     } catch (error) {
-      console.error('Error deleting category rule:', error);
+      log.error({ err: error }, 'Error deleting category rule');
       throw new Error('Failed to delete category rule');
     }
   }
@@ -836,7 +839,7 @@ export class CategoryRulesService {
       };
 
     } catch (error) {
-      console.error('Error getting rules statistics:', error);
+      log.error({ err: error }, 'Error getting rules statistics');
       throw new Error('Failed to get rules statistics');
     }
   }

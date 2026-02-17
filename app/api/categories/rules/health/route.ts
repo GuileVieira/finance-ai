@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import CategoryRulesService from '@/lib/services/category-rules.service';
 import { TransactionCategorizationService } from '@/lib/services/transaction-categorization.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-health');
 
 /**
  * GET /api/categories/rules/health
@@ -129,7 +132,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RULES-HEALTH-API] Error:', error);
+    log.error({ err: error }, 'Error fetching rules health');
     return NextResponse.json(
       {
         success: false,
@@ -179,7 +182,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[RULES-HEALTH-API] Maintenance error:', error);
+    log.error({ err: error }, 'Rules health maintenance error');
     return NextResponse.json(
       {
         success: false,

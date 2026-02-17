@@ -5,6 +5,9 @@ import { users, companies, userCompanies, categories, accounts } from '@/lib/db/
 import { eq } from 'drizzle-orm';
 import { mockCategories } from '@/lib/mock-categories';
 import { signupRateLimiter, getClientIP } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('auth-signup');
 
 export async function POST(request: Request) {
   // Rate limiting: 3 cadastros por hora por IP
@@ -129,7 +132,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Erro no signup:', error);
+    log.error({ err: error }, 'Error during signup');
     return NextResponse.json(
       { success: false, error: 'Erro ao criar conta' },
       { status: 500 }

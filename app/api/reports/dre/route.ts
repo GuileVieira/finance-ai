@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DREService from '@/lib/services/dre.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('reports-dre');
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    console.log('📊 [DRE-API] Buscando DRE com filtros:', { period, includeComparison, companyId, accountId, startDate, endDate });
+    log.info({ period, includeComparison, companyId, accountId, startDate, endDate }, 'Fetching DRE with filters');
 
     // Buscar DRE do período atual
     const currentData = await DREService.getDREStatement({
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching DRE:', error);
+    log.error({ err: error }, 'Error fetching DRE');
     return NextResponse.json(
       {
         success: false,
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
     const { period, accountId } = body;
     const companyId = session.companyId; // Usar companyId da sessão
 
-    console.log('📊 [DRE-API] Calculando DRE com filtros:', { period, companyId, accountId });
+    log.info({ period, companyId, accountId }, 'Calculating DRE with filters');
 
     const dreData = await DREService.getDREStatement({
       period: period || 'current',
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
       data: dreData
     });
   } catch (error) {
-    console.error('Error calculating DRE:', error);
+    log.error({ err: error }, 'Error calculating DRE');
     return NextResponse.json(
       {
         success: false,

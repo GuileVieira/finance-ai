@@ -10,6 +10,9 @@ import { Reader } from 'ofx-data-extractor';
 import { OfxExtractor } from 'ofx-data-extractor';
 import { Extractor } from 'ofx-data-extractor';
 import type { MetaData, ExtractorConfig, DateResponse } from 'ofx-data-extractor';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ofx-parser');
 
 export interface ParsedTransaction {
   id: string;
@@ -84,7 +87,7 @@ export class OFXParserService {
       };
 
     } catch (error) {
-      console.error('Erro ao parsear OFX:', error);
+      log.error({ err: error }, 'Error parsing OFX');
       throw new Error(`Falha ao processar arquivo OFX: ${error.message}`);
     }
   }
@@ -125,7 +128,7 @@ export class OFXParserService {
       };
 
     } catch (error) {
-      console.error('Erro ao parsear OFX:', error);
+      log.error({ err: error }, 'Error parsing OFX');
       throw new Error(`Falha ao processar OFX: ${error.message}`);
     }
   }

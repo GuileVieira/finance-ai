@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CategoriesService from '@/lib/services/categories.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-detail');
 
 export async function GET(
     request: NextRequest,
@@ -36,7 +39,7 @@ export async function GET(
         if (error instanceof Error && error.message === 'Não autenticado') {
             return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
         }
-        console.error('[CATEGORY-DETAIL-API] Error fetching category:', error);
+        log.error({ err: error }, 'Error fetching category');
         return NextResponse.json(
             {
                 success: false,
@@ -73,7 +76,7 @@ export async function PUT(
         if (error instanceof Error && error.message === 'Não autenticado') {
             return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
         }
-        console.error('[CATEGORY-DETAIL-API] Error updating category:', error);
+        log.error({ err: error }, 'Error updating category');
         return NextResponse.json(
             {
                 success: false,
@@ -106,7 +109,7 @@ export async function DELETE(
         if (error instanceof Error && error.message === 'Não autenticado') {
             return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
         }
-        console.error('[CATEGORY-DETAIL-API] Error deleting category:', error);
+        log.error({ err: error }, 'Error deleting category');
         return NextResponse.json(
             {
                 success: false,

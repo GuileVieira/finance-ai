@@ -12,6 +12,9 @@ import { aiUsageLogs, aiModelPricing, type NewAiUsageLog } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { appendFileSync } from 'fs';
 import { join } from 'path';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-cost-logger');
 
 export interface AiUsageLogInput {
   userId?: string;
@@ -56,7 +59,7 @@ export class AiCostLoggerService {
     outputPricePer1kTokens: number;
   } | null> {
     if (!db) {
-      console.warn('[AI-COST-LOGGER] Banco de dados não disponível');
+      log.warn('Database not available');
       return null;
     }
 
@@ -74,7 +77,7 @@ export class AiCostLoggerService {
         .limit(1);
 
       if (!pricing) {
-        console.warn(`[AI-COST-LOGGER] Preço não encontrado para ${provider}/${modelName}`);
+        log.warn({ provider, modelName }, 'Pricing not found for model');
         return null;
       }
 
@@ -83,7 +86,7 @@ export class AiCostLoggerService {
         outputPricePer1kTokens: parseFloat(pricing.outputPricePer1kTokens)
       };
     } catch (error) {
-      console.error('[AI-COST-LOGGER] Erro ao buscar preço do modelo:', error);
+      log.error({ err: error, provider, modelName }, 'Error fetching model pricing');
       return null;
     }
   }
@@ -138,7 +141,7 @@ export class AiCostLoggerService {
 
       appendFileSync(this.logFilePath, logLine + '\n', 'utf8');
     } catch (error) {
-      console.error('[AI-COST-LOGGER] Erro ao salvar log em arquivo:', error);
+      log.error({ err: error }, 'Error saving log to file');
     }
   }
 
@@ -160,7 +163,7 @@ export class AiCostLoggerService {
 
       // Salvar no banco de dados
       if (!db) {
-        console.warn('[AI-COST-LOGGER] Banco de dados não disponível. Log salvo apenas em arquivo.');
+        log.warn('Database not available, log saved to file only');
         return;
       }
 
@@ -186,12 +189,12 @@ export class AiCostLoggerService {
 
       await db.insert(aiUsageLogs).values(newLog);
 
-      console.log(
-        `[AI-COST-LOGGER] ✅ Log registrado: ${logData.provider}/${logData.modelName} | ` +
-        `${totalTokens} tokens | $${costUsd.toFixed(6)} | source:${logData.source}`
+      log.info(
+        { provider: logData.provider, model: logData.modelName, totalTokens, costUsd: costUsd.toFixed(6), source: logData.source },
+        'Usage log recorded'
       );
     } catch (error) {
-      console.error('[AI-COST-LOGGER] ❌ Erro ao registrar log de uso:', error);
+      log.error({ err: error }, 'Error recording usage log');
       // Não propagar o erro para não quebrar o fluxo principal
     }
   }

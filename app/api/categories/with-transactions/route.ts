@@ -4,6 +4,9 @@ import { db } from '@/lib/db/drizzle';
 import { categories, transactions } from '@/lib/db/schema';
 import { eq, desc, isNull, count, sum, sql, and, gte, lte } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-with-transactions');
 
 export async function GET(request: NextRequest) {
   try {
@@ -131,7 +134,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.error('[CATEGORIES-WITH-TRANSACTIONS-API] Error fetching categories with transactions:', error);
+    log.error({ err: error }, 'Error fetching categories with transactions');
     return NextResponse.json(
       {
         success: false,

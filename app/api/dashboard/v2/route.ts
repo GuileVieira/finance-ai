@@ -3,6 +3,9 @@ import { requireAuth } from '@/lib/auth/get-session';
 import { initializeDatabase } from '@/lib/db/init-db';
 import ExecutiveDashboardService from '@/lib/services/executive-dashboard.service';
 import { DashboardFilters } from '@/lib/api/dashboard';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-v2');
 
 export async function GET(request: NextRequest) {
     try {
@@ -20,18 +23,15 @@ export async function GET(request: NextRequest) {
             accountId: searchParams.get('accountId') || 'all',
         };
 
-        console.log('📊 [EXECUTIVE-DASHBOARD-API] Filtros recebidos:', filters);
+        log.info({ filters }, 'Received filters for executive dashboard');
 
         const data = await ExecutiveDashboardService.getDashboardData(filters);
 
-        console.log('📊 [EXECUTIVE-DASHBOARD-API] Dados retornados:', {
-            summary: data.summary,
-            dreTableCount: data.dreTable.length,
-        });
+        log.info({ summary: data.summary, dreTableCount: data.dreTable.length }, 'Executive dashboard data returned');
 
         return NextResponse.json({ success: true, data });
     } catch (error) {
-        console.error('❌ [EXECUTIVE-DASHBOARD-API] Erro:', error);
+        log.error({ err: error }, 'Error fetching executive dashboard data');
         return NextResponse.json(
             { success: false, error: 'Erro ao buscar dados do dashboard executivo' },
             { status: 500 }

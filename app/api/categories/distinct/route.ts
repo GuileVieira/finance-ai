@@ -4,6 +4,9 @@ import { db } from '@/lib/db/connection';
 import { categories, transactions } from '@/lib/db/schema';
 import { eq, isNull, desc, sql, and } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-distinct');
 
 export interface CategoryResponse {
   id: string;
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeEmpty = searchParams.get('includeEmpty');
 
-    console.log('🏷️ [CATEGORIES-DISTINCT-API] Buscando categorias distintas:', { includeEmpty, companyId });
+    log.info({ includeEmpty, companyId }, 'Fetching distinct categories');
 
     // Buscar categorias que têm transações (usando DISTINCT)
     let query = db
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     const distinctCategories = await query;
 
-    console.log(`✅ Encontradas ${distinctCategories.length} categorias distintas`);
+    log.info({ count: distinctCategories.length }, 'Found distinct categories');
 
     return NextResponse.json({
       success: true,
@@ -83,7 +86,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao buscar categorias distintas:', error);
+    log.error({ err: error }, 'Error fetching distinct categories');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

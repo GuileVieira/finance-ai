@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import TransactionsService, { TransactionFilters } from '@/lib/services/transactions.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('transactions');
 
 // GET - Listar transações
 export async function GET(request: NextRequest) {
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
       filters.limit = parseInt(searchParams.get('limit')!, 10);
     }
 
-    console.log('📊 [TRANSACTIONS-API] Listando transações com filtros:', filters);
+    log.info({ filters }, 'Listando transacoes com filtros');
 
     // Verificar se é requisição de estatísticas
     if (searchParams.get('stats') === 'true') {
@@ -89,7 +92,7 @@ export async function GET(request: NextRequest) {
     // Listar transações
     const result = await TransactionsService.getTransactions(filters);
 
-    console.log(`✅ Retornando ${result.transactions.length} transações`);
+    log.info({ count: result.transactions.length }, 'Retornando transacoes');
 
     // Garantir que o total seja um número
     const resultWithNumberTotal = {
@@ -114,7 +117,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    console.error('❌ Erro ao listar transações:', error);
+    log.error({ err: error }, 'Erro ao listar transacoes');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

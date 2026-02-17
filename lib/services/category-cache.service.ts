@@ -9,6 +9,10 @@
  * Evita chamadas desnecessárias para IA cacheando descrições similares
  */
 
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('category-cache');
+
 export interface CachedCategory {
   categoryId: string;    // ID da categoria no banco
   categoryName: string;  // Nome legível (para logs)
@@ -153,7 +157,7 @@ class CategoryCacheService {
       entry.hitCount++;
       this.totalHits++;
 
-      console.log(`💾 [CACHE-HIT-EXACT] [${companyId.slice(0,8)}] "${description}" → "${entry.categoryName}" (hit #${entry.hitCount})`);
+      log.info({ companyId: companyId.slice(0,8), description, categoryName: entry.categoryName, hitCount: entry.hitCount }, '[CACHE-HIT-EXACT]');
       return {
         categoryId: entry.categoryId,
         categoryName: entry.categoryName,
@@ -183,9 +187,9 @@ class CategoryCacheService {
       bestMatch.entry.hitCount++;
       this.totalHits++;
 
-      console.log(
-        `💾 [CACHE-HIT-SIMILAR] [${companyId.slice(0,8)}] "${description}" → "${bestMatch.entry.categoryName}" ` +
-        `(${(bestMatch.similarity * 100).toFixed(1)}% similar, hit #${bestMatch.entry.hitCount})`
+      log.info(
+        { companyId: companyId.slice(0,8), description, categoryName: bestMatch.entry.categoryName, similarity: (bestMatch.similarity * 100).toFixed(1), hitCount: bestMatch.entry.hitCount },
+        '[CACHE-HIT-SIMILAR]'
       );
 
       return {
@@ -197,7 +201,7 @@ class CategoryCacheService {
     }
 
     // 3. Cache miss
-    console.log(`❌ [CACHE-MISS] [${companyId.slice(0,8)}] "${description}" (não encontrado)`);
+    log.info({ companyId: companyId.slice(0,8), description }, '[CACHE-MISS]');
     return null;
   }
 
@@ -220,7 +224,7 @@ class CategoryCacheService {
   ): void {
     // Só cachear se tiver alta confiança (>= 0.8)
     if (confidence < 0.8) {
-      console.log(`⚠️ [CACHE-SKIP] Confiança baixa (${confidence}), não cacheando: "${description}"`);
+      log.info({ confidence, description }, '[CACHE-SKIP] Confianca baixa, nao cacheando');
       return;
     }
 
@@ -232,7 +236,7 @@ class CategoryCacheService {
       existing.timestamp = new Date();
       existing.categoryId = categoryId;
       existing.categoryName = categoryName;
-      console.log(`🔄 [CACHE-UPDATE] [${companyId.slice(0,8)}] "${description}" → "${categoryName}"`);
+      log.info({ companyId: companyId.slice(0,8), description, categoryName }, '[CACHE-UPDATE]');
       return;
     }
 
@@ -246,7 +250,7 @@ class CategoryCacheService {
       hitCount: 0
     });
 
-    console.log(`✅ [CACHE-ADD] [${companyId.slice(0,8)}] "${description}" → "${categoryName}" (confidence: ${confidence})`);
+    log.info({ companyId: companyId.slice(0,8), description, categoryName, confidence }, '[CACHE-ADD]');
   }
 
   /**
@@ -282,7 +286,7 @@ class CategoryCacheService {
     this.cache.clear();
     this.totalHits = 0;
     this.totalLookups = 0;
-    console.log(`🗑️ [CACHE-CLEAR] ${beforeSize} entradas removidas`);
+    log.info({ entriesRemoved: beforeSize }, '[CACHE-CLEAR]');
   }
 
   /**
@@ -297,7 +301,7 @@ class CategoryCacheService {
       }
     }
     if (removed > 0) {
-      console.log(`🗑️ [CACHE-CLEAR-COMPANY] ${removed} entradas removidas para empresa ${companyId.slice(0,8)}`);
+      log.info({ entriesRemoved: removed, companyId: companyId.slice(0,8) }, '[CACHE-CLEAR-COMPANY]');
     }
     return removed;
   }
@@ -318,7 +322,7 @@ class CategoryCacheService {
     }
 
     if (removed > 0) {
-      console.log(`🗑️ [CACHE-CLEAN] ${removed} entradas antigas removidas (>${maxAgeDays} dias)`);
+      log.info({ entriesRemoved: removed, maxAgeDays }, '[CACHE-CLEAN] Entradas antigas removidas');
     }
 
     return removed;
@@ -330,26 +334,24 @@ class CategoryCacheService {
   public logStats(): void {
     const stats = this.getStats();
 
-    console.log('\n📊 [CACHE-STATS] ─────────────────────────');
-    console.log(`   Entradas no cache: ${stats.totalEntries}`);
-    console.log(`   Total de buscas: ${this.totalLookups}`);
-    console.log(`   Total de hits: ${stats.totalHits}`);
-    console.log(`   Taxa de acerto: ${stats.hitRate.toFixed(2)}%`);
+    log.info({
+      totalEntries: stats.totalEntries,
+      totalLookups: this.totalLookups,
+      totalHits: stats.totalHits,
+      hitRate: `${stats.hitRate.toFixed(2)}%`
+    }, '[CACHE-STATS] Summary');
 
     // Entradas por empresa
     const companyCounts = Object.entries(stats.byCompany);
     if (companyCounts.length > 0) {
-      console.log(`   Empresas no cache: ${companyCounts.length}`);
-      companyCounts.forEach(([companyId, count]) => {
-        console.log(`     - ${companyId.slice(0,8)}...: ${count} entradas`);
-      });
+      log.info({ companiesInCache: companyCounts.length, byCompany: stats.byCompany }, '[CACHE-STATS] Companies');
     }
 
     if (stats.oldestEntry) {
-      console.log(`   Entrada mais antiga: ${stats.oldestEntry.toLocaleDateString()}`);
+      log.info({ oldestEntry: stats.oldestEntry.toLocaleDateString() }, '[CACHE-STATS] Oldest entry');
     }
     if (stats.newestEntry) {
-      console.log(`   Entrada mais recente: ${stats.newestEntry.toLocaleDateString()}`);
+      log.info({ newestEntry: stats.newestEntry.toLocaleDateString() }, '[CACHE-STATS] Newest entry');
     }
 
     // Top 10 mais reutilizadas
@@ -358,14 +360,12 @@ class CategoryCacheService {
       .slice(0, 10);
 
     if (topEntries.length > 0) {
-      console.log('\n   🏆 Top 10 mais reutilizadas:');
-      topEntries.forEach(([key, value], index) => {
+      const topList = topEntries.map(([key, value], index) => {
         const desc = this.getDescriptionFromKey(key);
-        console.log(`   ${index + 1}. [${value.companyId.slice(0,8)}] "${desc}" → ${value.categoryName} (${value.hitCount} hits)`);
+        return { rank: index + 1, companyId: value.companyId.slice(0,8), description: desc, categoryName: value.categoryName, hitCount: value.hitCount };
       });
+      log.info({ top10: topList }, '[CACHE-STATS] Top 10 most reused');
     }
-
-    console.log('───────────────────────────────────────\n');
   }
 }
 

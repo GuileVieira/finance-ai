@@ -5,6 +5,9 @@ import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { getFinancialExclusionClause } from './financial-exclusion';
 import { DreGroupKey, EXCLUDED_DRE_GROUPS } from '@/lib/constants/dre-utils';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dre');
 
 interface DrilldownTransaction {
   id: string;
@@ -755,7 +758,7 @@ export default class DREService {
       };
 
     } catch (error) {
-      console.error('Error generating DRE statement:', error);
+      log.error({ err: error }, 'Error generating DRE statement');
       throw new Error('Failed to generate DRE statement');
     }
   };

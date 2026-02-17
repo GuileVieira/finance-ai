@@ -3,6 +3,9 @@ import { initializeDatabase } from '@/lib/db/init-db';
 import { DashboardFilters } from '@/lib/api/dashboard';
 import DashboardService from '@/lib/services/dashboard.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-api');
 
 // GET - Buscar dados completos do dashboard
 export async function GET(request: NextRequest) {
@@ -41,12 +44,12 @@ export async function GET(request: NextRequest) {
       filters.endDate = searchParams.get('endDate')!;
     }
 
-    console.log('📊 [DASHBOARD-API] Buscando dados do dashboard com filtros:', filters);
+    log.info({ filters }, 'Fetching dashboard data with filters');
 
     // Buscar dados completos do dashboard
     const dashboardData = await DashboardService.getDashboardData(filters);
 
-    console.log(`✅ Dashboard carregado com ${dashboardData.recentTransactions.length} transações recentes`);
+    log.info({ recentTransactionsCount: dashboardData.recentTransactions.length }, 'Dashboard loaded');
 
     return NextResponse.json({
       success: true,
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    console.error('❌ Erro ao buscar dados do dashboard:', error);
+    log.error({ err: error }, 'Error fetching dashboard data');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

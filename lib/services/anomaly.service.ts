@@ -3,6 +3,9 @@ import { transactions, accounts, categories } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, sql, isNotNull, ne } from 'drizzle-orm';
 import type { Insight, AnomalyData, InsightThresholds } from '@/lib/types';
 import { DEFAULT_THRESHOLDS } from './threshold.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('anomaly');
 
 interface AnomalyFilters {
   companyId?: string;
@@ -45,7 +48,7 @@ export default class AnomalyService {
 
       return anomalies;
     } catch (error) {
-      console.error('Error detecting anomalies:', error);
+      log.error({ err: error }, 'Error detecting anomalies');
       return [];
     }
   }
@@ -190,7 +193,7 @@ export default class AnomalyService {
       // Limitar a top 10 anomalias de transação
       return anomalies.slice(0, 10);
     } catch (error) {
-      console.error('Error detecting transaction anomalies:', error);
+      log.error({ err: error }, 'Error detecting transaction anomalies');
       return [];
     }
   }
@@ -299,7 +302,7 @@ export default class AnomalyService {
 
       return anomalies;
     } catch (error) {
-      console.error('Error detecting category spikes:', error);
+      log.error({ err: error }, 'Error detecting category spikes');
       return [];
     }
   }
@@ -396,7 +399,7 @@ export default class AnomalyService {
 
       return insights;
     } catch (error) {
-      console.error('Error generating anomaly insights:', error);
+      log.error({ err: error }, 'Error generating anomaly insights');
       return insights;
     }
   }

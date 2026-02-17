@@ -12,6 +12,9 @@ import { db } from '@/lib/db/drizzle';
 import { categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('categories-rules-export');
 
 export interface ExportedRule {
   id: string;
@@ -152,7 +155,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('[EXPORT-ERROR]', error);
+    log.error({ err: error }, 'Error exporting rules');
     return NextResponse.json(
       {
         success: false,

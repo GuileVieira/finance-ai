@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseOFXFile } from '@/lib/ofx-parser';
+import { parseOFXFile, OFXTransaction } from '@/lib/ofx-parser';
 import { db } from '@/lib/db/connection';
 import { companies, accounts, uploads, categories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,6 +9,9 @@ import { createHash } from 'crypto';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
 import { getBankByCode, getBankName } from '@/lib/data/brazilian-banks';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ofx-async');
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -16,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const { companyId } = await requireAuth();
 
-    console.log('\n=== [OFX-UPLOAD-ASYNC] Nova requisição de upload assíncrono ===');
+    log.info('[OFX-UPLOAD-ASYNC] Nova requisicao de upload assincrono');
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📁 Arquivo recebido:', { name: file.name, size: file.size });
+    log.info({ name: file.name, size: file.size }, 'Arquivo recebido');
 
     // Ler conteúdo do arquivo
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parser OFX (apenas validação inicial)
-    console.log('🔍 Fazendo parser inicial do arquivo OFX...');
+    log.info('Fazendo parser inicial do arquivo OFX...');
     const parseResult = await parseOFXFile(ofxContent);
 
     if (!parseResult.success) {
@@ -123,10 +126,10 @@ export async function POST(request: NextRequest) {
     let targetAccount = null;
 
     if (parseResult.bankInfo && parseResult.bankInfo.bankId && parseResult.bankInfo.accountId) {
-      console.log('🔍 Buscando conta existente para:', {
+      log.info({
         bankCode: parseResult.bankInfo.bankId,
         accountNumber: parseResult.bankInfo.accountId
-      });
+      }, 'Buscando conta existente');
 
       // Tentar encontrar conta que corresponda ao banco e número de conta do OFX
       targetAccount = await findAccountByBankInfo(
@@ -137,7 +140,7 @@ export async function POST(request: NextRequest) {
 
       if (targetAccount && parseResult.bankInfo.bankId) {
         // Conta encontrada - atualizar com informações do OFX se necessário
-        console.log('🔄 Atualizando informações bancárias da conta existente...');
+        log.debug('Atualizando informacoes bancarias da conta existente...');
 
         // Obter nome correto do banco pela tabela
         const bankCode = parseResult.bankInfo.bankId;
@@ -153,14 +156,14 @@ export async function POST(request: NextRequest) {
         });
       } else if (!targetAccount) {
         // Conta não encontrada - criar nova
-        console.log('🏦 Criando nova conta baseada no OFX...');
+        log.info('Criando nova conta baseada no OFX...');
 
         // Obter nome correto do banco pela tabela de bancos brasileiros
         const bankCode = parseResult.bankInfo.bankId || '000';
         const bankFromTable = getBankByCode(bankCode);
         const resolvedBankName = bankFromTable?.shortName || parseResult.bankInfo.bankName || 'Banco Não Identificado';
 
-        console.log(`🏦 Banco identificado: ${resolvedBankName} (código ${bankCode})`);
+        log.info({ bankCode, bankName: resolvedBankName }, 'Banco identificado');
 
         const [newAccount] = await db.insert(accounts).values({
           companyId: defaultCompany.id,
@@ -172,7 +175,7 @@ export async function POST(request: NextRequest) {
           agencyNumber: parseResult.bankInfo.branchId || '0000',
           accountNumber: parseResult.bankInfo.accountId || '00000-0',
           accountType: parseResult.bankInfo.accountType || 'checking',
-          openingBalance: 0,
+          openingBalance: parseResult.balance?.amount?.toString() ?? '0',
           active: true
         }).returning();
 
@@ -180,7 +183,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // OFX não tem bankInfo completo - usar conta padrão
-      console.log('ℹ️ OFX sem bankInfo completo, usando conta padrão...');
+      log.info('OFX sem bankInfo completo, usando conta padrao...');
       targetAccount = await getDefaultAccount();
     }
 
@@ -191,7 +194,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`✅ Conta selecionada: ${targetAccount.name} (${targetAccount.bankName})`);
+    log.info({ accountName: targetAccount.name, bankName: targetAccount.bankName }, 'Conta selecionada');
 
     // Criar registro de upload com status 'pending'
     const [newUpload] = await db.insert(uploads).values({
@@ -209,11 +212,11 @@ export async function POST(request: NextRequest) {
       uploadedAt: new Date()
     }).returning();
 
-    console.log(`✅ Upload registrado: ${newUpload.id} (${parseResult.transactions.length} transações)`);
+    log.info({ uploadId: newUpload.id, transactionCount: parseResult.transactions.length }, 'Upload registrado');
 
     // *** INICIAR PROCESSAMENTO ASSÍNCRONO ***
     // Não esperar pelo processamento - retornar imediatamente
-    console.log('🚀 Iniciando processamento assíncrono...');
+    log.info('Iniciando processamento assincrono...');
 
     // Processar em background sem bloquear a resposta
     processOFXAsync(newUpload.id, parseResult.transactions, {
@@ -222,7 +225,7 @@ export async function POST(request: NextRequest) {
       accountId: targetAccount.id,
       companyId: defaultCompany.id
     }).catch(error => {
-      console.error(`❌ Erro no processamento assíncrono do upload ${newUpload.id}:`, error);
+      log.error({ err: error, uploadId: newUpload.id }, 'Erro no processamento assincrono');
     });
 
     // Resposta imediata para o usuário
@@ -254,7 +257,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro no upload assíncrono:', error);
+    log.error({ err: error }, 'Erro no upload assincrono');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -263,11 +266,11 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Função assíncrona para processamento do OFX em background
+ * Funcao assincrona para processamento do OFX em background
  */
 async function processOFXAsync(
   uploadId: string,
-  transactions: any[],
+  transactions: OFXTransaction[],
   context: {
     fileName: string;
     bankName?: string;
@@ -276,7 +279,7 @@ async function processOFXAsync(
   }
 ) {
   try {
-    console.log(`🔄 [ASYNC-PROCESS] Iniciando processamento do upload ${uploadId}`);
+    log.info({ uploadId }, '[ASYNC-PROCESS] Iniciando processamento do upload');
 
     const batchService = BatchProcessingService;
 
@@ -286,7 +289,6 @@ async function processOFXAsync(
     // Formatar transações
     const formattedTransactions = transactions.map(tx => ({
       description: tx.description,
-      name: tx.name,
       memo: tx.memo,
       amount: tx.amount,
       date: tx.date,
@@ -324,7 +326,7 @@ async function processOFXAsync(
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (error) {
-        console.error(`❌ [ASYNC-ERROR] Erro no batch ${batchNumber}:`, error);
+        log.error({ err: error, batchNumber }, '[ASYNC-ERROR] Erro no batch');
         totalFailed += batchTransactions.length;
       }
     }
@@ -336,12 +338,12 @@ async function processOFXAsync(
       totalTime: Date.now() - Date.now()
     });
 
-    console.log(`🎉 [ASYNC-COMPLETE] Upload ${uploadId} processado: ${totalSuccessful} sucesso, ${totalFailed} falhas`);
+    log.info({ uploadId, successful: totalSuccessful, failed: totalFailed }, '[ASYNC-COMPLETE] Upload processado');
 
     // Aqui poderíamos enviar notificação, WebSocket, etc.
 
   } catch (error) {
-    console.error(`❌ [ASYNC-FAIL] Falha geral no processamento do upload ${uploadId}:`, error);
+    log.error({ err: error, uploadId }, '[ASYNC-FAIL] Falha geral no processamento do upload');
 
     // Marcar upload como falha
     await db.update(uploads)
@@ -359,26 +361,26 @@ async function processOFXAsync(
 export async function GET(_request: NextRequest) {
   await requireAuth();
   return NextResponse.json({
-    message: 'API de Upload Assíncrono OFX',
+    message: 'API de Upload Assincrono OFX',
     endpoint: '/api/ofx/upload-async',
     method: 'POST',
     contentType: 'multipart/form-data',
     workflow: [
-      '1️⃣ Upload imediato do arquivo OFX',
-      '2️⃣ Parser rápido para validação',
-      '3️⃣ Salvar arquivo e criar registro',
-      '4️⃣ Iniciar processamento assíncrono',
-      '5️⃣ Retornar resposta imediata',
-      '6️⃣ Processar em batches em background',
-      '7️⃣ Notificar quando completar'
+      '1. Upload imediato do arquivo OFX',
+      '2. Parser rapido para validacao',
+      '3. Salvar arquivo e criar registro',
+      '4. Iniciar processamento assincrono',
+      '5. Retornar resposta imediata',
+      '6. Processar em batches em background',
+      '7. Notificar quando completar'
     ],
     features: [
-      '🚀 Upload instantâneo (não trava navegador)',
-      '📦 Processamento em batches de 15 transações',
-      '📊 Progresso em tempo real via API',
-      '🔄 Retomada automática em caso de falha',
-      '💾 Persistência incremental',
-      '🔔 Notificação quando finalizar (em desenvolvimento)'
+      'Upload instantaneo (nao trava navegador)',
+      'Processamento em batches de 15 transacoes',
+      'Progresso em tempo real via API',
+      'Retomada automatica em caso de falha',
+      'Persistencia incremental',
+      'Notificacao quando finalizar (em desenvolvimento)'
     ],
     maxFileSize: '10MB',
     supportedFormats: ['.ofx']

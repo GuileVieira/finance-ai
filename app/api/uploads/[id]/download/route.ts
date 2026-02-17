@@ -5,6 +5,9 @@ import { eq, and } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import FileStorageService from '@/lib/storage/file-storage.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('uploads-download');
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +18,7 @@ export async function GET(
     const { companyId } = await requireAuth();
 
 
-    console.log(`\n=== [UPLOAD-DOWNLOAD] Requisição de download: ${id} ===`);
+    log.info({ uploadId: id }, 'Download request received');
 
     // Inicializar banco de dados se necessário
     await initializeDatabase();
@@ -28,7 +31,7 @@ export async function GET(
       }, { status: 400 });
     }
 
-    console.log(`🔍 Buscando upload: ${id}`);
+    log.info({ uploadId: id }, 'Searching for upload');
 
     // Buscar upload no banco - VERIFICAR PROPRIEDADE
     const [upload] = await db.select({
@@ -56,28 +59,28 @@ export async function GET(
       .limit(1);
 
     if (!upload) {
-      console.log(`❌ Upload não encontrado: ${id}`);
+      log.warn({ uploadId: id }, 'Upload not found');
       return NextResponse.json({
         success: false,
         error: 'Upload não encontrado'
       }, { status: 404 });
     }
 
-    console.log(`✅ Upload encontrado: ${upload.originalName} (${upload.fileType})`);
+    log.info({ originalName: upload.originalName, fileType: upload.fileType }, 'Upload found');
 
     // Ler arquivo do storage
-    console.log('📁 Lendo arquivo do storage...');
+    log.info('Reading file from storage');
     const fileBuffer = await FileStorageService.readFile(upload.filePath!);
 
     if (!fileBuffer) {
-      console.log(`❌ Arquivo não encontrado no storage: ${upload.filePath}`);
+      log.warn({ filePath: upload.filePath }, 'File not found in storage');
       return NextResponse.json({
         success: false,
         error: 'Arquivo físico não encontrado no storage'
       }, { status: 404 });
     }
 
-    console.log(`✅ Arquivo lido: ${fileBuffer.length} bytes`);
+    log.info({ bytes: fileBuffer.length }, 'File read successfully');
 
     // Determinar MIME type
     const mimeType = getMimeType(upload.fileType);
@@ -94,7 +97,7 @@ export async function GET(
       'X-Company': upload.company?.name || 'Unknown'
     });
 
-    console.log(`🚀 Enviando arquivo: ${upload.originalName}`);
+    log.info({ originalName: upload.originalName }, 'Sending file');
 
     // Retornar arquivo
     return new NextResponse(new Uint8Array(fileBuffer), {
@@ -103,11 +106,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ Erro no download do arquivo:', {
-      uploadId: id,
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    log.error({ err: error, uploadId: id }, 'Error downloading file');
 
     return NextResponse.json({
       success: false,

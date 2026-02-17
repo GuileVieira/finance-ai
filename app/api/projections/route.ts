@@ -4,6 +4,9 @@ import { db } from '@/lib/db/drizzle';
 import { projections } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('projections-api');
 
 // Schema de validação
 const projectionSchema = z.object({
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('❌ [PROJECTIONS-API] Erro ao listar:', error);
+    log.error({ err: error }, 'Error listing projections');
     return NextResponse.json(
       { success: false, error: 'Erro ao listar projeções' },
       { status: 500 }
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: result });
     }
   } catch (error) {
-    console.error('❌ [PROJECTIONS-API] Erro ao criar/atualizar:', error);
+    log.error({ err: error }, 'Error creating/updating projection');
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: 'Dados inválidos', details: error.errors },
@@ -187,7 +190,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ [PROJECTIONS-API] Erro ao deletar:', error);
+    log.error({ err: error }, 'Error deleting projections');
     return NextResponse.json(
       { success: false, error: 'Erro ao deletar projeções' },
       { status: 500 }

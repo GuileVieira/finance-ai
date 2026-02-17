@@ -2,6 +2,9 @@ import { db } from '@/lib/db/drizzle';
 import { insightThresholds } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { InsightThresholds } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('threshold');
 
 // Thresholds padrão do sistema
 export const DEFAULT_THRESHOLDS: InsightThresholds = {
@@ -94,7 +97,7 @@ export default class ThresholdService {
 
       return result;
     } catch (error) {
-      console.error('Error getting thresholds:', error);
+      log.error({ err: error }, 'Error getting thresholds');
       return DEFAULT_THRESHOLDS;
     }
   }
@@ -142,7 +145,7 @@ export default class ThresholdService {
         });
       }
     } catch (error) {
-      console.error('Error updating threshold:', error);
+      log.error({ err: error }, 'Error updating threshold');
       throw new Error('Failed to update threshold');
     }
   }
@@ -156,7 +159,7 @@ export default class ThresholdService {
         .delete(insightThresholds)
         .where(eq(insightThresholds.companyId, companyId));
     } catch (error) {
-      console.error('Error resetting thresholds:', error);
+      log.error({ err: error }, 'Error resetting thresholds');
       throw new Error('Failed to reset thresholds');
     }
   }
@@ -171,7 +174,7 @@ export default class ThresholdService {
         .from(insightThresholds)
         .where(eq(insightThresholds.companyId, companyId));
     } catch (error) {
-      console.error('Error getting custom thresholds:', error);
+      log.error({ err: error }, 'Error getting custom thresholds');
       return [];
     }
   }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DashboardService from '@/lib/services/dashboard.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-categories');
 
 // GET - Buscar resumo de categorias do dashboard
 export async function GET(request: NextRequest) {
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
       endDate: searchParams.get('endDate') || undefined,
     };
 
-    console.log('📊 [DASHBOARD-CATEGORIES-API] Buscando categorias com filtros:', filters);
+    log.info({ filters }, 'Fetching dashboard categories with filters');
 
     const categorySummary = await DashboardService.getCategorySummary(filters);
 
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar categorias do dashboard:', error);
+    log.error({ err: error }, 'Error fetching dashboard categories');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

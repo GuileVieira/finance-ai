@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { ClassificationAgent } from '@/lib/agent/agent';
 import { BatchClassificationRequest, BatchClassificationResponse } from '@/lib/agent/types';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-batch-categorize');
 
 // Schema de validação da requisição em lote
 const BatchCategorizeRequestSchema = z.object({
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro na API de categorização em lote:', error);
+    log.error({ err: error }, 'Erro na API de categorizacao em lote');
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({
@@ -95,7 +98,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro ao atualizar status do lote:', error);
+    log.error({ err: error }, 'Erro ao atualizar status do lote');
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor'
@@ -131,7 +134,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Erro na consulta de lote:', error);
+    log.error({ err: error }, 'Erro na consulta de lote');
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor'

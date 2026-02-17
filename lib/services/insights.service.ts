@@ -7,6 +7,9 @@ import ThresholdService, { DEFAULT_THRESHOLDS } from './threshold.service';
 import SeasonalityService from './seasonality.service';
 import RecurrenceService from './recurrence.service';
 import AnomalyService from './anomaly.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('insights');
 
 export interface AccuracyStats {
   averageAccuracy: number;
@@ -137,7 +140,7 @@ export default class InsightsService {
         period: deterministicResult.period
       };
     } catch (error) {
-      console.error('Error generating all insights:', error);
+      log.error({ err: error }, 'Error generating all insights');
       return {
         insights: [],
         criticalInsights: [],
@@ -252,7 +255,7 @@ export default class InsightsService {
       };
 
     } catch (error) {
-      console.error('Error generating financial insights:', error);
+      log.error({ err: error }, 'Error generating financial insights');
       throw new Error('Failed to generate financial insights');
     }
   }
@@ -610,7 +613,7 @@ export default class InsightsService {
         periodOverPeriod: growthRate // Usando o mesmo valor por enquanto
       };
     } catch (error) {
-      console.error('Error getting trend data:', error);
+      log.error({ err: error }, 'Error getting trend data');
       return { growthRate: 0, periodOverPeriod: 0 };
     }
   }
@@ -687,7 +690,7 @@ export default class InsightsService {
         totalTransactions
       };
     } catch (error) {
-      console.error('Error getting accuracy rate:', error);
+      log.error({ err: error }, 'Error getting accuracy rate');
       return { averageAccuracy: 0, totalCategorized: 0, totalTransactions: 0 };
     }
   }
@@ -745,7 +748,7 @@ export default class InsightsService {
         usedCategories: usedResult[0]?.count || 0
       };
     } catch (error) {
-      console.error('Error getting category stats:', error);
+      log.error({ err: error }, 'Error getting category stats');
       return { totalCategories: 0, activeCategories: 0, usedCategories: 0 };
     }
   }
@@ -806,7 +809,7 @@ export default class InsightsService {
         type: topCategoryResult[0].categoryType || 'unknown'
       };
     } catch (error) {
-      console.error('Error getting top category:', error);
+      log.error({ err: error }, 'Error getting top category');
       return null;
     }
   }
@@ -894,7 +897,7 @@ export default class InsightsService {
         }
       };
     } catch (error) {
-      console.error('Error generating simple insights:', error);
+      log.error({ err: error }, 'Error generating simple insights');
       return {
         insights: [],
         isEmpty: true,

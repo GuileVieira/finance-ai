@@ -3,6 +3,9 @@ import { initializeDatabase } from '@/lib/db/init-db';
 import InsightsService from '@/lib/services/insights.service';
 import type { InsightPriority } from '@/lib/types';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('reports-insights');
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
     const accountId = searchParams.get('accountId') || undefined;
     const extended = searchParams.get('extended') === 'true'; // Novo parâmetro para usar getAllInsights
 
-    console.log('📊 [INSIGHTS-API] Buscando insights com filtros:', { period, category, type, companyId, accountId, extended });
+    log.info({ period, category, type, companyId, accountId, extended }, 'Fetching insights with filters');
 
     if (extended) {
       // Usar o novo método que inclui sazonalidade, recorrência e anomalias
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
       data: insightsData
     });
   } catch (error) {
-    console.error('Error fetching insights:', error);
+    log.error({ err: error }, 'Error fetching insights');
     return NextResponse.json(
       {
         success: false,

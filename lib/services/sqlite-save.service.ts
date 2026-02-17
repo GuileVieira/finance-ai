@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('sqlite-save');
+
 // Interface para transação salva
 export interface SavedTransaction {
   id: string;
@@ -39,13 +43,13 @@ export class SQLiteSaveService {
       const request = indexedDB.open(this.DB_NAME, 1);
 
       request.onerror = () => {
-        console.error('Erro ao abrir IndexedDB:', request.error);
+        log.error({ err: request.error }, 'Error opening IndexedDB');
         reject(request.error);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('IndexedDB inicializado com sucesso');
+        log.info('IndexedDB initialized successfully');
         resolve();
       };
 
@@ -98,12 +102,12 @@ export class SQLiteSaveService {
 
     return new Promise((resolve, reject) => {
       transaction.oncomplete = () => {
-        console.log(`${savedTransactions.length} transações salvas com sucesso`);
+        log.info({ count: savedTransactions.length }, 'Transactions saved successfully');
         resolve();
       };
 
       transaction.onerror = () => {
-        console.error('Erro ao salvar transações:', transaction.error);
+        log.error({ err: transaction.error }, 'Error saving transactions');
         reject(transaction.error);
       };
 
@@ -138,7 +142,7 @@ export class SQLiteSaveService {
       };
 
       request.onerror = () => {
-        console.error('Erro ao obter transações:', request.error);
+        log.error({ err: request.error }, 'Error getting transactions');
         reject(request.error);
       };
     });
@@ -169,7 +173,7 @@ export class SQLiteSaveService {
       };
 
       request.onerror = () => {
-        console.error('Erro ao obter transações do arquivo:', request.error);
+        log.error({ err: request.error, fileName }, 'Error getting transactions by file');
         reject(request.error);
       };
     });
@@ -224,12 +228,12 @@ export class SQLiteSaveService {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log('Todas as transações foram removidas');
+        log.info('All transactions cleared');
         resolve();
       };
 
       request.onerror = () => {
-        console.error('Erro ao limpar transações:', request.error);
+        log.error({ err: request.error }, 'Error clearing transactions');
         reject(request.error);
       };
     });

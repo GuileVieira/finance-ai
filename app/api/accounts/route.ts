@@ -4,6 +4,9 @@ import { accounts, companies, transactions, categories } from '@/lib/db/schema';
 import { eq, desc, like, sum, sql, and, not, ilike } from 'drizzle-orm';
 import { initializeDatabase } from '@/lib/db/init-db';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('accounts');
 
 // GET - Listar contas
 export async function GET(request: NextRequest) {
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get('active');
     const search = searchParams.get('search');
 
-    console.log('🏦 [ACCOUNTS-API] Listando contas:', { targetCompanyId, active, search });
+    log.info({ targetCompanyId, active, search }, 'Listando contas');
 
     let query = db.select({
       id: accounts.id,
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const allAccounts = await query;
 
-    console.log(`✅ Encontradas ${allAccounts.length} contas`);
+    log.info({ count: allAccounts.length }, 'Contas encontradas');
 
     // Buscar saldo calculado para cada conta (soma das transações)
     // EXCLUINDO transações de "Saldo Inicial" para evitar duplicação
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao listar contas:', error);
+    log.error({ err: error }, 'Erro ao listar contas');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -131,7 +134,7 @@ export async function POST(request: NextRequest) {
     await initializeDatabase();
 
     const body = await request.json();
-    console.log('🏦 [ACCOUNTS-API] Criando nova conta:', body);
+    log.info({ body }, 'Criando nova conta');
 
     // Validações básicas
     if (!body.name || body.name.trim().length === 0) {
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
       active: body.active !== undefined ? body.active : true
     }).returning();
 
-    console.log(`✅ Conta criada: ${newAccount.name} (${newAccount.id})`);
+    log.info({ accountId: newAccount.id, name: newAccount.name }, 'Conta criada');
 
     return NextResponse.json({
       success: true,
@@ -184,7 +187,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Não autenticado') {
       return NextResponse.json({ success: false, error: 'Não autenticado' }, { status: 401 });
     }
-    console.error('❌ Erro ao criar conta:', error);
+    log.error({ err: error }, 'Erro ao criar conta');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

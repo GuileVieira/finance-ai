@@ -2,16 +2,19 @@ import { db } from './connection';
 import { companies, accounts, categories } from './schema';
 import { eq, and } from 'drizzle-orm';
 import { mockCategories } from '../mock-categories';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('db-init');
 
 export async function initializeDatabase() {
   try {
-    console.log('🚀 Inicializando banco de dados...');
+    log.info('Inicializando banco de dados...');
 
     // Verificar se já existe uma empresa
     const existingCompany = await db.select().from(companies).limit(1);
 
     if (existingCompany.length === 0) {
-      console.log('📝 Criando empresa padrão...');
+      log.info('Criando empresa padrao...');
 
       // Criar empresa padrão
       const [newCompany] = await db.insert(companies).values({
@@ -21,10 +24,10 @@ export async function initializeDatabase() {
         active: true
       }).returning();
 
-      console.log(`✅ Empresa criada: ${newCompany.name}`);
+      log.info({ companyName: newCompany.name }, 'Empresa criada');
 
       // Criar conta bancária padrão
-      console.log('🏦 Criando conta bancária padrão...');
+      log.info('Criando conta bancaria padrao...');
       const [newAccount] = await db.insert(accounts).values({
         companyId: newCompany.id,
         name: 'Conta Principal',
@@ -35,10 +38,10 @@ export async function initializeDatabase() {
         active: true
       }).returning();
 
-      console.log(`✅ Conta criada: ${newAccount.name}`);
+      log.info({ accountName: newAccount.name }, 'Conta criada');
 
       // Criar categorias padrão usando mockCategories
-      console.log('📊 Criando categorias padrão...');
+      log.info('Criando categorias padrao...');
       const categoriesToInsert = mockCategories.map(cat => ({
         companyId: newCompany.id,
         name: cat.name,
@@ -66,17 +69,17 @@ export async function initializeDatabase() {
       });
 
       await db.insert(categories).values(categoriesToInsert);
-      console.log(`✅ ${categoriesToInsert.length} categorias criadas com dados completos (incluindo fallback)`);
+      log.info({ count: categoriesToInsert.length }, 'Categorias criadas com dados completos (incluindo fallback)');
 
-      console.log('🎉 Banco de dados inicializado com sucesso!');
+      log.info('Banco de dados inicializado com sucesso');
       return { company: newCompany, account: newAccount };
     } else {
-      console.log('✅ Banco de dados já inicializado');
+      log.info('Banco de dados ja inicializado');
       return { company: existingCompany[0], account: null };
     }
 
   } catch (error) {
-    console.error('❌ Erro ao inicializar banco de dados:', error);
+    log.error({ err: error }, 'Erro ao inicializar banco de dados');
     throw error;
   }
 }
@@ -84,19 +87,19 @@ export async function initializeDatabase() {
 // Função para resetar o banco (apenas para desenvolvimento)
 export async function resetDatabase() {
   try {
-    console.log('🔄 Resetando banco de dados...');
+    log.info('Resetando banco de dados...');
 
     // Delete em ordem reversa devido às foreign keys
     await db.delete(categories);
     await db.delete(accounts);
     await db.delete(companies);
 
-    console.log('✅ Banco de dados resetado');
+    log.info('Banco de dados resetado');
 
     // Recriar com dados padrão
     return await initializeDatabase();
   } catch (error) {
-    console.error('❌ Erro ao resetar banco de dados:', error);
+    log.error({ err: error }, 'Erro ao resetar banco de dados');
     throw error;
   }
 }
@@ -115,11 +118,11 @@ export async function getDefaultAccount(companyId?: string) {
   if (!targetCompanyId) {
     const defaultCompany = await getDefaultCompany();
     if (!defaultCompany) {
-      console.error('❌ Nenhuma empresa padrão encontrada para getDefaultAccount()');
+      log.error('Nenhuma empresa padrao encontrada para getDefaultAccount()');
       return undefined;
     }
     targetCompanyId = defaultCompany.id;
-    console.log(`ℹ️ getDefaultAccount() sem companyId - usando empresa padrão: ${defaultCompany.name}`);
+    log.info({ companyName: defaultCompany.name }, 'getDefaultAccount() sem companyId - usando empresa padrao');
   }
 
   const [account] = await db.select()
@@ -128,7 +131,7 @@ export async function getDefaultAccount(companyId?: string) {
     .limit(1);
 
   if (!account) {
-    console.warn(`⚠️ Nenhuma conta encontrada para companyId: ${targetCompanyId}`);
+    log.warn({ companyId: targetCompanyId }, 'Nenhuma conta encontrada para companyId');
   }
 
   return account;
@@ -141,7 +144,7 @@ export async function findAccountByBankInfo(
   accountNumber: string
 ) {
   if (!bankCode || !accountNumber) {
-    console.log('⚠️ findAccountByBankInfo: bankCode ou accountNumber não fornecidos');
+    log.info('findAccountByBankInfo: bankCode ou accountNumber nao fornecidos');
     return undefined;
   }
 
@@ -156,9 +159,9 @@ export async function findAccountByBankInfo(
     .limit(1);
 
   if (account) {
-    console.log(`✅ Conta encontrada: ${account.name} (${account.bankName})`);
+    log.info({ accountName: account.name, bankName: account.bankName }, 'Conta encontrada');
   } else {
-    console.log(`ℹ️ Nenhuma conta encontrada para bankCode: ${bankCode}, accountNumber: ${accountNumber}`);
+    log.info({ bankCode, accountNumber }, 'Nenhuma conta encontrada para bankCode/accountNumber');
   }
 
   return account;
@@ -184,7 +187,7 @@ export async function updateAccountBankInfo(
   if (bankInfo.accountType) updateData.accountType = bankInfo.accountType;
 
   if (Object.keys(updateData).length === 0) {
-    console.log('⚠️ updateAccountBankInfo: Nenhum dado para atualizar');
+    log.info('updateAccountBankInfo: Nenhum dado para atualizar');
     return undefined;
   }
 
@@ -193,6 +196,6 @@ export async function updateAccountBankInfo(
     .where(eq(accounts.id, accountId))
     .returning();
 
-  console.log(`✅ Conta atualizada: ${updatedAccount.name} → ${updatedAccount.bankName}`);
+  log.info({ accountName: updatedAccount.name, bankName: updatedAccount.bankName }, 'Conta atualizada');
   return updatedAccount;
 }

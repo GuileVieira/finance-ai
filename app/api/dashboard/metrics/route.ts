@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db/init-db';
 import DashboardService from '@/lib/services/dashboard.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('dashboard-metrics');
 
 // GET - Buscar métricas do dashboard
 export async function GET(request: NextRequest) {
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
       endDate: searchParams.get('endDate') || undefined,
     };
 
-    console.log('📊 [DASHBOARD-METRICS-API] Buscando métricas com filtros:', filters);
+    log.info({ filters }, 'Fetching dashboard metrics with filters');
 
     const metrics = await DashboardService.getMetrics(filters);
 
@@ -32,7 +35,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao buscar métricas do dashboard:', error);
+    log.error({ err: error }, 'Error fetching dashboard metrics');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import BatchProcessingService from '@/lib/services/batch-processing.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('uploads-progress');
 
 export async function GET(
   request: NextRequest,
@@ -10,7 +13,7 @@ export async function GET(
     await requireAuth();
     const { id: uploadId } = await params;
 
-    console.log(`📊 [PROGRESS] Consultando progresso do upload: ${uploadId}`);
+    log.info({ uploadId }, 'Querying upload progress');
 
     const progress = await BatchProcessingService.getProcessingProgress(uploadId);
 
@@ -21,12 +24,12 @@ export async function GET(
       }, { status: 404 });
     }
 
-    console.log(`📈 [PROGRESS] Progresso atual:`, {
+    log.info({
       uploadId,
       percentage: progress.percentage,
       status: progress.status,
       processed: `${progress.processedTransactions}/${progress.totalTransactions}`
-    });
+    }, 'Current progress');
 
     return NextResponse.json({
       success: true,
@@ -34,7 +37,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('❌ [PROGRESS] Erro ao consultar progresso:', error);
+    log.error({ err: error }, 'Error querying progress');
 
     return NextResponse.json({
       success: false,

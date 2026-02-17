@@ -3,6 +3,9 @@ import { db } from '@/lib/db/connection';
 import { transactions, categoryRules, categories } from '@/lib/db/schema';
 import { eq, and, or, ilike, isNull, desc } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-rules-preview');
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔍 Preview da regra: "${rulePattern}" (${ruleType}) para empresa: ${companyId}`);
+    log.info({ rulePattern, ruleType, companyId }, 'Preview da regra');
 
     // Verificar se categoria existe
     const [category] = await db
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
       return acc;
     }, { income: 0, expenses: 0, total: 0 });
 
-    console.log(`📊 Preview: ${totalCount.length} transações encontradas, ${newlyCategorizedCount} novas categorizações`);
+    log.info({ total: totalCount.length, newlyCategorizedCount }, 'Preview resultado');
 
     return NextResponse.json({
       success: true,
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Erro ao gerar preview da regra:', error);
+    log.error({ err: error }, 'Erro ao gerar preview da regra');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

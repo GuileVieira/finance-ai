@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import TransactionsService from '@/lib/services/transactions.service';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('tx-splits');
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +20,7 @@ export async function GET(
       data: splits
     });
   } catch (error) {
-    console.error('❌ Erro ao buscar splits:', error);
+    log.error({ err: error }, 'Erro ao buscar splits');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -48,7 +51,7 @@ export async function POST(
       message: 'Transação desmembrada com sucesso'
     });
   } catch (error) {
-    console.error('❌ Erro ao salvar splits:', error);
+    log.error({ err: error }, 'Erro ao salvar splits');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

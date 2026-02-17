@@ -3,6 +3,9 @@ import { db } from '@/lib/db/connection';
 import { transactions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('transactions-id');
 
 export async function PUT(
   request: NextRequest,
@@ -21,7 +24,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    console.log(`📝 Atualizando transação ${transactionId} para categoria ${categoryId}`);
+    log.info({ transactionId, categoryId }, 'Atualizando transacao para categoria');
 
     const { withUser } = await import('@/lib/db/connection');
 
@@ -45,7 +48,7 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    console.log(`✅ Transação ${transactionId} atualizada com sucesso`);
+    log.info({ transactionId }, 'Transacao atualizada com sucesso');
 
     return NextResponse.json({
       success: true,
@@ -53,7 +56,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('❌ Erro ao atualizar transação:', error);
+    log.error({ err: error }, 'Erro ao atualizar transacao');
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro interno do servidor'

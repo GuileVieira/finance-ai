@@ -4,6 +4,9 @@ import { transactions, categories, accounts } from '@/lib/db/schema';
 import { eq, and, sql, desc, ilike, or } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth/get-session';
 import categoryCacheService from '@/lib/services/category-cache.service';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ai-history');
 
 export async function GET(request: NextRequest) {
   try {
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Erro na consulta de histórico:', error);
+    log.error({ err: error }, 'Erro na consulta de historico');
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor',
@@ -128,7 +131,7 @@ export async function DELETE(request: NextRequest) {
     }, { status: 400 });
 
   } catch (error) {
-    console.error('Erro ao limpar dados:', error);
+    log.error({ err: error }, 'Erro ao limpar dados');
     return NextResponse.json({
       success: false,
       error: 'Erro interno do servidor'
