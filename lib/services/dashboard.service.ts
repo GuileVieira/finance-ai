@@ -678,13 +678,7 @@ export default class DashboardService {
             sql`combined_transactions.transaction_date >= ${filters.startDate!}`,
             sql`combined_transactions.transaction_date <= ${filters.endDate!}`,
             getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` }),
-            ...accountConditions.map(c => {
-               // accountConditions might refer to transactions.accountId, need to fix
-               if (c && (c as any).left && (c as any).left.name === 'account_id') {
-                 return sql`combined_transactions.account_id = ${(c as any).right}`;
-               }
-               return c;
-            })
+            ...accountConditions
           )
         );
 
@@ -703,12 +697,7 @@ export default class DashboardService {
             sql`combined_transactions.transaction_date >= ${previousStartDate}`,
             sql`combined_transactions.transaction_date <= ${previousEndDate}`,
             getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` }),
-            ...accountConditions.map(c => {
-               if (c && (c as any).left && (c as any).left.name === 'account_id') {
-                 return sql`combined_transactions.account_id = ${(c as any).right}`;
-               }
-               return c;
-            })
+            ...accountConditions
           )
         );
 

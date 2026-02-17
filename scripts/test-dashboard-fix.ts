@@ -58,6 +58,22 @@ async function main() {
       console.log('✅ getDashboardData (com accountId UUID) executado com sucesso!');
     }
 
+    // Testar PR3: Filtro por data (dispara calculateAllComparisons)
+    console.log('\n🔍 Testando PR3: Filtro por data (Comparações)...');
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const startDate = lastMonth.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+
+    const dataWithDates = await DashboardService.getDashboardData({
+      companyId: companyId,
+      startDate,
+      endDate,
+      period: 'custom'
+    });
+    console.log('✅ getDashboardData (com datas) executado com sucesso!');
+    console.log('📊 Comparação (growthRate):', dataWithDates.metrics.growthRate);
+
   } catch (error) {
     console.error('❌ Erro durante o teste:', error);
     process.exit(1);
