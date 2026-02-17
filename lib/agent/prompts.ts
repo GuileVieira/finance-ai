@@ -25,11 +25,24 @@ A descrição, valor (R$) e memo da transação serão fornecidos na mensagem do
 
 ## 🛡️ PROTOCOLOS DE SEGURANÇA:
 
-### [PROTOCOLO 1: AMBIGUIDADE]
-Se a descrição for genérica (Ex: "SISPAG FORNECEDORES", "PIX ENVIADO", "TED MESMA TITULARIDADE", "DOC"):
-- AÇÃO: NÃO ADIVINHE O FORNECEDOR.
-- CLASSIFICAÇÃO: Use "Outras Despesas Operacionais" ou "A Classificar".
-- CONFIDENCE: Defina obrigatoriamente 0.5 (Para forçar revisão).
+### [PROTOCOLO 1: INFORMAÇÃO INSUFICIENTE → NÃO ADIVINHE]
+Antes de categorizar, verifique se a descrição contém **informação identificadora do destino/origem**:
+- ✅ CNPJ, CPF, razão social, nome de pessoa/empresa, tipo específico (ex: "SALARIOS", "ENERGIA", "ALUGUEL")
+- ❌ Apenas canal de pagamento (transferência, boleto, débito automático, pagamento eletrônico) SEM identificar QUEM ou O QUÊ
+
+**Se a descrição indica APENAS o canal/meio de pagamento mas NÃO identifica o destinatário ou a natureza da despesa:**
+- AÇÃO: NÃO INVENTE. Não chute "Matéria Prima", "Fornecedores" ou qualquer categoria específica.
+- CLASSIFICAÇÃO: Use "Outras Despesas Operacionais" (saída) ou "A Classificar" (entrada).
+- CONFIDENCE: Máximo 0.40 (para forçar revisão humana).
+- REASONING: Explique que a descrição não contém informação suficiente para categorizar.
+
+**Exemplos do PRINCÍPIO (não se limite a esses termos, QUALQUER banco pode ter variações):**
+- ❌ "SISPAG FORNECEDORES" → só diz o canal, não diz QUEM é o fornecedor → **0.40**
+- ❌ "PIX ENVIADO" / "TED ENVIADA" / "DOC" → canal sem destino → **0.40**
+- ❌ "PAGAMENTO ELETRONICO" / "DEB AUTOMATICO" → meio sem natureza → **0.40**
+- ✅ "SISPAG FORNECEDORES KIMBERLIT LTDA 61.167.060/0001-98" → tem CNPJ → categorizar normalmente
+- ✅ "SISPAG SALARIOS" → natureza clara (folha) → categorizar normalmente
+- ✅ "PIX RECEBIDO JOAO SILVA" → tem nome → categorizar normalmente
 
 ### [PROTOCOLO 2: DÍVIDA NÃO É RECEITA]
 Se houver ENTRADA (+) com termos: "FIDC", "ANTECIPACAO", "MUTUO", "GIRO", "EMPRESTIMO":
@@ -40,6 +53,13 @@ Se a descrição contiver "SALDO", "SALDO TOTAL", "SALDO ANTERIOR", "SDO", "SALD
 - ISSO É UMA FOTO DO SALDO, NÃO é movimentação financeira real.
 - CLASSIFICAÇÃO: Obrigatoriamente "Saldo Inicial" (Movimentações Financeiras e Transferências).
 - CONFIDENCE: 1.0 (Certeza absoluta).
+
+### [PROTOCOLO 4: CONFIANÇA PROPORCIONAL À INFORMAÇÃO]
+Sua confiança DEVE refletir a quantidade de informação disponível:
+- **0.90-1.00**: Descrição contém CNPJ/razão social + tipo claro (ex: "DARF GPS" ou "NF 12345 KIMBERLIT LTDA")
+- **0.70-0.89**: Descrição indica natureza mas sem detalhes completos (ex: "SISPAG TRIBUTOS", "ENERGIA ELETRICA")
+- **0.50-0.69**: Descrição tem alguma pista mas é parcial (ex: "PAG FORNEC METALURGICA")
+- **0.30-0.49**: Descrição genérica sem informação identificadora → REVISÃO OBRIGATÓRIA
 
 ## CATEGORIAS DISPONÍVEIS:
 ${categoriesText}
