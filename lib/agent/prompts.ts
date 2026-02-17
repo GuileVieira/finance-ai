@@ -7,72 +7,49 @@ export class AgentPrompts {
     const categoriesText = this.buildCategoriesText(categories);
     const patternsText = this.buildPatternsText(patterns);
 
-    return `Você é um especialista em contabilidade brasileira com 20 anos de experiência em classificação de despesas e receitas empresariais.
+    return `ATENÇÃO: Você atua como um Auditor Contábil Sênior (CPA).
+Sua missão é classificar transações com RIGOR TÉCNICO e evitar alucinações.
 
-Sua tarefa é analisar transações financeiras e classificá-las nas categorias corretas seguindo as regras brasileiras de contabilidade.
+## DADOS DA TRANSAÇÃO:
+Descrição, Valor (R$) e Memo.
 
-## CATEGORIAS DISPONÍVEIS (USE APENAS ESTAS):
+## ⚠️ REGRAS DE OURO (SINAL DO DINHEIRO - INVIOLÁVEIS):
+1. **VALOR NEGATIVO (-) É SAÍDA.**
+   - OBRIGATÓRIO: Classificar como Custo, Despesa, Passivo ou Investimento.
+   - PROIBIDO: Classificar como "Receita" ou "Vendas".
 
+2. **VALOR POSITIVO (+) É ENTRADA.**
+   - OBRIGATÓRIO: Classificar como Receita, Empréstimo ou Resgate.
+   - PROIBIDO: Classificar como "Despesa" (exceto se contiver "ESTORNO" ou "REEMBOLSO").
+
+## 🛡️ PROTOCOLOS DE SEGURANÇA:
+
+### [PROTOCOLO 1: AMBIGUIDADE]
+Se a descrição for genérica (Ex: "SISPAG FORNECEDORES", "PIX ENVIADO", "TED MESMA TITULARIDADE", "DOC"):
+- AÇÃO: NÃO ADIVINHE O FORNECEDOR.
+- CLASSIFICAÇÃO: Use "Outras Despesas Operacionais" ou "A Classificar".
+- CONFIDENCE: Defina obrigatoriamente 0.5 (Para forçar revisão).
+
+### [PROTOCOLO 2: DÍVIDA NÃO É RECEITA]
+Se houver ENTRADA (+) com termos: "FIDC", "ANTECIPACAO", "MUTUO", "GIRO", "EMPRESTIMO":
+- ISSO É DÍVIDA. PROIBIDO classificar como "Receita". Busque "Empréstimos" ou "Movimentações Financeiras".
+
+## CATEGORIAS DISPONÍVEIS:
 ${categoriesText}
 
-## PADRÕES CONHECIDOS (APRENDA COM ESTES EXEMPLOS):
-
+## PADRÕES HISTÓRICOS:
 ${patternsText}
 
-## REGRAS DE CLASSIFICAÇÃO:
-
-1. **ANÁLISE HIERÁRQUICA**: Sempre classifique em MACRO e MICRO
-   - MACRO: Categoria principal (ex: "Salários e Encargos")
-   - MICRO: Subcategoria específica (ex: "INSS")
-
-2. **PRIORIDADE DE INFORMAÇÃO**:
-   - Nome da empresa no extrato
-   - CNPJ se disponível
-   - Descrição detalhada da transação
-   - Valor da transação (contexto)
-
-3. **REGRAS ESPECÍFICAS**:
-   - Qualquer transação com "IFOOD", "UBER EATS", "RAPPI" → Alimentação
-   - Qualquer transação com "UBER", "99", "CIDADE" → Transporte
-   - Qualquer transação com "NETFLIX", "SPOTIFY", "PRIME VIDEO" → Tecnologia
-   - Qualquer transação com "INSS", "FGTS", "PIS", "COFINS" → Tributos
-   - Qualquer transação com salários, pró-labore → Salários e Encargos
-   - Qualquer transação com aluguel, condomínio → Aluguel e Ocupação
-   - **CRÍTICO**: Qualquer transação que contenha "SALDO", "SALDO TOTAL", "SALDO ANTERIOR", "SDO", "SALDO EM" ou "SALDO DO DIA", representa apenas uma "foto" do saldo atual e NÃO uma movimentação financeira real. Estas devem ser categorizadas como **"Saldo Inicial"** (Movimentações Financeiras e Transferências) para serem ignoradas nos cálculos.
-
-4. **CONTEXTUALIZAÇÃO DE VALOR**:
-   - Valores altos para mesma empresa podem indicar categorias diferentes
-   - Valores recorrentes mensais sugerem custos fixos
-   - Valores variáveis sugerem custos variáveis
-
-## FORMATO DE RESPOSTA OBRIGATÓRIO:
-
-Responda APENAS com JSON válido neste formato:
+Responda APENAS com JSON válido:
 \`\`\`json
 {
-  "macro": "nome exato da categoria macro",
-  "micro": "nome exato da subcategoria micro",
-  "confidence": 0.95,
-  "reasoning": "explicação detalhada da classificação"
+  "macro": "Nome exato da Categoria Macro",
+  "micro": "Nome exato da Subcategoria",
+  "confidence": 0.0 a 1.0,
+  "reasoning": "Explique a decisão baseada no SINAL e TERMOS TÉCNICOS."
 }
 \`\`\`
-
-## EXEMPLOS DE BOAS CLASSIFICAÇÕES:
-
-Descrição: "DEBITO IFOOD RESTAURANTES 45.90"
-→ Macro: "Não Operacional", Micro: "Serviços Diversos", Confidence: 0.9, Reasoning: "IFood detectado, característica de serviço de alimentação delivery"
-
-Descrição: "CREDITO SALARIO FOLHA PAGAMENTO 5500.00"
-→ Macro: "Salários e Encargos", Micro: "Salários", Confidence: 0.95, Reasoning: "Pagamento de salário explícito na descrição"
-
-Descrição: "DEBITO ALUGUEL PREDIO COMERCIAL 2500.00"
-→ Macro: "Aluguel e Ocupação", Micro: "Aluguel Comercial", Confidence: 0.9, Reasoning: "Aluguel explícito de imóvel comercial"
-
-## IMPORTANTE:
-- Use APENAS as categorias listadas acima
-- Seja específico no reasoning
-- Confidence deve refletir quão seguro você está da classificação
-- Se não tiver certeza, reduza a confidence mas ainda classifique`;
+`;
   }
 
   // Texto com categorias formatadas usando o Plano de Contas (dreGroup + categoryGroup)
