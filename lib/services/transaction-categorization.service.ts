@@ -38,6 +38,21 @@ const AUTO_LEARNING_CONFIG = {
 // Re-exportar TransactionContext para outros módulos
 export type { TransactionContext };
 
+export type ReasonCode = 
+  | 'EXACT_MATCH'         // Cache ou Regra exata
+  | 'SIMILARITY_MATCH'    // Cache ou Histórico por similaridade
+  | 'AI_INFERENCE'        // Inferência por LLM
+  | 'RULE_APPLIED'        // Regra de negócio (Pattern Match)
+  | 'MOVEMENT_RESTRICTION'// Restrição de tipo de movimento (Hard Validator)
+  | 'MANUAL_FALLBACK'     // Falha na categorização automática
+  | 'AMBIGUOUS_MATCH';    // Ambíguo (ex: SISPAG genérico)
+
+export interface CategorizationReason {
+  code: ReasonCode;
+  message: string;        // Mensagem legível para UI ("Regra aplicada: Fornecedor X")
+  metadata?: Record<string, any>; // Metadados extras (ex: ruleId, confidence original)
+}
+
 export interface CategorizationResult {
   categoryId: string;
   categoryName: string;
@@ -47,7 +62,8 @@ export interface CategorizationResult {
   needsReview?: boolean;       // Se a categorização precisa de revisão
   suggestions?: any[];         // Sugestões para revisão
   movementType?: string;       // Tipo de movimento identificado
-  reasoning?: string;
+  reason?: CategorizationReason; // [NOVO] Razão estruturada
+  reasoning?: string;          // [DEPRECATED] Manter compatibilidade temporária (será = reason.message)
   metadata?: {
     matchedText?: string;
     scoringBreakdown?: {
@@ -277,6 +293,11 @@ export class TransactionCategorizationService {
                 ...result,
                 confidence: 60, // Forçar abaixo do threshold
                 needsReview: true,
+                reason: {
+                  code: 'MOVEMENT_RESTRICTION',
+                  message: `Regra Contábil: ${validation.reason}`,
+                  metadata: { originalReason: result.reason }
+                },
                 reasoning: `⚠️ ${validation.reason} [Original: ${result.reasoning || 'Auto'}]`
               };
             }
@@ -289,12 +310,18 @@ export class TransactionCategorizationService {
     }
 
     // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
+    // Se chegamos aqui sem resultado de alta confiança, retornar o que temos (ou fallback)
     const finalOutcome: CategorizationResult = result || {
       categoryId: '',
       categoryName: 'Não classificado',
       confidence: 0,
       needsReview: true,
       source: 'manual',
+      reason: {
+        code: 'MANUAL_FALLBACK',
+        message: `Não foi possível categorizar com confiança >= ${confidenceThreshold}%`,
+        metadata: { attemptedSources }
+      },
       reasoning: `Nenhuma fonte atingiu threshold de ${confidenceThreshold}%`
     };
 
@@ -326,12 +353,22 @@ export class TransactionCategorizationService {
     }
 
     // O cache agora guarda categoryId diretamente — não precisa re-consultar o banco
+    const isExact = cacheResult.source === 'cache-exact';
+    const message = isExact 
+      ? 'Encontrado no cache (exato)' 
+      : `Encontrado no cache (similaridade de ${(cacheResult.confidence * 100).toFixed(0)}%)`;
+
     return {
       categoryId: cacheResult.categoryId,
       categoryName: cacheResult.categoryName,
       confidence: Math.round(cacheResult.confidence * 100),
       source: cacheResult.source,
-      reasoning: `Found ${cacheResult.source === 'cache-exact' ? 'exact' : 'similar'} transaction in cache`
+      reason: {
+        code: isExact ? 'EXACT_MATCH' : 'SIMILARITY_MATCH',
+        message,
+        metadata: { source: cacheResult.source }
+      },
+      reasoning: message
     };
   }
 
@@ -386,6 +423,11 @@ export class TransactionCategorizationService {
       confidence: bestMatch.score,
       source: 'rule',
       ruleId: bestMatch.ruleId,
+      reason: {
+        code: 'RULE_APPLIED',
+        message: `Regra aplicada: "${bestMatch.pattern}"`,
+        metadata: { ruleId: bestMatch.ruleId, pattern: bestMatch.pattern }
+      },
       reasoning: `Matched rule pattern: "${bestMatch.pattern}"`,
       metadata: {
         matchedText: bestMatch.matchedText,
@@ -459,12 +501,23 @@ export class TransactionCategorizationService {
       parseFloat(bestMatch.transaction.confidence || '0') * 0.2 // 20% peso da confidence original
     );
 
+    const similarityPct = (bestMatch.similarity * 100).toFixed(1);
+    const message = `Similar a transação anterior (${similarityPct}%)`;
+
     return {
       categoryId: bestMatch.transaction.categoryId || '',
       categoryName: bestMatch.transaction.categoryName || 'Unknown',
       confidence: Math.round(confidence),
       source: 'history',
-      reasoning: `Similar to previous transaction (${(bestMatch.similarity * 100).toFixed(1)}% similar)`,
+      reason: {
+        code: 'SIMILARITY_MATCH',
+        message,
+        metadata: { 
+          similarTransactionId: bestMatch.transaction.id, 
+          similarity: bestMatch.similarity 
+        }
+      },
+      reasoning: message,
       metadata: {
         similarTransactionId: bestMatch.transaction.id
       }
@@ -513,6 +566,11 @@ export class TransactionCategorizationService {
         categoryName: category[0].name,
         confidence: Math.round(result.confidence * 100),
         source: 'ai',
+        reason: {
+          code: 'AI_INFERENCE',
+          message: result.reasoning || 'Sugestão automática via IA',
+          metadata: { model: result.modelUsed }
+        },
         reasoning: result.reasoning,
         metadata: {
           aiModel: result.modelUsed
