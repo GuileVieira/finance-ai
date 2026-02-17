@@ -26,7 +26,7 @@ const instrument = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "FinanceAI - Gestão Financeira Inteligente",
+  title: "AuditGo - Auditoria Financeira Inteligente",
   description: "Sistema de gestão financeira com IA para categorização automática de transações",
 };
 
