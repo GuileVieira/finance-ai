@@ -3,6 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MetricCard as MetricCardType } from '@/lib/types';
 import { formatCurrencyCompact } from '@/lib/utils';
 import { memo } from 'react';
@@ -17,9 +18,13 @@ export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCa
 
   return (
     <Card
-      className={onClick ? "cursor-pointer group transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20" : "transition-all duration-300 ease-out hover:shadow-md"}
+      className={cn(
+        "relative overflow-hidden transition-all duration-300 ease-out group",
+        onClick ? "cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20" : "hover:shadow-md"
+      )}
       onClick={onClick}
     >
+      <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 transition-colors duration-300 group-hover:bg-primary/30" />
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">

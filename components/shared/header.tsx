@@ -69,8 +69,8 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                  <Avatar className="h-9 w-9 ring-2 ring-border/50 shadow-sm">
-                    <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-semibold">
+                  <Avatar className="h-9 w-9 ring-2 ring-primary/20 shadow-sm transition-all duration-300 hover:ring-primary/40">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground text-xs font-semibold shadow-inner">
                       {userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
