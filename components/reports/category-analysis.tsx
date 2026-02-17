@@ -145,7 +145,7 @@ export default function CategoryAnalysis({
           Distribuição por Categoria
         </CardTitle>
         <p className="text-sm text-muted-foreground dark:text-gray-400">
-          Visualização percentual dos custos
+          Análise vertical em relação ao faturamento bruto
         </p>
       </CardHeader>
       <CardContent>
@@ -211,7 +211,7 @@ export default function CategoryAnalysis({
           Comparação de Categorias
         </CardTitle>
         <p className="text-sm text-muted-foreground dark:text-gray-400">
-          Valores absolutos e percentuais
+          Pesos individuais em relação à receita
         </p>
       </CardHeader>
       <CardContent>
@@ -393,7 +393,7 @@ export default function CategoryAnalysis({
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground dark:text-gray-400">Percentual</div>
+                        <div className="text-muted-foreground dark:text-gray-400">Percentual da Receita</div>
                         <div className="font-semibold text-lg">
                           {formatPercentage(category.percentage)}
                         </div>

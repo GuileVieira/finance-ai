@@ -435,7 +435,7 @@ export default function DREStatementComponent({
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
-                        {formatPercentage(category.percentage)} da receita
+                        {formatPercentage(category.percentage)} da receita bruta
                       </div>
                     </div>
 
