@@ -13,6 +13,18 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('category-cache');
 
+/**
+ * Termos genéricos que NUNCA devem ser cacheados.
+ * Essas descrições são ambíguas demais — a mesma descrição normalizada pode
+ * corresponder a dezenas de fornecedores/categorias diferentes.
+ * Sem essa blocklist, o primeiro uso "envenena" o cache para todos os subsequentes.
+ */
+const GENERIC_CACHE_BLOCKLIST = [
+  'SISPAG', 'SISPAG FORNECEDORES', 'PAGAMENTO', 'PAGAMENTO FORNECEDORES',
+  'PIX ENVIADO', 'PIX RECEBIDO', 'TED ENVIADA', 'DOC ENVIADO',
+  'ENVIO TED', 'TRANSF', 'TRANSFERENCIA'
+];
+
 export interface CachedCategory {
   categoryId: string;    // ID da categoria no banco
   categoryName: string;  // Nome legível (para logs)
@@ -151,6 +163,12 @@ class CategoryCacheService {
     const cacheKey = this.generateCacheKey(description, companyId);
     const normalized = this.normalizeDescription(description);
 
+    // Trava de segurança: bloquear buscas de termos genéricos
+    if (this.isBlocklisted(normalized)) {
+      log.info({ description }, '[CACHE-SKIP] Termo generico bloqueado (blocklist)');
+      return null;
+    }
+
     // 1. Match exato (rápido)
     if (this.cache.has(cacheKey)) {
       const entry = this.cache.get(cacheKey)!;
@@ -225,6 +243,14 @@ class CategoryCacheService {
     // Só cachear se tiver alta confiança (>= 0.8)
     if (confidence < 0.8) {
       log.info({ confidence, description }, '[CACHE-SKIP] Confianca baixa, nao cacheando');
+      return;
+    }
+
+    const normalized = this.normalizeDescription(description);
+
+    // Trava de segurança: não poluir o cache com termos genéricos
+    if (this.isBlocklisted(normalized)) {
+      log.info({ description }, '[CACHE-SKIP] Termo generico bloqueado (blocklist)');
       return;
     }
 
@@ -304,6 +330,17 @@ class CategoryCacheService {
       log.info({ entriesRemoved: removed, companyId: companyId.slice(0,8) }, '[CACHE-CLEAR-COMPANY]');
     }
     return removed;
+  }
+
+  /**
+   * Verifica se a descrição normalizada corresponde a um termo genérico da blocklist.
+   * Bloqueia quando a descrição é essencialmente apenas o termo genérico
+   * (com até 5 caracteres extras para cobrir espaços/dígitos curtos residuais).
+   */
+  private isBlocklisted(normalized: string): boolean {
+    return GENERIC_CACHE_BLOCKLIST.some(
+      term => normalized.includes(term) && normalized.length < term.length + 5
+    );
   }
 
   /**
