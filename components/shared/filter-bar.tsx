@@ -23,6 +23,9 @@ interface FilterBarProps {
     companyId: string;
     dateRange?: DateRange;
 
+    // Períodos mensais disponíveis (formato YYYY-MM)
+    availablePeriods?: string[];
+
     // Handlers
     onPeriodChange: (value: string) => void;
     onAccountChange: (value: string) => void;
@@ -43,6 +46,7 @@ export function FilterBar({
     accountId,
     companyId,
     dateRange,
+    availablePeriods = [],
     onPeriodChange,
     onAccountChange,
     onCompanyChange,
@@ -63,6 +67,7 @@ export function FilterBar({
                 <DateFilterSelect
                     value={period}
                     onChange={onPeriodChange}
+                    periods={availablePeriods}
                 />
 
                 {/* Date Picker Customizado */}

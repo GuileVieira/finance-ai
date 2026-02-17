@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateFilterSelect } from '@/components/shared/date-filter-select';
 import { FilterBar } from '@/components/shared/filter-bar';
-import { usePersistedFilters } from '@/hooks/use-persisted-filters';
+import { usePersistedFilters, type Filters } from '@/hooks/use-persisted-filters';
 import { DashboardAPI } from '@/lib/api/dashboard';
 import { DateRange } from 'react-day-picker';
 import { DREMappingWidget } from '@/components/dashboard/dre-mapping-widget';
@@ -51,6 +51,21 @@ export default function ReportsPage() {
     }));
   }, [periodsResponse]);
 
+  // IDs dos períodos mensais para o DateFilterSelect (formato YYYY-MM)
+  const monthlyPeriodIds = useMemo(() => {
+    return availablePeriods.map(p => p.id);
+  }, [availablePeriods]);
+
+  // Restaurar dateRange local a partir dos filtros persistidos (custom)
+  useEffect(() => {
+    if (filters.period === 'custom' && filters.startDate && filters.endDate && !dateRange) {
+      setDateRange({
+        from: new Date(filters.startDate + 'T00:00:00'),
+        to: new Date(filters.endDate + 'T00:00:00'),
+      });
+    }
+  }, [filters.period, filters.startDate, filters.endDate, dateRange]);
+
   useEffect(() => {
     if (isLoadingPeriods) return;
 
@@ -59,15 +74,6 @@ export default function ReportsPage() {
         setFilterValue('period', 'all');
       }
       return;
-    }
-
-    if (filters.period !== 'all' && availablePeriods.some(period => period.id === filters.period)) {
-      return;
-    }
-
-    // Default to 'all' if current is not valid and not 'all'
-    if (filters.period !== 'all') {
-      // setFilterValue('period', 'all');
     }
   }, [isLoadingPeriods, availablePeriods, filters.period, setFilterValue]);
 
@@ -89,8 +95,8 @@ export default function ReportsPage() {
 
   // dreData agora contém { current, comparison } automaticamente via useDREComparison
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilterValue(key as any, value);
+  const handleFilterChange = (key: keyof Filters, value: string) => {
+    setFilterValue(key, value);
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
@@ -205,6 +211,7 @@ export default function ReportsPage() {
             accountId={filters.accountId}
             companyId={filters.companyId}
             dateRange={dateRange}
+            availablePeriods={monthlyPeriodIds}
             onPeriodChange={(value) => handleFilterChange('period', value)}
             onAccountChange={(value) => handleFilterChange('accountId', value)}
             onCompanyChange={(value) => handleFilterChange('companyId', value)}

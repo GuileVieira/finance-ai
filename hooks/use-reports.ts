@@ -37,8 +37,8 @@ export function useDREStatement(
       const params = new URLSearchParams();
 
       if (filters.period) params.append('period', filters.period);
-      if (filters.companyId) params.append('companyId', filters.companyId);
-      if (filters.accountId) params.append('accountId', filters.accountId);
+      if (filters.companyId && filters.companyId !== 'all') params.append('companyId', filters.companyId);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
@@ -97,8 +97,8 @@ export function useDREComparison(
       const params = new URLSearchParams();
 
       if (filters.period) params.append('period', filters.period);
-      if (filters.companyId) params.append('companyId', filters.companyId);
-      if (filters.accountId) params.append('accountId', filters.accountId);
+      if (filters.companyId && filters.companyId !== 'all') params.append('companyId', filters.companyId);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
@@ -160,8 +160,8 @@ export function useCashFlowReport(
       const params = new URLSearchParams();
 
       if (filters.period) params.append('period', filters.period);
-      if (filters.companyId) params.append('companyId', filters.companyId);
-      if (filters.accountId) params.append('accountId', filters.accountId);
+      if (filters.companyId && filters.companyId !== 'all') params.append('companyId', filters.companyId);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (days) params.append('days', String(days));
@@ -222,8 +222,8 @@ export function useFinancialInsights(
       const params = new URLSearchParams();
 
       if (filters.period) params.append('period', filters.period);
-      if (filters.companyId) params.append('companyId', filters.companyId);
-      if (filters.accountId) params.append('accountId', filters.accountId);
+      if (filters.companyId && filters.companyId !== 'all') params.append('companyId', filters.companyId);
+      if (filters.accountId && filters.accountId !== 'all') params.append('accountId', filters.accountId);
       if (filters.category) params.append('category', filters.category);
       if (filters.type) params.append('type', filters.type);
 

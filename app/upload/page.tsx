@@ -119,6 +119,11 @@ export default function UploadPage() {
   const handleUploadError = (uploadId: string, error: string) => {
     setErrorCount(prev => prev + 1);
     setRefreshTrigger(prev => prev + 1);
+    toast({
+      title: 'Erro no processamento',
+      description: error || 'Ocorreu um erro ao processar o arquivo. Tente novamente.',
+      variant: 'destructive'
+    });
   };
 
   const handleNewUpload = () => {

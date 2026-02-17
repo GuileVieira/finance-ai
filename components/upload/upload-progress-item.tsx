@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, XCircle, Loader2, Clock, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface UploadProgressItemProps {
   uploadId: string;
@@ -21,7 +22,12 @@ interface ProgressData {
   processedTransactions: number;
   totalTransactions: number;
   percentage: number;
+  errorMessage?: string;
+  uncategorizedCount?: number;
 }
+
+const MAX_POLL_FAILURES = 5;
+const STALE_TIMEOUT_MS = 120_000; // 2 min sem progresso = timeout
 
 export function UploadProgressItem({
   uploadId,
@@ -31,6 +37,12 @@ export function UploadProgressItem({
 }: UploadProgressItemProps) {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isPolling, setIsPolling] = useState(true);
+  const [pollFailures, setPollFailures] = useState(0);
+  const [isTimedOut, setIsTimedOut] = useState(false);
+  const lastProgressRef = useRef<{ percentage: number; timestamp: number }>({
+    percentage: -1,
+    timestamp: Date.now()
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -38,10 +50,30 @@ export function UploadProgressItem({
     const fetchProgress = async () => {
       try {
         const response = await fetch(`/api/uploads/${uploadId}/progress`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
         const result = await response.json();
 
         if (result.success && result.data) {
           setProgress(result.data);
+          setPollFailures(0); // Reset failures on success
+
+          // Verificar stale progress (timeout)
+          const now = Date.now();
+          if (result.data.percentage !== lastProgressRef.current.percentage) {
+            lastProgressRef.current = { percentage: result.data.percentage, timestamp: now };
+          } else if (
+            result.data.status === 'processing' &&
+            now - lastProgressRef.current.timestamp > STALE_TIMEOUT_MS
+          ) {
+            setIsTimedOut(true);
+            setIsPolling(false);
+            onError?.(uploadId, `Processamento travado há mais de 2 minutos para "${fileName}". Tente novamente.`);
+            return;
+          }
 
           // Parar polling se concluído ou com erro
           if (result.data.status === 'completed') {
@@ -49,26 +81,83 @@ export function UploadProgressItem({
             onComplete?.(uploadId);
           } else if (result.data.status === 'failed') {
             setIsPolling(false);
-            onError?.(uploadId, 'Erro no processamento');
+            onError?.(uploadId, result.data.errorMessage || `Erro ao processar "${fileName}".`);
           }
+        } else {
+          // API retornou success: false
+          throw new Error(result.error || 'Resposta inválida do servidor');
         }
       } catch (error) {
-        console.error('Erro ao buscar progresso:', error);
+        const failures = pollFailures + 1;
+        setPollFailures(failures);
+        console.error(`Erro ao buscar progresso (tentativa ${failures}/${MAX_POLL_FAILURES}):`, error);
+
+        if (failures >= MAX_POLL_FAILURES) {
+          setIsPolling(false);
+          onError?.(uploadId, `Não foi possível acompanhar o processamento de "${fileName}". Verifique o histórico de uploads.`);
+        }
       }
     };
 
     if (isPolling) {
-      // Buscar imediatamente
       fetchProgress();
-
-      // Depois continuar polling a cada 500ms
       interval = setInterval(fetchProgress, 500);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [uploadId, isPolling, onComplete, onError]);
+  }, [uploadId, isPolling, pollFailures, onComplete, onError, fileName]);
+
+  const handleRetry = () => {
+    setPollFailures(0);
+    setIsTimedOut(false);
+    lastProgressRef.current = { percentage: -1, timestamp: Date.now() };
+    setIsPolling(true);
+  };
+
+  // Estado de erro de conexão (polling falhou)
+  if (pollFailures >= MAX_POLL_FAILURES && !progress) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{fileName}</p>
+            <p className="text-xs text-destructive">
+              Falha ao conectar com o servidor. O processamento pode estar acontecendo em segundo plano.
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleRetry}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Tentar novamente
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  // Estado de timeout
+  if (isTimedOut) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">{fileName}</p>
+            <p className="text-xs text-destructive">
+              Processamento sem progresso há mais de 2 minutos.
+              {progress && ` Parou em ${progress.processedTransactions}/${progress.totalTransactions} transações.`}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleRetry}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Verificar novamente
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   if (!progress) {
     return (
@@ -77,7 +166,14 @@ export function UploadProgressItem({
           <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
           <div className="flex-1">
             <p className="text-sm font-medium">{fileName}</p>
-            <p className="text-xs text-muted-foreground">Inicializando...</p>
+            <p className="text-xs text-muted-foreground">
+              Inicializando...
+              {pollFailures > 0 && (
+                <span className="text-amber-500 ml-1">
+                  (reconectando... {pollFailures}/{MAX_POLL_FAILURES})
+                </span>
+              )}
+            </p>
           </div>
         </div>
       </Card>
@@ -112,7 +208,7 @@ export function UploadProgressItem({
 
   const getDetailsText = () => {
     if (progress.status === 'completed') {
-      return `✓ ${progress.totalTransactions} transações importadas`;
+      return `${progress.totalTransactions} transações importadas`;
     } else if (progress.status === 'processing') {
       const batchInfo = progress.totalBatches > 0
         ? ` (batch ${progress.currentBatch}/${progress.totalBatches})`
@@ -121,7 +217,7 @@ export function UploadProgressItem({
     } else if (progress.status === 'pending') {
       return 'Aguardando processamento...';
     } else {
-      return 'Erro no processamento';
+      return progress.errorMessage || 'Erro no processamento';
     }
   };
 
@@ -138,6 +234,12 @@ export function UploadProgressItem({
             </div>
             <p className="text-xs text-muted-foreground">{getDetailsText()}</p>
           </div>
+          {progress.status === 'failed' && (
+            <Button variant="ghost" size="sm" onClick={handleRetry}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Verificar
+            </Button>
+          )}
         </div>
 
         {/* Barra de progresso (apenas se processando ou concluído) */}
