@@ -30,9 +30,9 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
         xmlns="http://www.w3.org/2000/svg"
         className={className}
       >
-        <path d="M12 30L17 10H20L15 30H12Z" fill="#7C3AED" />
-        <path d="M20 30L25 10H28L23 30H20Z" fill="#7C3AED" fillOpacity="0.6" />
-        <circle cx="20" cy="22" r="3" fill="#FBBF24" />
+        <rect x="10" y="8" width="5" height="24" rx="2.5" fill="#7C3AED" />
+        <rect x="18" y="16" width="5" height="16" rx="2.5" fill="#7C3AED" fillOpacity="0.4" />
+        <circle cx="30" cy="12" r="4" fill="#FBBF24" />
       </svg>
     );
   }
@@ -46,25 +46,25 @@ export function Logo({ className, variant = 'full' }: LogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <path d="M8 30L13 10H16L11 30H8Z" fill="#7C3AED" />
-      <path d="M16 30L21 10H24L19 30H16Z" fill="#7C3AED" fillOpacity="0.6" />
-      <circle cx="16" cy="22" r="3" fill="#FBBF24" />
+      <rect x="5" y="10" width="4" height="20" rx="2" fill="#7C3AED" />
+      <rect x="12" y="18" width="4" height="12" rx="2" fill="#7C3AED" fillOpacity="0.4" />
+      <circle cx="24" cy="14" r="3.5" fill="#FBBF24" />
       
       <text
-        x="35"
+        x="40"
         y="28"
         fill={isDark ? '#F3F4F6' : '#0E0E10'}
-        style={{ fontFamily: 'var(--font-bricolage), sans-serif', fontWeight: 800, fontSize: '24px' }}
+        style={{ fontFamily: 'var(--font-outfit), sans-serif', fontWeight: 800, fontSize: '26px', letterSpacing: '-0.5px' }}
       >
         AUDIT
       </text>
       <text
-        x="115"
+        x="122"
         y="28"
         fill="#7C3AED"
-        style={{ fontFamily: 'var(--font-jakarta), sans-serif', fontWeight: 500, fontSize: '24px', letterSpacing: '1px' }}
+        style={{ fontFamily: 'var(--font-instrument), serif', fontStyle: 'italic', fontSize: '28px', letterSpacing: '1px' }}
       >
-        GO
+        Go
       </text>
     </svg>
   );

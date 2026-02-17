@@ -1,16 +1,16 @@
-# BRANDING: AuditGo (v3 - Boutique Elite)
+# BRANDING: AuditGo (v3.2 - Luxury Boutique Polish)
 
-AuditGo é uma ferramenta de auditoria de alta precisão com uma alma "Boutique". A identidade v3 abandona a frieza técnica em favor de uma estética sofisticada, vibrante e com personalidade.
+AuditGo é uma ferramenta de auditoria de alta precisão com uma alma "Boutique". A identidade v3.2 traz a sofisticação máxima com tipografia de luxo e um ícone de pulso dinâmico.
 
 ## 🎯 Vibe da Marca
 
-- **Boutique Luxury**: Refinado, exclusivo e com atenção aos detalhes.
-- **Organic Tech**: Formas geométricas que parecem vivas, não apenas circuitos.
-- **Expressive**: Tipografia com curvas e "character" que fogem do "seco".
+- **High-End Boutique**: Refinado, exclusivo e com tipografia editorial.
+- **Dynamic Growth**: Barras que indicam análise de dados e crescimento.
+- **Sophisticated Detail**: O uso de serifa itálica para um contraste premium.
 
 ---
 
-## 🎨 Identidade Visual (v3)
+## 🎨 Identidade Visual (v3.2)
 
 ### Cores (Elite Palette)
 
@@ -21,27 +21,24 @@ AuditGo é uma ferramenta de auditoria de alta precisão com uma alma "Boutique"
 | **Luminous Gold** | `#FBBF24` | Pontos de destaque e "valor"                    |
 | **Pearl White**   | `#F3F4F6` | Textos de alta legibilidade                     |
 
-### Tipografia
+### Tipografia (Luxury Mix)
 
-- **AUDIT**: [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) (ExtraBold) - Uma fonte com muita personalidade, curvas suaves e "ink traps" modernos. Nada de "seco" aqui.
-- **GO**: [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) (Medium) - Limpo, mas com um toque amigável e moderno.
+- **AUDIT**: [Outfit](https://fonts.google.com/specimen/Outfit) (Black 800) - Moderna, geométrica, forte e imponente.
+- **Go**: [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif) (Italic) - Uma serifa de luxo, com ar editorial e sofisticado, que quebra a "secura" do design técnico.
 
 ---
 
-## 💎 Logotipo (SVG v3 - O Monólito)
+## 💎 Logotipo (SVG v4 - Pulse & Insight)
 
-Substituímos a lupa por um ícone abstrato: **O Monólito de Dados**. Três formas geométricas que se alinham para formar um "A" implícito ou um portal de clareza.
+O ícone de barras verticais de diferentes alturas elimina o formato de "H" e traz dinamismo. O ponto dourado representa o **Insight Final** da auditoria.
 
 ### 1. Ícone (Favicon / Avatar)
 
 ```svg
 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Forma Lateral Esquerda -->
-  <path d="M12 30L17 10H20L15 30H12Z" fill="#7C3AED"/>
-  <!-- Forma Lateral Direita -->
-  <path d="M20 30L25 10H28L23 30H20Z" fill="#7C3AED" fill-opacity="0.6"/>
-  <!-- Ponto de Valor (Gold) -->
-  <circle cx="20" cy="22" r="3" fill="#FBBF24"/>
+  <rect x="10" y="8" width="5" height="24" rx="2.5" fill="#7C3AED"/>
+  <rect x="18" y="16" width="5" height="16" rx="2.5" fill="#7C3AED" fill-opacity="0.4"/>
+  <circle cx="30" cy="12" r="4" fill="#FBBF24"/>
 </svg>
 ```
 
@@ -49,21 +46,20 @@ Substituímos a lupa por um ícone abstrato: **O Monólito de Dados**. Três for
 
 ```svg
 <svg width="220" height="40" viewBox="0 0 220 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Monolith Icon -->
-  <path d="M8 30L13 10H16L11 30H8Z" fill="#7C3AED"/>
-  <path d="M16 30L21 10H24L19 30H16Z" fill="#7C3AED" fill-opacity="0.6"/>
-  <circle cx="16" cy="22" r="3" fill="#FBBF24"/>
+  <rect x="5" y="10" width="4" height="20" rx="2" fill="#7C3AED"/>
+  <rect x="12" y="18" width="4" height="12" rx="2" fill="#7C3AED" fill-opacity="0.4"/>
+  <circle cx="24" cy="14" r="3.5" fill="#FBBF24"/>
 
   <!-- Text -->
-  <text x="35" y="28" fill="#F3F4F6" style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px;">AUDIT</text>
-  <text x="115" y="28" fill="#7C3AED" style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 1px;">GO</text>
+  <text x="40" y="28" fill="#F3F4F6" style="font-family: var(--font-outfit), sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.5px;">AUDIT</text>
+  <text x="122" y="28" fill="#7C3AED" style="font-family: var(--font-instrument), serif; font-style: italic; font-size: 28px; letter-spacing: 1px;">Go</text>
 </svg>
 ```
 
 ---
 
-## ✅ Guia de Uso v3
+## ✅ Guia de Uso v3.2
 
-- **Contrast**: Use o fundo Obsidian para fazer o Violet e o Gold brilharem.
-- **Typography**: Se for usar em CSS, certifique-se de importar a **Bricolage Grotesque** para garantir a vibe.
-- **White Space**: Esta marca exige espaço. Não aperte o logo entre muitos elementos.
+- **Interação Visual**: O contraste entre a força do 'AUDIT' e a elegância do 'Go' é a alma da marca.
+- **Tipografia**: Carregadas via Google Fonts (Next.js Optimization).
+- **Icon**: Representa dados sendo analisados (barras) e o resultado encontrado (ponto).
