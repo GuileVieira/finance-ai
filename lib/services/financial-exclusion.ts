@@ -56,8 +56,12 @@ export function getCategoryExclusionClause() {
 export function getTransactionDescriptionExclusionClause(descriptionCol: any = transactions.description) {
     return and(
         not(ilike(descriptionCol, '%SALDO TOTAL%')),
+        not(ilike(descriptionCol, '%SALDO ANTERIOR%')),
         not(ilike(descriptionCol, '%SALDO DISPONIVEL%')),
         not(ilike(descriptionCol, '%SALDO DO DIA%')),
+        not(ilike(descriptionCol, '%SALDO FINAL%')),
+        not(ilike(descriptionCol, '%SALDO CONTA%')),
+        not(ilike(descriptionCol, '%SALDO CONSOLIDADO%')),
         not(ilike(descriptionCol, '%SALDO EM%')),
         not(ilike(descriptionCol, '%S A L D O%'))
     );

@@ -300,8 +300,12 @@ export class BatchProcessingService {
     // Padrões que indicam snapshots de saldo técnico (OFX)
     const technicalPatterns = [
       'SALDO TOTAL',
+      'SALDO ANTERIOR',
       'SALDO DISPONIVEL',
       'SALDO DO DIA',
+      'SALDO FINAL',
+      'SALDO CONTA',
+      'SALDO CONSOLIDADO',
       'SALDO EM',
       'S A L D O',
       'RESUMO DE SALDO'
