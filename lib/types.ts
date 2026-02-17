@@ -112,6 +112,7 @@ export interface DREStatement {
     netResult: number;
   };
   financialResult: number; // Resultado financeiro (receitas - custos financeiros)
+  unclassified: number; // Saldo de transações não classificadas (Receita - Despesa)
   netResult: number;
 
   // Campos antigos (mantidos para compatibilidade)
@@ -132,6 +133,7 @@ export interface DREStatement {
     fixedCosts: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
     nonOperationalRevenue: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
     nonOperationalExpenses: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
+    unclassified: Array<{ label: string; value: number; categoryGroup?: string | null; transactions: number; drilldown: unknown[] }>;
   };
   generatedAt: string;
 }

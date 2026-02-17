@@ -460,7 +460,7 @@ export default class DREService {
           name: 'Receitas não categorizadas',
           type: 'revenue',
           categoryGroup: null,
-          dreGroup: 'RoB',
+          dreGroup: 'OUTROS',
           budget: 0,
           actual: uncategorizedRevenue,
           variance: 0,
@@ -476,10 +476,10 @@ export default class DREService {
       if (uncategorizedExpenses > 0) {
         dreCategories.push({
           id: 'uncategorized-expense',
-          name: 'Despesas não categorizadas',
+          name: 'Despesas não classificadas',
           type: 'variable_cost',
           categoryGroup: null,
-          dreGroup: 'CF',
+          dreGroup: 'OUTROS',
           budget: 0,
           actual: uncategorizedExpenses,
           variance: 0,
@@ -548,6 +548,9 @@ export default class DREService {
 
       // RESULTADO LÍQUIDO = Resultado Operacional + Resultado Financeiro - Despesas Não Operacionais
       const netIncome = operatingIncome + financialResult - totalNonOperational;
+
+      // NÃO CLASSIFICADO (Saldo de transações sem categoria)
+      const unclassified = uncategorizedRevenue - uncategorizedExpenses;
 
       // Calcular percentuais usando Análise Vertical (padrão contábil)
       // Cada categoria é expressa como % da Receita Bruta
@@ -672,6 +675,7 @@ export default class DREService {
           netResult: financialResult - totalNonOperational
         },
         financialResult: financialResult, // Resultado financeiro (receitas - custos financeiros)
+        unclassified: unclassified,
         netResult: netIncome,
 
         // Categorias mapeadas
@@ -727,7 +731,16 @@ export default class DREService {
             categoryGroup: cat.categoryGroup,
             transactions: cat.transactions,
             drilldown: cat.drilldown
-          }))
+          })),
+          unclassified: dreCategories
+            .filter(cat => cat.id.startsWith('uncategorized'))
+            .map(cat => ({
+              label: cat.name,
+              value: cat.actual * (cat.type === 'revenue' ? 1 : -1),
+              categoryGroup: null,
+              transactions: cat.transactions || 0,
+              drilldown: transactionsByCategory.get(cat.id) || []
+            }))
         },
 
         // Manter compatibilidade com estrutura anterior
