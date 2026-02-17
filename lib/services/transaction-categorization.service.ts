@@ -409,7 +409,8 @@ export class TransactionCategorizationService {
       .where(
         and(
           eq(categoryRules.active, true),
-          eq(categoryRules.companyId, companyId)
+          eq(categoryRules.companyId, companyId),
+          sql`${categoryRules.status} IN ('active', 'refined', 'consolidated')`
         )
       );
 
