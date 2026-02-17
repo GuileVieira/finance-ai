@@ -126,10 +126,6 @@ async function createOrGetCategory(companyId: string, name: string, dreGroup: st
     console.log(`[createOrGetCategory] Called with: companyId=${companyId} (${typeof companyId}), name=${name}`);
     if (!companyId) throw new Error('companyId is missing!');
 
-async function createOrGetCategory(companyId: string, name: string, dreGroup: string, type: string) {
-    console.log(`[createOrGetCategory] Called with: companyId=${companyId} (${typeof companyId}), name=${name}`);
-    if (!companyId) throw new Error('companyId is missing!');
-
     const [cat] = await db.select().from(categories).where(and(
         eq(categories.companyId, companyId),
         eq(categories.name, name)
@@ -146,7 +142,6 @@ async function createOrGetCategory(companyId: string, name: string, dreGroup: st
         return newCat;
     }
     return cat;
-}
 }
 
 runTest().catch(console.error);

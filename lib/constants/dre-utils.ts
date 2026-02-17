@@ -1,4 +1,4 @@
-export type DreGroupKey = 'RoB' | 'TDCF' | 'RO' | 'MP' | 'MC' | 'CF' | 'EBIT' | 'RNOP' | 'DNOP' | 'LAIR' | 'JCP' | 'CSLL' | 'IRPJ' | 'LLE' | 'OUTROS';
+export type DreGroupKey = 'RoB' | 'TDCF' | 'RO' | 'MP' | 'MC' | 'CV' | 'CF' | 'EBIT' | 'RNOP' | 'DNOP' | 'LAIR' | 'JCP' | 'CSLL' | 'IRPJ' | 'LLE' | 'OUTROS' | 'EMP' | 'TRANSF';
 
 export interface DreGroupDef {
     code: DreGroupKey;
@@ -33,6 +33,14 @@ export const DRE_GROUPS: Record<string, DreGroupDef> = {
         order: 30
     },
     // MC (Margem de Contribuição) is usually calculated: RO + MP
+
+    CV: {
+        code: 'CV',
+        label: 'Custos Variáveis',
+        description: 'Custos que variam conforme volume de vendas (comissões, fretes, embalagens)',
+        sign: -1,
+        order: 35
+    },
 
     CF: {
         code: 'CF',

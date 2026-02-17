@@ -4,6 +4,7 @@ import { DREStatement, DRECategory } from '@/lib/types';
 import { eq, and, gte, lte, sum, count, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { getFinancialExclusionClause } from './financial-exclusion';
+import { DreGroupKey } from '@/lib/constants/dre-utils';
 
 interface DrilldownTransaction {
   id: string;
@@ -24,13 +25,12 @@ export interface DREFilters {
   userId?: string;
 }
 
-// Tipos de dreGroup válidos
-type DreGroupType = 'RoB' | 'TDCF' | 'CF' | 'CV' | 'RNOP' | 'DNOP' | 'EMP' | 'TRANSF';
+// Tipos de dreGroup válidos - usando DreGroupKey centralizado de dre-utils.ts
 
 // Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
 // Categorias que devem ser EXCLUÍDAS do DRE por serem movimentação de caixa/patrimonial e não Resultado
 // Usuário solicitou ver Empréstimos e Transferências, então removemos as restrições
-const EXCLUDED_DRE_GROUPS: DreGroupType[] = [/*'EMP', 'TRANSF'*/];
+const EXCLUDED_DRE_GROUPS: DreGroupKey[] = [/*'EMP', 'TRANSF'*/];
 
 /**
  * Determina o dreGroup de uma categoria.
@@ -41,10 +41,10 @@ function getDreGroupFromCategory(cat: {
   categoryGroup?: string | null;
   type?: string | null;
   name?: string;
-}): DreGroupType | null {
+}): DreGroupKey | null {
   // Usar dreGroup se disponível
   if (cat.dreGroup) {
-    return cat.dreGroup as DreGroupType;
+    return cat.dreGroup as DreGroupKey;
   }
 
   // Fallback por type para categorias antigas sem dreGroup

@@ -1,8 +1,9 @@
 import { db } from '@/lib/db/drizzle';
 import { transactions, categories, accounts, projections } from '@/lib/db/schema';
 import { DashboardFilters } from '@/lib/api/dashboard';
-import { eq, and, gte, lte, sum, sql, desc, not, ilike } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
 import { DRE_GROUPS, DRE_GROUP_LABELS } from '@/lib/constants/dre-utils';
+import { getFinancialExclusionClause } from './financial-exclusion';
 
 export interface ExecutiveDashboardData {
     summary: {
@@ -48,7 +49,7 @@ export default class ExecutiveDashboardService {
                 lte(transactions.transactionDate, sql`${startDate}::date - interval '1 day'`),
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
                 filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-                not(ilike(categories.name, 'Saldo Inicial'))
+                getFinancialExclusionClause()
             ));
 
         const initialBalance = initialBalanceResult[0]?.balance || 0;
@@ -67,7 +68,7 @@ export default class ExecutiveDashboardService {
                 lte(transactions.transactionDate, endDate),
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
                 filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
-                not(ilike(categories.name, 'Saldo Inicial'))
+                getFinancialExclusionClause()
             ));
 
         const totalInflow = periodMetrics[0]?.inflow || 0;
@@ -201,7 +202,7 @@ export default class ExecutiveDashboardService {
                 gte(transactions.transactionDate, startDate),
                 lte(transactions.transactionDate, endDate),
                 sql`${categories.dreGroup} IS NOT NULL`,
-                not(ilike(categories.name, 'Saldo Inicial')),
+                getFinancialExclusionClause(),
                 companyId !== 'all' ? eq(accounts.companyId, companyId) : undefined
             ))
             .groupBy(
@@ -266,7 +267,7 @@ export default class ExecutiveDashboardService {
                 filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
                 filters.accountId && filters.accountId !== 'all' ? eq(transactions.accountId, filters.accountId) : undefined,
                 sql`${categories.dreGroup} IS NOT NULL`,
-                not(ilike(categories.name, 'Saldo Inicial'))
+                getFinancialExclusionClause()
             ))
             .groupBy(categories.dreGroup);
 
