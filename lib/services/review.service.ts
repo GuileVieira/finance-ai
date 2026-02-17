@@ -4,6 +4,7 @@ import { transactions, categories } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { RuleGenerationService } from './rule-generation.service';
 import categoryCacheService from './category-cache.service';
+import { RuleLifecycleService } from './rule-lifecycle.service';
 
 export interface ReviewItem {
   id: string;
@@ -96,7 +97,42 @@ export class ReviewService {
     createRule: boolean = false
   ): Promise<{ success: boolean; ruleCreated?: boolean }> {
     try {
-        // 1. Atualizar transação
+    // 1. Buscar transação original para obter ruleId e categoria anterior
+    const tx = await db
+       .select({ 
+         description: transactions.description,
+         ruleId: transactions.ruleId,
+         oldCategoryId: transactions.categoryId
+       })
+       .from(transactions)
+       .where(eq(transactions.id, transactionId))
+       .limit(1);
+    
+    if (tx.length === 0) throw new Error('Transaction not found');
+    
+    const transaction = tx[0];
+
+    // 2. Registrar Feedback da Regra (Se houver regra aplicada)
+    if (transaction.ruleId) {
+        if (transaction.oldCategoryId && transaction.oldCategoryId !== categoryId) {
+            // Correção: Regra errou
+            await RuleLifecycleService.recordNegativeUse(
+                transaction.ruleId,
+                transactionId,
+                transaction.oldCategoryId,
+                categoryId,
+                transaction.description
+            );
+        } else {
+            // Confirmação: Regra acertou (mesmo que needsReview fosse true por threshold)
+            await RuleLifecycleService.recordPositiveUse(
+                transaction.ruleId,
+                transactionId
+            );
+        }
+    }
+    
+    // 3. Atualizar transação
         await db
           .update(transactions)
           .set({
@@ -108,36 +144,27 @@ export class ReviewService {
           })
           .where(eq(transactions.id, transactionId));
 
-        // 2. Atualizar Cache (Aprendizado Imediato)
-        // Para a próxima vez pegar do cache
-        const tx = await db
-           .select({ description: transactions.description })
-           .from(transactions)
-           .where(eq(transactions.id, transactionId))
-           .limit(1);
-        
-        if (tx.length > 0) {
-            categoryCacheService.addToCache(
-                tx[0].description,
-                categoryId,
+        // 4. Atualizar Cache (Aprendizado Imediato)
+        categoryCacheService.addToCache(
+            transaction.description,
+            categoryId,
+            categoryName,
+            companyId,
+            1.0 // Confiança máxima
+        );
+
+        // 5. Criar Regra (se solicitado)
+        if (createRule) {
+            // Tenta criar regra exata ou padrão, baseada na descrição
+            const ruleResult = await RuleGenerationService.generateAndCreateRule(
+                transaction.description,
                 categoryName,
                 companyId,
-                1.0 // Confiança máxima
+                100,
+                'Created from Review Queue'
             );
-
-            // 3. Criar Regra (se solicitado)
-            if (createRule) {
-                // Tenta criar regra exata ou padrão, baseada na descrição
-                const ruleResult = await RuleGenerationService.generateAndCreateRule(
-                    tx[0].description,
-                    categoryName,
-                    companyId,
-                    100,
-                    'Created from Review Queue'
-                );
-                
-                return { success: true, ruleCreated: ruleResult.success };
-            }
+            
+            return { success: true, ruleCreated: ruleResult.success };
         }
 
         return { success: true, ruleCreated: false };

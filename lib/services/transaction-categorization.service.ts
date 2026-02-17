@@ -137,8 +137,9 @@ export class TransactionCategorizationService {
       historyDaysLimit = 90
     } = options;
     
-    // PASSO 0: Identificar Tipo de Movimento (DRE Reliability)
+    // 0. Detectar Tipo de Movimentação (PR4)
     const movementType = MovementTypeService.classify(context);
+    console.log(`[DEBUG] Movement Type: ${movementType} for description "${context.description}"`);
 
     const attemptedSources: string[] = [];
     let result: CategorizationResult | null = null;
@@ -304,8 +305,7 @@ export class TransactionCategorizationService {
     // PR1: Hardening Critical - Garantir threshold absoluto
     // Independente da fonte (AI, Regra, etc), se a confiança final for menor que o threshold,
     // forçar needsReview=true.
-    // [PR5 UPDATE] Exceto se o motivo já for uma violação contábil (hard constraint),
-    // caso em que mantemos o motivo específico.
+    
     if (finalOutcome.confidence < confidenceThreshold) {
       if (finalOutcome.reason?.code === 'ACCOUNTING_CONSISTENCY_VIOLATION') {
         finalOutcome = {
@@ -440,66 +440,74 @@ export class TransactionCategorizationService {
     companyId: string,
     movementType?: MovementType
   ): Promise<CategorizationResult | null> {
-    // Buscar todas as regras ativas da empresa
-    const activeRules = await db
-      .select()
-      .from(categoryRules)
-      .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
-      .where(
-        and(
-          eq(categoryRules.active, true),
-          eq(categoryRules.companyId, companyId),
-          sql`${categoryRules.status} IN ('active', 'refined', 'consolidated')`
-        )
-      );
+    try {
+      // 1. Buscar todas as regras ativas da empresa
+      const activeRules = await db
+        .select()
+        .from(categoryRules)
+        .innerJoin(categories, eq(categoryRules.categoryId, categories.id))
+        .where(
+          and(
+            eq(categoryRules.active, true),
+            eq(categoryRules.companyId, companyId),
+            // PR2: Apenas regras maduras ou aceitas (status allowed)
+             sql`${categoryRules.status} IN ('active', 'refined', 'consolidated')`
+          )
+        );
 
-    // PR4: Filtrar regras que violam restrições de tipo de movimento
-    // Isso evita que uma regra "burra" (ex: IOF -> Operacional) ganhe de uma "certa" (IOF -> Financeiro)
-    if (movementType) {
-      const allowedTypes = CategorizationValidators.getValidCategoryTypes(movementType);
-      const forbiddenGroups = CategorizationValidators.getForbiddenCategoryGroups(movementType);
-
-      // Filtrar em memória (já que fizemos o fetch join)
-      // Poderia ser no SQL, mas como rules.length é pequeno (<1000), memória é ok e mais seguro com tipos
-      const validRules = activeRules.filter(r => {
-        const cat = r.financeai_categories;
-        
-        // 1. Checar Whitelist de Tipos
-        if (allowedTypes.length > 0 && !allowedTypes.includes(cat.type)) {
-          return false;
-        }
-
-        // 2. Checar Blacklist de Grupos
-        if (cat.dreGroup && forbiddenGroups.includes(cat.dreGroup)) {
-          return false;
-        }
-
-        return true;
-      });
-
-      if (validRules.length === 0) return null;
+      // 2. Filtrar regras (Memória)
+      let validRules = activeRules;
       
+      // PR4: Filtrar regras que violam restrições de tipo de movimento
+      if (movementType) {
+        const allowedTypes = CategorizationValidators.getValidCategoryTypes(movementType);
+        const forbiddenGroups = CategorizationValidators.getForbiddenCategoryGroups(movementType);
+        
+        validRules = activeRules.filter(r => {
+          const cat = r.financeai_categories;
+          
+          // 1. Checar Whitelist de Tipos
+          if (allowedTypes && !allowedTypes.includes(cat.type as any)) {
+             return false;
+          }
+
+          // 2. Checar Blacklist de Grupos
+          if (forbiddenGroups.length > 0 && cat.dreGroup && forbiddenGroups.includes(cat.dreGroup)) {
+             return false;
+          }
+
+          return true;
+        });
+      }
+      
+      if (validRules.length === 0) return null;
+
+      // 3. Match Logic
       // Converter para formato CategoryRule
-      const rules: CategoryRule[] = validRules.map(r => r.financeai_category_rules);
+      const rulesToCheck: CategoryRule[] = validRules.map(r => r.financeai_category_rules);
       
       // Usar o sistema de scoring para encontrar a melhor regra
-      const bestMatch = RuleScoringService.findBestMatch(rules, context);
+      const bestMatch = RuleScoringService.findBestMatch(rulesToCheck, context);
 
-      if (!bestMatch) return null;
-
-      // Buscar nome da categoria
-      const category = validRules.find(r => r.financeai_category_rules.id === bestMatch.ruleId);
+      if (!bestMatch) {
+         return null;
+      }
+      
+      // Buscar info da categoria (já temos no join)
+      const ruleWithCategory = validRules.find(r => r.financeai_category_rules.id === bestMatch.ruleId);
+      const category = ruleWithCategory?.financeai_categories;
 
       if (!category) return null;
 
       // Registrar uso positivo da regra (atualiza contadores e avalia promoção)
+      // Não bloqueia o retorno
       RuleLifecycleService.recordPositiveUse(bestMatch.ruleId).catch(err => {
         console.warn('Failed to record positive rule use:', err);
       });
 
       return {
         categoryId: bestMatch.categoryId,
-        categoryName: category.financeai_categories.name,
+        categoryName: category.name,
         confidence: bestMatch.score,
         source: 'rule',
         ruleId: bestMatch.ruleId,
@@ -514,14 +522,11 @@ export class TransactionCategorizationService {
           scoringBreakdown: bestMatch.breakdown
         }
       };
-    }
 
-    // Fallback: Lógica legado sem filtro (caso movementType falhe ou não seja passado)
-    if (activeRules.length === 0) {
-      return null;
+    } catch (error) {
+       console.error('Error in tryRules:', error);
+       return null;
     }
-
-    const rules: CategoryRule[] = activeRules.map(r => r.financeai_category_rules);
   }
 
   /**

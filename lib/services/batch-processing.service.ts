@@ -205,7 +205,7 @@ export class BatchProcessingService {
               manuallyCategorized: false,
               verified: false,
               confidence: classificationResult.confidence.toString(),
-              reasoning: classificationResult.reasoning,
+              reasoning: classificationResult.reason ? JSON.stringify(classificationResult.reason) : classificationResult.reasoning,
               // Novos campos para rastreamento
               categorizationSource: classificationResult.source,
               ruleId: classificationResult.ruleId || null
@@ -338,6 +338,7 @@ export class BatchProcessingService {
     categoryName: string;
     confidence: number;
     reasoning: string;
+    reason?: any; // Structured reason
     source: string;
     ruleId?: string;
   }> {
@@ -374,6 +375,7 @@ export class BatchProcessingService {
         categoryName: result.categoryName,
         confidence: result.confidence,
         reasoning: result.reasoning || '',
+        reason: result.reason, // Passar o objeto estruturado
         source: result.source,
         ruleId: result.ruleId
       };
