@@ -307,6 +307,27 @@ export default class ExecutiveDashboardService {
             ))
             .groupBy(categories.dreGroup);
 
+        // Query for unclassified transactions (no category or category without dreGroup)
+        const unclassifiedResult = await db
+            .select({
+                amount: sum(sql`CASE WHEN type_to_sum = 'credit' THEN amount_to_sum ELSE -ABS(amount_to_sum) END`).mapWith(Number),
+            })
+            .from(this.getCombinedTransactionsSubquery())
+            .leftJoin(categories, eq(sql`combined_transactions.category_id`, categories.id))
+            .leftJoin(accounts, eq(sql`combined_transactions.account_id`, accounts.id))
+            .where(and(
+                sql`combined_transactions.transaction_date >= ${startDate}`,
+                sql`combined_transactions.transaction_date <= ${endDate}`,
+                filters.companyId && filters.companyId !== 'all' ? eq(accounts.companyId, filters.companyId) : undefined,
+                filters.accountId && filters.accountId !== 'all' ? sql`combined_transactions.account_id = ${filters.accountId}` : undefined,
+                sql`(${categories.dreGroup} IS NULL OR combined_transactions.category_id IS NULL)`,
+                // Exclude categories explicitly assigned to EMP/TRANSF groups
+                sql`(${categories.dreGroup} IS NULL OR ${categories.dreGroup} NOT IN ('EMP', 'TRANSF'))`,
+                getFinancialExclusionClause({ descriptionColumn: sql`combined_transactions.description` })
+            ));
+
+        const unclassifiedTotal = unclassifiedResult[0]?.amount || 0;
+
         // Build a map of actuals by group code
         const totals = new Map<string, number>();
         for (const item of actualsByGroup) {
@@ -351,6 +372,18 @@ export default class ExecutiveDashboardService {
             const orderB = DRE_GROUPS[b.group]?.order ?? 999;
             return orderA - orderB;
         });
+
+        // Append unclassified line if there are unclassified transactions
+        if (unclassifiedTotal !== 0) {
+            result.push({
+                group: 'NC',
+                label: 'Não classificado',
+                actual: unclassifiedTotal,
+                projected: 0,
+                variance: 0,
+                isDerived: false,
+            });
+        }
 
         return result;
     }
