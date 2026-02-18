@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getUsersWithCompanies, getCompanies } from '@/lib/actions/admin.actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Plus, Edit, Shield, Building2 } from 'lucide-react';
